@@ -88,25 +88,22 @@ Dans notre modèle, un train est représenté par un quadruplet $(id, pos, dir, 
     \item $marche$ : pas utilisé pour le moment (0: à l'arrêt, 1: en marche)
     \item $P$ : programme du train
 \end{itemize}
-Le programme $P$ du train obéit à la grammaire \ref{train}.
-Pour représenter l'ensemble des trains, on utilisera la notation $\Gamma$.
 
 \subsection{Représentation du régulateur}
-Le régulateur est représenté par un quadruplet $(J, A, E, W)$ où :
+Le régulateur est représenté par un quintuplet $(J, A, E, W, S)$ où :
 \begin{itemize}
     \item $J$ : tableau de jetons de taille $\#$voie
     \item $A$ : tableau des autorisations de taille $\#$train
     \item $E$ : événements du régulateur
     \item $W$ : file d'attente
+    \item $S$ : tableau des aiguillages
 \end{itemize}
-Un événement $E$ du régulateur obéit à la grammaire \ref{regulateur}
-Pour représenter le régulateur, on pourra substituer le quadruplet par la notation $R$.
 
 \subsection{Définition des prédicats et fonctions}
 
 \begin{itemize}
-    \item $suiv(pos, dir)$ : donne la position suivante du train selon sa direction
-    \\Si dir = * alors suiv(pos, dir) = pos 
+    \item $suiv(pos, dir, switch)$ : renvoi la position suivante 
+    \item $switchRes(id, switch)$ : vérifie si le train $id$ peut emprunter l'aiguillage $switch$
     \item $apply(ev)$ : applique l'événement $ev$ au régulateur : 
     \begin{itemize}
         \item incr(j) : incrémente la valeur du jeton $j$ de 1 et remet en marche le train bloqué
@@ -154,9 +151,12 @@ Pour représenter le régulateur, on pourra substituer le quadruplet par la nota
         \begin{algorithmic}[3]
         \If{R.E[ev].P = att(p, v)}
             \State att(p, v)
-        \ElsIf{R.E[ev.P] = incr(j)}
+        \ElsIf{R.E[ev].P = incr(j)}
             \State incr(j)
+        \ElsIf{R.E[ev].P = switch(id$_{switch}$, state)}  
+            \State turn(id$_{switch}$, state)
         \EndIf
+
         \If{R.E[ev].P = $\emptyset$} 
             pop(R.E[ev]) \Comment{Supprime l'event}
         \EndIf
@@ -183,7 +183,7 @@ Pour représenter le régulateur, on pourra substituer le quadruplet par la nota
 \begin{grammar}[Grammaire du régulateur][h][regulateur]
     \firstcasesubtil{R}{\varepsilon}{}
     \otherform{stmt || R}{}
-    \firstcasesubtil{stmt}{ev(id_{train}, pos) : atom}{}
+    \firstcasesubtil{stmt}{ev(id_{train}, pos, num_{event}) : atom}{}
     \firstcasesubtil{atom}{\concat{switch}{order}}{}
     \firstcasesubtil{switch}{\concat{turn(id_{switch}, state, id_{train})}{switch}}{}
     \otherform{\varepsilon}{}
@@ -214,28 +214,28 @@ Stop :
 
 Until :
 \inferrule
-    { suiv(pos, dir) = pos' \\ switchRes(id, switch) \\ N \neq pos' \\ R.A[id] \neq pos}
+    { suiv(pos, dir, R.S) = pos' \\ N \neq pos' \\ R.A[id] \neq pos \\ ev(id, pos') \notin R.E}
     {\trainfull{id}{pos}{dir}{\concat{Until(N)}{P'}}, R \Rightarrow \trainfull{id}{pos'}{dir}{\concat{Until(N)}{P'}}, R}
 \vspace{0.5cm}
 
 
 Until' :
     \inferrule
-        { suiv(pos, dir) = pos' \\ switchRes(id, switch) \\ R.A[id] \neq pos}
+        { suiv(pos, dir, R.S) = pos' \\ R.A[id] \neq pos \\ ev(id, pos') \notin R.E }
         {\trainfull{id}{pos}{dir}{\concat{Until(pos')}{P'}}, R \Rightarrow \trainfull{id}{pos'}{dir}{P'}, R}
 \vspace{0.5cm}
 
 
 Until$_{ev}$ :
     \inferrule
-    { suiv(pos, dir) = pos' \\ switchRes(id, switch) \\ N \neq pos' \\ R.A[id] \neq pos \\ ev(id, pos') \in R.E \\ apply(R, ev(id, pos)) = R'}
+    { suiv(pos, dir, R.S) = pos' \\ N \neq pos' \\ R.A[id] \neq pos \\ ev(id, pos') \in R.E \\ apply(R, ev(id, pos)) = R'}
     {\trainfull{id}{pos}{dir}{\concat{Until(N)}{P'}}, R \Rightarrow \trainfull{id}{pos'}{dir}{\concat{Until(N)}{P'}}, R'}
 \vspace{0.5cm}
 
 
 Until'$_{ev}$ :
     \inferrule
-        { suiv(pos, dir) = pos' \\ switchRes(id, switch) \\ R.A[id] \neq pos \\ ev(id, pos') \in R.E \\ apply(R, ev(id, pos)) = R'}
+        { suiv(pos, dir, R.S) = pos' \\ R.A[id] \neq pos \\ ev(id, pos') \in R.E \\ apply(R, ev(id, pos)) = R'}
         {\trainfull{id}{pos}{dir}{\concat{Until(pos')}{P'}}, R \Rightarrow \trainfull{id}{pos'}{dir}{P'}, R'}
 \vspace{0.5cm}
 
@@ -258,50 +258,6 @@ Until'$_{ev}$ :
 %    \inferrule
 %        {suiv(p, dir) = \emptyset \\ dir \neq * \\ R.A[id] \neq p}
 %        {\trainfull{id}{p}{dir}{P}, R \Rightarrow \bot}
-
-\newpage
-\section{Exemples}
-\subsection{Exemple 1}
-%%incruster une image jpg ci dessous
-\begin{figure}[h]
-    \centering
-    \includegraphics[width=0.5\textwidth]{img/ex1.jpg}
-    \caption{Exemple 1}
-    \label{fig:exemple1}
-\end{figure}
-Dans cette exemple, le carré rouge doit rejoindre la voie 3 et le triangle vert doit rejoindre la voie 1.
-\vspace{0.5cm}
-
-Car : \concat{Start(R)}{\concat{Until(3)}{Stop()}} |
-Tri : \concat{Start(L)}{\concat{Until(1)}{Stop()}} \\
-R.J : (0,0,0,0) | R.A : (3,4) | R.W : $\emptyset$
-\\ Start : \ruleStart{car}{1}{R} 
-\vspace{0.5cm} \\
-Car : \concat{Until(3)}{Stop()} 
-\\ Start : \ruleStart{tri}{4}{L} 
-\vspace{0.5cm}\\
-Tri : \concat{Until(1)}{Stop()} |
-\\ Wait : \ruleWait{tri}{4}{L}{2, 1} 
-\vspace{0.5cm}\\
-R.J : (0,0,0,0) | R.A : (3,-1) | R.W : (tri, 2, 1)
-\\ Until : \ruleUntil{car}{1}{R}{2}{3}
-\vspace{0.5cm}\\
- Until'$_{ev}$ : \ruleUntilConsEv{car}{2}{R}{3}
-\vspace{0.5cm}\\
-Car : Stop() |
-R.J : (0,1,0,0) | R.A : (3,1) | R.W : $\emptyset$
-\\ Stop : \ruleStop{car}{3}{R}
-\vspace{0.5cm}\\
-Car : $\emptyset$
-\\ Until : \ruleUntil{tri}{4}{L}{2}{1}
-\vspace{0.5cm}\\
-Tri : \concat{Until(1)}{Stop()}
-\\Until': \ruleUntilCons{tri}{2}{L}{1}
-\vspace{0.5cm}\\
-Tri : Stop()
-\\ Stop : \ruleStop{tri}{1}{L}
-\vspace{0.5cm}\\
-Tri : $\emptyset$
 
 
 \end{document}

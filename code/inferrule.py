@@ -1,6 +1,6 @@
 
 class Regul:
-    def __init__(self, nbJ, auths, circuit):
+    def __init__(self, nbJ, auths, circuit, aiguille):
         self.jetons = [0]*nbJ
         self.auths = auths
         self.ev = dict()
@@ -8,9 +8,10 @@ class Regul:
         self.nextEventNum = [0]*len(auths)
         self.waiting = dict()
         self.circuit = circuit
+        self.aiguilles = aiguille
 
     def __str__(self):
-        return f"J{self.jetons} A{self.auths} E{self.ev} W{self.waiting}"
+        return f"J{self.jetons} A{self.auths} \nE{self.ev} S{self.aiguilles} W{self.waiting}"
 
     def changeAuth(self, i, auth):
         self.auths[i] = auth
@@ -38,6 +39,12 @@ class Regul:
         if (id, pos, numEv) in self.ev:
             prog = self.ev[(id, pos, numEv)]
             return prog
+        
+    def getEvByNum(self, id, numEv):
+        if numEv < self.nbEv[id]:
+            for key in self.ev.keys():
+                if key[0] == id and key[2] == numEv:
+                    return self.ev[key], key[1]
     
     def supprEv(self, id, pos):
         numEv = self.nextEventNum[id]
@@ -73,26 +80,56 @@ class Train:
         
 ##### Utilitaires #####
 
-def suivant(pos,dir,circuit):
+#switch réservé 
+""" def switchRes(id_train, id_switch, reg):
+    if id_train in reg.aiguilles[id_switch]:
+        return True
+    return False """
+
+def suivant(pos,dir,reg):
+    circuit = reg.circuit
+    aiguille = reg.aiguilles
     concat = str(pos) + dir
     if concat in circuit:
-        return circuit[concat]
+        for neigh, switch in circuit[concat].items():
+            if switch is None:
+                return neigh #, None
+            
+            nbSwitchOk = 0
+            #switchID = []
+            for i in range(0, len(switch)):
+
+                num = switch[i][0]
+                val = switch[i][1]
+                #switchID.append(num)
+                if val != aiguille[num]:
+                    break
+                nbSwitchOk += 1
+            if nbSwitchOk == len(switch):
+                return neigh #, switchID
+    return None #, None
+
     
 def findById(id, gamma):
     if id in gamma:
         return gamma[id]
-        
-def nextEvent(id, R, T):
-    nextEv = R.nextEventNum[id]
-    if nextEv < R.nbEv[id]:
-        #rechercher le prochain event
-        for key in R.ev.keys():
-            if key[0] == id and key[2] == nextEv:
-                return key[1]
-    else:
-        for i in range(0, len(T.prog)):
-            if T.prog[i].startswith("Until"):
-                return int(T.prog[i][6])
+
+
+def nextAtt(T, R):
+    id_train = T.id
+    cpt = R.nextEventNum[id_train]
+    while cpt < R.nbEv[id_train]:
+        prog, pos_event = R.getEvByNum(id_train, cpt)
+        if prog is None:
+            return None
+        for instr in prog:
+            if instr.startswith("att"):
+                return pos_event
+        cpt += 1
+    #Pas de prochain event contenant "att", c'est qu'on peut aller à l'objectif
+    for i in range(len(T.prog)-1,-1,-1):
+        if T.prog[i].startswith("Until"):
+            return int(T.prog[i][6])
                  
 
 def apply(T, R, gamma):
@@ -108,14 +145,18 @@ def apply(T, R, gamma):
                 R.auths[id] = pos
                 R.addWait(id, wPos, wVal)
             else:
-                R.auths[id] = nextEvent(id, R, T)
+                R.auths[id] = nextAtt(T, R)
         elif prog[0].startswith("incr"):
             jeton = int(prog[0][5])
             R.incrJeton(jeton)
             w_id = R.supprWait(jeton, R.jetons[jeton])
             if w_id is not None:
                 T_w = findById(w_id, gamma)
-                R.auths[w_id] = nextEvent(w_id, R, T_w)
+                R.auths[w_id] = nextAtt(T_w, R)
+        elif prog[0].startswith("turn"):
+            id_switch = int(prog[0][5])
+            val_switch = prog[0][7]
+            R.aiguilles[id_switch] = val_switch
         else:
             break
         prog.pop(0)
@@ -142,10 +183,16 @@ def until(T, R):
     if T.nextProg() is None:
         return None
 
-    neigh = suivant(T.pos, T.dir, R.circuit)
+    #neigh, switch = suivant(T.pos, T.dir, R)
+    neigh = suivant(T.pos, T.dir, R)
+
+    """ resa = True # True si les aiguillage sont réservés pour le train T
+    if switch is not None:
+        for i in range(0, len(switch)):
+            resa = resa and switchRes(T.id, switch[i], R) """
     prog = T.nextProg()
     ev = R.getEv(T.id, neigh)
-    if ev is None: # Pas d'event
+    if ev is None and neigh is not None: # Pas d'event et un voisin
         if prog.startswith("Until") and neigh != int(prog[6]):
             if T.pos != neigh and R.auths[T.id] != T.pos:
                 T.pos = neigh
@@ -155,10 +202,17 @@ def until_cons(T,R):
     if T.nextProg() is None:
         return None
 
-    neigh = suivant(T.pos, T.dir, R.circuit)
+    #neigh, switch = suivant(T.pos, T.dir, R)
+    neigh = suivant(T.pos, T.dir, R)
+
+    """ resa = True # True si les aiguillage sont réservés pour le train T
+    if switch is not None:
+        for i in range(0, len(switch)):
+            resa = resa and switchRes(T.id, switch[i], R) """
+    
     prog = T.nextProg()
     ev = R.getEv(T.id, neigh)
-    if ev is None: # Pas d'event
+    if ev is None and neigh is not None: # Pas d'event et un voisin
         if prog.startswith("Until") and neigh == int(prog[6]):
             if T.pos != neigh and R.auths[T.id] != T.pos:
                 T.pos = neigh
@@ -168,10 +222,18 @@ def until_cons(T,R):
 def until_ev(T,R,gamma):
     if T.nextProg() is None:
         return None
-    neigh = suivant(T.pos, T.dir, R.circuit)
+
+    #neigh, switch = suivant(T.pos, T.dir, R)
+    neigh = suivant(T.pos, T.dir, R)
+
+    """ resa = True # True si les aiguillage sont réservés pour le train T
+    if switch is not None:
+        for i in range(0, len(switch)):
+            resa = resa and switchRes(T.id, switch[i], R) """
+
     prog = T.nextProg()
     ev = R.getEv(T.id, neigh)
-    if ev:
+    if ev and neigh is not None:
         if prog.startswith("Until") and neigh != int(prog[6]):
             if T.pos != neigh and R.auths[T.id] != T.pos:
                 T.pos = neigh
@@ -181,11 +243,18 @@ def until_ev(T,R,gamma):
 def until_cons_ev(T,R,gamma):
     if T.nextProg() is None:
         return None
+
+    #neigh, switch = suivant(T.pos, T.dir, R)
+    neigh = suivant(T.pos, T.dir, R)
+
+    """ resa = True # True si les aiguillage sont réservés pour le train T
+    if switch is not None:
+        for i in range(0, len(switch)):
+            resa = resa and switchRes(T.id, switch[i], R) """
     
-    neigh = suivant(T.pos, T.dir, R.circuit)
     prog = T.nextProg()
     ev = R.getEv(T.id, neigh)
-    if ev:
+    if ev and neigh is not None:
         if prog.startswith("Until") and neigh == int(prog[6]):
             if T.pos != neigh and R.auths[T.id] != T.pos:
                 T.pos = neigh
@@ -208,13 +277,18 @@ def crash(T, U):
 
 if __name__ == "__main__":
     circuit = {
-        "0R" : 1,
-        "1R" : 2,
-        "1L" : 0,
-        "2L" : 1,
-        "3L" : 1
+        "0R" : {1 : None},
+        "1R" : {2 : [(0,"d")], 3 : [(0,"v")]},
+        "1L" : {0 : None},
+        "2L" : {1 : [(0,"d")]},
+        "3L" : {1 : [(0,"v")]},
     }
-    reg = Regul(4, [2,3], circuit)
+    #Todo : changer suivant et switchRes
+    #Todo : modifier les règles Until
+
+    aig = ["d"]
+
+    reg = Regul(4, [2,3], circuit, aig)
     car = Train(0,0,["Start(R)","Until(2)","Stop()"])
     tri = Train(1,3,["Start(L)","Until(0)","Stop()"])
 
@@ -222,10 +296,11 @@ if __name__ == "__main__":
     Gamma[0] = car
     Gamma[1] = tri
 
-    reg.addEv(0,2,["incr(1)"])
+    reg.addEv(0,2,["incr(1)","turn(0,v)"])
     reg.addEv(1,3,["att(1,1)"])
 
-    print("-- Init --")
+
+"""     print("-- Init --")
     print(f"{reg}\n{car}\n{tri}")
 
     start(car)
@@ -234,13 +309,13 @@ if __name__ == "__main__":
     start(tri)
     print(f"{reg}\n{car}\n{tri}")
 
+    wait(tri, reg, Gamma)
+    print(f"{reg}\n{car}\n{tri}")
+
     until(car, reg)
     print(f"{reg}\n{car}\n{tri}")
 
     until_cons_ev(car, reg, Gamma)
-    print(f"{reg}\n{car}\n{tri}")
-
-    wait(tri, reg, Gamma)
     print(f"{reg}\n{car}\n{tri}")
 
     until(tri, reg)
@@ -253,4 +328,4 @@ if __name__ == "__main__":
     print(f"{reg}\n{car}\n{tri}")
 
     stop(car)
-    print(f"{reg}\n{car}\n{tri}")
+    print(f"{reg}\n{car}\n{tri}") """
