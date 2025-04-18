@@ -85,16 +85,16 @@ Dans notre modèle, un train est représenté par un quadruplet $(id, pos, dir, 
     \item $id$ : identifiant du train
     \item $pos$ : position du train 
     \item $dir$ : direction du train
-    \item $marche$ : pas utilisé pour le moment (0: à l'arrêt, 1: en marche)
     \item $P$ : programme du train
 \end{itemize}
 
 \subsection{Représentation du régulateur}
-Le régulateur est représenté par un quintuplet $(J, A, E, W, S)$ où :
+Le régulateur est représenté par un sextuplet $(J, A, E, N_e, W, S)$ où :
 \begin{itemize}
-    \item $J$ : tableau de jetons de taille $\#$voie
-    \item $A$ : tableau des autorisations de taille $\#$train
+    \item $J$ : tableau de jetons
+    \item $A$ : tableau des autorisations
     \item $E$ : événements du régulateur
+    \item $N_e$ : tableau des numéros des prochains événements
     \item $W$ : file d'attente
     \item $S$ : tableau des aiguillages
 \end{itemize}
@@ -170,10 +170,9 @@ Le régulateur est représenté par un quintuplet $(J, A, E, W, S)$ où :
 
 
 \begin{grammar}[Grammaire des trains][h][train]
-    \firstcasesubtil{T}{seq}{}
-    \otherform{\concat{seq}{T}}{}
+    \firstcasesubtil{T}{\concat{seq}{T}}{}
     \otherform{\varepsilon }{}
-    \firstcasesubtil{seq}{\concat{\concat{Start(D)}{Until(N)}}{Stop()}}{}
+    \firstcasesubtil{seq}{StartUntil(D,N)}{}
     \firstcasesubtil{D}{L \gralt R}{}
     \firstcasesubtil{N}{0 \gralt 1 \gralt ... \gralt 8}{} 
 \end{grammar}
@@ -185,11 +184,10 @@ Le régulateur est représenté par un quintuplet $(J, A, E, W, S)$ où :
     \otherform{stmt || R}{}
     \firstcasesubtil{stmt}{ev(id_{train}, pos, num_{event}) : atom}{}
     \firstcasesubtil{atom}{\concat{switch}{order}}{}
-    \firstcasesubtil{switch}{\concat{turn(id_{switch}, state, id_{train})}{switch}}{}
+    \firstcasesubtil{switch}{\concat{turn(id_{switch}, state)}{switch}}{}
     \otherform{\varepsilon}{}
     \firstcasesubtil{order}{incr(j) \gralt att(j, value_{j})}{}
     \otherform{\concat{incr(j)}{att(j', value_{j'})}}{}
-
 \end{grammar}
 
 %%%%%% Règles %%%%%%
@@ -200,43 +198,43 @@ Le régulateur est représenté par un quintuplet $(J, A, E, W, S)$ où :
 
 Start : 
 \inferrule
-    { }
-    {\trainfull{id}{pos}{*}{\concat{Start(D)}{P'}}, R \Rightarrow \trainfull{id}{pos}{D}{P'}, R} 
+    { dir \neq D}
+    {\trainfull{id}{pos}{dir}{\concat{SU(D,N)}{P'}}, R \Rightarrow \trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}, R} 
 \vspace{0.5cm}
 
 
 Stop :
 \inferrule
-    { }
-    {\trainfull{id}{pos}{dir}{\concat{Stop()}{P'}}, R \Rightarrow \trainfull{id}{pos}{*}{P'}, R} 
+    { P = \varepsilon \\ dir \neq *}
+    {\trainfull{id}{pos}{dir}{P}, R \Rightarrow \trainfull{id}{pos}{*}{P}, R} 
 \vspace{0.5cm}
 
 
 Until :
 \inferrule
-    { suiv(pos, dir, R.S) = pos' \\ N \neq pos' \\ R.A[id] \neq pos \\ ev(id, pos') \notin R.E}
-    {\trainfull{id}{pos}{dir}{\concat{Until(N)}{P'}}, R \Rightarrow \trainfull{id}{pos'}{dir}{\concat{Until(N)}{P'}}, R}
+    { suiv(pos, D, R.S) = pos' \\ N \neq pos' \\ R.A[id] \neq pos \\ ev(id, pos') \notin R.E}
+    {\trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}, R \Rightarrow \trainfull{id}{pos'}{D}{\concat{SU(N)}{P'}}, R}
 \vspace{0.5cm}
 
 
 Until' :
     \inferrule
-        { suiv(pos, dir, R.S) = pos' \\ R.A[id] \neq pos \\ ev(id, pos') \notin R.E }
-        {\trainfull{id}{pos}{dir}{\concat{Until(pos')}{P'}}, R \Rightarrow \trainfull{id}{pos'}{dir}{P'}, R}
+        { suiv(pos, D, R.S) = pos' \\ R.A[id] \neq pos \\ ev(id, pos') \notin R.E }
+        {\trainfull{id}{pos}{D}{\concat{SU(D,pos')}{P'}}, R \Rightarrow \trainfull{id}{pos'}{D}{P'}, R}
 \vspace{0.5cm}
 
 
 Until$_{ev}$ :
     \inferrule
-    { suiv(pos, dir, R.S) = pos' \\ N \neq pos' \\ R.A[id] \neq pos \\ ev(id, pos') \in R.E \\ apply(R, ev(id, pos)) = R'}
-    {\trainfull{id}{pos}{dir}{\concat{Until(N)}{P'}}, R \Rightarrow \trainfull{id}{pos'}{dir}{\concat{Until(N)}{P'}}, R'}
+    { suiv(pos, D, R.S) = pos' \\ N \neq pos' \\ R.A[id] \neq pos \\ ev(id, pos') \in R.E \\ apply(R, ev(id, pos)) = R'}
+    {\trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}, R \Rightarrow \trainfull{id}{pos'}{D}{\concat{SU(U,N)}{P'}}, R'}
 \vspace{0.5cm}
 
 
 Until'$_{ev}$ :
     \inferrule
-        { suiv(pos, dir, R.S) = pos' \\ R.A[id] \neq pos \\ ev(id, pos') \in R.E \\ apply(R, ev(id, pos)) = R'}
-        {\trainfull{id}{pos}{dir}{\concat{Until(pos')}{P'}}, R \Rightarrow \trainfull{id}{pos'}{dir}{P'}, R'}
+        { suiv(pos, D, R.S) = pos' \\ R.A[id] \neq pos \\ ev(id, pos') \in R.E \\ apply(R, ev(id, pos)) = R'}
+        {\trainfull{id}{pos}{D}{\concat{SU(D,pos')}{P'}}, R \Rightarrow \trainfull{id}{pos'}{D}{P'}, R'}
 \vspace{0.5cm}
 
 %Wait :

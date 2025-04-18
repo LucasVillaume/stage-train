@@ -153,8 +153,15 @@ class Simulation:
 
 
 
+
+
+
 ### Scenario manager
                             
+
+
+
+
 
 def loadScenar(gamma, reg, objectif, nom):
     sim = Simulation(reg.circuit, gamma, reg, regles)
@@ -192,8 +199,8 @@ def scenar1(name="goodEnding"):
     aig = ["d"]
 
     reg = ir.Regul(4, [2,3], circuit, aig)
-    car = ir.Train(0,0,["Start(R)","Until(2)","Stop()"])
-    tri = ir.Train(1,3,["Start(L)","Until(0)","Stop()"])
+    car = ir.Train(0,0,["StartUntil(R,2)"])
+    tri = ir.Train(1,3,["StartUntil(L,0)"])
 
     Gamma = dict()
     Gamma[0] = car
@@ -223,8 +230,8 @@ def scenar2(name="deadlock"):
     aig = [("d",0)]
 
     reg = ir.Regul(5, [3,4], circuit, aig)
-    car = ir.Train(0,0,["Start(R)","Until(3)","Stop()"])
-    tri = ir.Train(1,4,["Start(L)","Until(0)","Stop()"])
+    car = ir.Train(0,0,["StartUntil(R,3)"])
+    tri = ir.Train(1,4,["StartUntil(L,0)"])
 
     Gamma = dict()
     Gamma[0] = car
@@ -263,8 +270,8 @@ def scenar3(name="collision"):
     reg.addEv(1,2,["turn(0,v)"])
 
     gamma = {
-        0: ir.Train(0,9,["Start(R)","Until(3)","Stop()"]),
-        1: ir.Train(1,5,["Start(L)","Until(1)","Stop()"]),
+        0: ir.Train(0,9,["StartUntil(R,3)"]),
+        1: ir.Train(1,5,["StartUntil(L,1)"]),
     }
 
     objectif = ["3/*", "1/*"]
@@ -307,8 +314,8 @@ def scenar4(name="maquette"):
     reg.addEv(0,6,["incr(2)"])
 
     Gamma = {
-        0: ir.Train(0,3,["Start(L)","Until(7)","Stop()","Start(R)","Until(2)","Stop()","Start(L)","Until(6)","Stop()"]),
-        1: ir.Train(1,4,["Start(R)","Until(3)","Stop()","Start(L)","Until(2)","Stop()"]),
+        0: ir.Train(0,3,["StartUntil(L,7)","StartUntil(R,2)","StartUntil(L,6)"]),
+        1: ir.Train(1,4,["StartUntil(R,3)","StartUntil(L,2)"]),
     }
 
     objectif = ["6/*", "2/*"]
@@ -409,9 +416,9 @@ def scenar7(name="threesome"):
     reg.addEv(1,2,["turn(0,v)"])
 
     gamma = {
-        0: ir.Train(0,9,["Start(R)","Until(3)","Stop()"]),
-        1: ir.Train(1,5,["Start(L)","Until(1)","Stop()"]),
-        2: ir.Train(2,3,["Start(L)","Until(9)","Stop()"]),
+        0: ir.Train(0,9,["StartUntil(R,3)"]),
+        1: ir.Train(1,5,["StartUntil(L,1)"]),
+        2: ir.Train(2,3,["StartUntil(L,9)"]),
     }
 
     objectif = ["3/*", "1/*", "9/*"]
@@ -519,4 +526,4 @@ def miniscenar4(name="deadlockRegulateur"):
 
 regles = [ir.start, ir.until, ir.until_cons, ir.until_ev ,ir.until_cons_ev, ir.wait, ir.stop]
 
-loadScenar(*miniscenar2())
+loadScenar(*scenar7())

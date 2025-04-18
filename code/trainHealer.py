@@ -1,4 +1,5 @@
 import inferrule as ir
+import re
 
 
 class Bob:
@@ -48,6 +49,14 @@ class Bob:
                             pb += f"train {str(train.id)} : mauvaise direction OU problème d'aiguillage, le train à pris le mauvais chemin"
             deadlocks.append(pb)
         return deadlocks
+    
+    def loadFromString(self, string, circuit, objectifs):
+        decomp = string.split("\n")
+        reg = ir.Regul(0, [], circuit, [])
+
+        #Jetons
+        jetons_str = re.findAll(r"J\[[0-9,]*\]",decomp[-2])[0]
+
 
 
 if __name__ == "__main__":
