@@ -1,0 +1,307 @@
+\documentclass[12pt]{article}
+\usepackage{package/formal-grammar}
+\usepackage{package/mathpartir}
+\usepackage{package/algorithm}
+\usepackage{package/algpseudocode}
+\usepackage{graphicx}
+
+
+
+\title{Brouillon règles}
+\author{}
+
+\begin{document}
+
+%%%%% Macro %%%%%%%
+\newcommand\concat[2]{#1;#2}
+\newcommand\train[4]{(#1, #2, #3, #4)}
+\newcommand\trainfull[4]{\Gamma \cup \train{#1}{#2}{#3}{#4}}
+ 
+
+\newcommand\ruleStart[3]{ %1 id, 2 pos, 3 D
+    \inferrule
+    { }
+    {\trainfull{#1}{#2}{*}{\concat{Start(#3)}{P'}}, R \Rightarrow \trainfull{#1}{#2}{#3}{P'}, R} 
+}
+
+\newcommand\ruleStop[3]{ %1 id, 2 pos, 3 dir
+    \inferrule
+    { }
+    {\trainfull{#1}{#2}{#3}{\concat{Stop()}{P'}}, R \Rightarrow \trainfull{#1}{#2}{*}{P'}, R} 
+}
+
+\newcommand\ruleUntil[5]{ %1 id, 2 pos, 3 dir, 4 pos', 5 N
+    \inferrule
+    { suiv(#2, #3) = #4 \\ #2 \neq #4 \\ R.A[#1] \neq #2}
+    {\trainfull{#1}{#2}{#3}{\concat{Until(#5)}{P'}}, R \Rightarrow \trainfull{#1}{#4}{#3}{\concat{Until(#5)}{P'}}, R}
+}
+
+
+\newcommand\ruleUntilCons[4]{ %1 id, 2 pos, 3 dir, 4 pos'
+    \inferrule
+    { suiv(#2, #3) = #4 \\ #2 \neq #4 \\ R.A[#1] \neq #2}
+    {\trainfull{#1}{#2}{#3}{\concat{Until(#4)}{P'}}, R \Rightarrow \trainfull{#1}{#4}{#3}{P'}, R}
+}
+
+\newcommand\ruleUntilEv[5]{ %1 id, 2 pos, 3 dir, 4 pos', 5 N
+    \inferrule
+    { suiv(#2, #3) = #4 \\ #2 \neq #4 \\ R.A[#1] \neq #2 \\ ev(#1, #4) \in R.E \\ apply(R, ev(#1, #4)) = R'}
+    {\trainfull{#1}{#2}{#3}{\concat{Until(#5)}{P'}}, R \Rightarrow \trainfull{#1}{#4}{#3}{\concat{Until(#5)}{P'}}, R'}
+}
+
+\newcommand\ruleUntilConsEv[4]{ %1 id, 2 pos, 3 dir, 4 pos'
+    \inferrule
+    { suiv(#2, #3) = #4 \\ #2 \neq #4 \\ R.A[#1] \neq #2 \\ ev(#1, #4) \in R.E \\ apply(R, ev(#1, #4)) = R'}
+    {\trainfull{#1}{#2}{#3}{\concat{Until(#4)}{P'}}, R \Rightarrow \trainfull{#1}{#4}{#3}{P'}, R'}
+}
+
+\newcommand\ruleWait[4]{ %1 id, 2 pos, 3 dir, 4 x,y
+    \inferrule
+    {R.A[#1] = #2 \\ ev(#1,#2) \in R.E \\ R.E[ev[#1, #2]].P = att(#4)  \\ apply(R, ev(#1, #2)) = R'}
+    {\trainfull{#1}{#2}{#3}{P}, R \Rightarrow \trainfull{#1}{#2}{#3}{P}, R'}
+}
+
+\newcommand\ruleCrash[2]{ %1 id, 2 id'
+    \inferrule
+        {#1 \neq #2}
+        {\Gamma, \train{#1}{pos}{dir}{P}, \train{#2}{pos}{dir'}{P'}  \Rightarrow \bot}
+}
+
+\newcommand\ruleCrashSec[3]{ %1 id, 2 pos, 3 dir
+    \inferrule
+        {\lnot suiv(#2, #3) = \emptyset \\ #3 \neq * \\ R.A[#1] \neq #2}
+        {\trainfull{#1}{#2}{#3}{P}, R \Rightarrow \bot}
+}
+
+
+\maketitle
+
+
+\section{Définition}
+
+\subsection{Représentation du train}
+Dans notre modèle, un train est représenté par un quadruplet $(id, pos, dir, P)$ où :
+\begin{itemize}
+    \item $id$ : identifiant du train
+    \item $pos$ : position du train 
+    \item $dir$ : direction du train
+    \item $marche$ : pas utilisé pour le moment (0: à l'arrêt, 1: en marche)
+    \item $P$ : programme du train
+\end{itemize}
+Le programme $P$ du train obéit à la grammaire \ref{train}.
+Pour représenter l'ensemble des trains, on utilisera la notation $\Gamma$.
+
+\subsection{Représentation du régulateur}
+Le régulateur est représenté par un quadruplet $(J, A, E, W)$ où :
+\begin{itemize}
+    \item $J$ : tableau de jetons de taille $\#$voie
+    \item $A$ : tableau des autorisations de taille $\#$train
+    \item $E$ : événements du régulateur
+    \item $W$ : file d'attente
+\end{itemize}
+Un événement $E$ du régulateur obéit à la grammaire \ref{regulateur}
+Pour représenter le régulateur, on pourra substituer le quadruplet par la notation $R$.
+
+\subsection{Définition des prédicats et fonctions}
+
+\begin{itemize}
+    \item $suiv(pos, dir)$ : donne la position suivante du train selon sa direction
+    \\Si dir = * alors suiv(pos, dir) = pos 
+    \item $apply(ev)$ : applique l'événement $ev$ au régulateur : 
+    \begin{itemize}
+        \item incr(j) : incrémente la valeur du jeton $j$ de 1 et remet en marche le train bloqué
+        \item att(p, v) : mets le train en attente du jeton de valeur $v$ pour le canton $p$
+    \end{itemize}
+\end{itemize}
+
+%Pseudocode pour les fonctions du régulateur
+\begin{algorithm}
+\caption{Fonction incr}
+    \begin{algorithmic}[1]
+        \Function{incr}{j} \Comment{j : index du jeton}
+            \State R.J[j] $\gets$ R.J[j] + 1
+            \State $id \gets waiting(j,J[j])$ \Comment{Cherche l'id du train en attente}
+            \If{$id \neq \emptyset$}
+                \State delete(R.W, (j,J[j])) \Comment{Supprime le triplet de W}
+                \State $R.A[id] \gets nextEvent(id)$ \Comment{Si nextEvent vide, alors until} 
+                %Si nextEvent(id) est vide, alors on prend le numéro du prochian until
+                %transformer nextEvent en nextAtt : en gros, on cherche le prochain event à avoir un att (si pas, alors prochain until)
+            \EndIf
+            \State pop(R.E[ev].P) \Comment{Dépile l'ordre de l'event}
+        \EndFunction
+    \end{algorithmic}
+\end{algorithm}
+
+
+\begin{algorithm}
+    \caption{Fonction att}
+        \begin{algorithmic}[2]
+        \Function{att}{p, v} \Comment{p : position, v : valeur du veton}
+            \If{R.J[p] $\neq$ v}
+                \State R.A[p] $\gets$ -1
+                \State R.W $\gets$ \concat{R.W}{(id, p, v)} \Comment{id issue de event (le passer en arg ?)}
+            \Else \Comment{R.J[p] = v}
+                \State R.A[p] $\gets$ nextEvent(id)
+            \EndIf
+            \State pop(R.E[ev].P) \Comment{Dépile l'ordre de l'event}
+        \EndFunction
+    \end{algorithmic}
+\end{algorithm}
+
+
+\begin{algorithm}
+    \caption{Fonction apply}
+        \begin{algorithmic}[3]
+        \If{R.E[ev].P = att(p, v)}
+            \State att(p, v)
+        \ElsIf{R.E[ev.P] = incr(j)}
+            \State incr(j)
+        \EndIf
+        \If{R.E[ev].P = $\emptyset$} 
+            pop(R.E[ev]) \Comment{Supprime l'event}
+        \EndIf
+    \end{algorithmic}
+\end{algorithm}
+
+%%%%% Grammaire %%%%%%
+
+\section{Grammaire}
+
+
+
+\begin{grammar}[Grammaire des trains][h][train]
+    \firstcasesubtil{T}{seq}{}
+    \otherform{\concat{seq}{T}}{}
+    \otherform{\varepsilon }{}
+    \firstcasesubtil{seq}{\concat{\concat{Start(D)}{Until(N)}}{Stop()}}{}
+    \firstcasesubtil{D}{L \gralt R}{}
+    \firstcasesubtil{N}{0 \gralt 1 \gralt ... \gralt 8}{} 
+\end{grammar}
+
+\vspace{0.5cm}
+
+\begin{grammar}[Grammaire du régulateur][h][regulateur]
+    \firstcasesubtil{R}{\varepsilon}{}
+    \otherform{stmt || R}{}
+    \firstcasesubtil{stmt}{ev(id_{train}, pos) : atom}{}
+    \firstcasesubtil{atom}{\concat{switch}{order}}{}
+    \firstcasesubtil{switch}{\concat{turn(id_{switch}, state, id_{train})}{switch}}{}
+    \otherform{\varepsilon}{}
+    \firstcasesubtil{order}{incr(j) \gralt att(j, value_{j})}{}
+    \otherform{\concat{incr(j)}{att(j', value_{j'})}}{}
+
+\end{grammar}
+
+%%%%%% Règles %%%%%%
+
+\newpage
+\section{Règles}
+
+
+Start : 
+\inferrule
+    { }
+    {\trainfull{id}{pos}{*}{\concat{Start(D)}{P'}}, R \Rightarrow \trainfull{id}{pos}{D}{P'}, R} 
+\vspace{0.5cm}
+
+
+Stop :
+\inferrule
+    { }
+    {\trainfull{id}{pos}{dir}{\concat{Stop()}{P'}}, R \Rightarrow \trainfull{id}{pos}{*}{P'}, R} 
+\vspace{0.5cm}
+
+
+Until :
+\inferrule
+    { suiv(pos, dir) = pos' \\ switchRes(id, switch) \\ N \neq pos' \\ R.A[id] \neq pos}
+    {\trainfull{id}{pos}{dir}{\concat{Until(N)}{P'}}, R \Rightarrow \trainfull{id}{pos'}{dir}{\concat{Until(N)}{P'}}, R}
+\vspace{0.5cm}
+
+
+Until' :
+    \inferrule
+        { suiv(pos, dir) = pos' \\ switchRes(id, switch) \\ R.A[id] \neq pos}
+        {\trainfull{id}{pos}{dir}{\concat{Until(pos')}{P'}}, R \Rightarrow \trainfull{id}{pos'}{dir}{P'}, R}
+\vspace{0.5cm}
+
+
+Until$_{ev}$ :
+    \inferrule
+    { suiv(pos, dir) = pos' \\ switchRes(id, switch) \\ N \neq pos' \\ R.A[id] \neq pos \\ ev(id, pos') \in R.E \\ apply(R, ev(id, pos)) = R'}
+    {\trainfull{id}{pos}{dir}{\concat{Until(N)}{P'}}, R \Rightarrow \trainfull{id}{pos'}{dir}{\concat{Until(N)}{P'}}, R'}
+\vspace{0.5cm}
+
+
+Until'$_{ev}$ :
+    \inferrule
+        { suiv(pos, dir) = pos' \\ switchRes(id, switch) \\ R.A[id] \neq pos \\ ev(id, pos') \in R.E \\ apply(R, ev(id, pos)) = R'}
+        {\trainfull{id}{pos}{dir}{\concat{Until(pos')}{P'}}, R \Rightarrow \trainfull{id}{pos'}{dir}{P'}, R'}
+\vspace{0.5cm}
+
+%Wait :
+%    \inferrule
+%    {R.A[id] = pos \\ ev(id,pos) \in R.E \\ R.E[ev[id, pos]].P = att(x,y)  \\ apply(R, ev(id, pos)) = R'}
+%    {\trainfull{id}{pos}{dir}{P}, R \Rightarrow \trainfull{id}{pos}{dir}{P}, R'}
+%\\
+%La règle Wait traite le cas particulier où le train démarre et doit directement attendre. Peut la simplifier.
+%\vspace{0.5cm}
+
+%Crash : %en suspend
+%    \inferrule
+%        {id \neq id'}
+%        {\Gamma, \train{id}{pos}{dir}{P}, \train{id'}{pos}{dir'}{P'}  \Rightarrow \bot}
+%\vspace{0.5cm}
+
+
+%Crash': %en suspend
+%    \inferrule
+%        {suiv(p, dir) = \emptyset \\ dir \neq * \\ R.A[id] \neq p}
+%        {\trainfull{id}{p}{dir}{P}, R \Rightarrow \bot}
+
+\newpage
+\section{Exemples}
+\subsection{Exemple 1}
+%%incruster une image jpg ci dessous
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{img/ex1.jpg}
+    \caption{Exemple 1}
+    \label{fig:exemple1}
+\end{figure}
+Dans cette exemple, le carré rouge doit rejoindre la voie 3 et le triangle vert doit rejoindre la voie 1.
+\vspace{0.5cm}
+
+Car : \concat{Start(R)}{\concat{Until(3)}{Stop()}} |
+Tri : \concat{Start(L)}{\concat{Until(1)}{Stop()}} \\
+R.J : (0,0,0,0) | R.A : (3,4) | R.W : $\emptyset$
+\\ Start : \ruleStart{car}{1}{R} 
+\vspace{0.5cm} \\
+Car : \concat{Until(3)}{Stop()} 
+\\ Start : \ruleStart{tri}{4}{L} 
+\vspace{0.5cm}\\
+Tri : \concat{Until(1)}{Stop()} |
+\\ Wait : \ruleWait{tri}{4}{L}{2, 1} 
+\vspace{0.5cm}\\
+R.J : (0,0,0,0) | R.A : (3,-1) | R.W : (tri, 2, 1)
+\\ Until : \ruleUntil{car}{1}{R}{2}{3}
+\vspace{0.5cm}\\
+ Until'$_{ev}$ : \ruleUntilConsEv{car}{2}{R}{3}
+\vspace{0.5cm}\\
+Car : Stop() |
+R.J : (0,1,0,0) | R.A : (3,1) | R.W : $\emptyset$
+\\ Stop : \ruleStop{car}{3}{R}
+\vspace{0.5cm}\\
+Car : $\emptyset$
+\\ Until : \ruleUntil{tri}{4}{L}{2}{1}
+\vspace{0.5cm}\\
+Tri : \concat{Until(1)}{Stop()}
+\\Until': \ruleUntilCons{tri}{2}{L}{1}
+\vspace{0.5cm}\\
+Tri : Stop()
+\\ Stop : \ruleStop{tri}{1}{L}
+\vspace{0.5cm}\\
+Tri : $\emptyset$
+
+
+\end{document}
