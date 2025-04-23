@@ -1,3 +1,6 @@
 - passe de Start/Until/Stop à StartUntil :
     programme du train toujours composé de séquence Start/Until/Stop, plus pratique 
     d'avoir une commade faisant les trois (juste adapter les règles)
+
+- un évènement par tronçon (même si ev vide) :
+    permet d'unifier until et until_ev, et donc d'avoir moins de règles

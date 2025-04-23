@@ -136,33 +136,35 @@ def apply(T, R, gamma):
     id = T.id
     pos = T.pos
     prog = R.getEv(id, pos)
-    R.supprEv(id, pos)
-    while prog:
-        #On applique l'instruction att(jeton, valueJeton)
-        if prog[0].startswith("att"):
-            wPos = int(prog[0][4])
-            wVal = int(prog[0][6])
-            if R.jetons[wPos] != wVal:
-                R.auths[id] = pos
-                R.addWait(id, wPos, wVal)
+    
+    if prog is not None:
+        R.supprEv(id, pos)
+        while prog:
+            #On applique l'instruction att(jeton, valueJeton)
+            if prog[0].startswith("att"):
+                wPos = int(prog[0][4])
+                wVal = int(prog[0][6])
+                if R.jetons[wPos] != wVal:
+                    R.auths[id] = pos
+                    R.addWait(id, wPos, wVal)
+                else:
+                    R.auths[id] = nextAtt(T, R)
+            #On applique l'instruction incr(jeton)
+            elif prog[0].startswith("incr"):
+                jeton = int(prog[0][5])
+                R.incrJeton(jeton)
+                w_id = R.supprWait(jeton, R.jetons[jeton])
+                if w_id is not None:
+                    T_w = findById(w_id, gamma)
+                    R.auths[w_id] = nextAtt(T_w, R)
+            #On applique l'instruction turn(idSwitch, valueSwitch)
+            elif prog[0].startswith("turn"):
+                id_switch = int(prog[0][5])
+                val_switch = prog[0][7]
+                R.aiguilles[id_switch] = val_switch
             else:
-                R.auths[id] = nextAtt(T, R)
-        #On applique l'instruction incr(jeton)
-        elif prog[0].startswith("incr"):
-            jeton = int(prog[0][5])
-            R.incrJeton(jeton)
-            w_id = R.supprWait(jeton, R.jetons[jeton])
-            if w_id is not None:
-                T_w = findById(w_id, gamma)
-                R.auths[w_id] = nextAtt(T_w, R)
-        #On applique l'instruction turn(idSwitch, valueSwitch)
-        elif prog[0].startswith("turn"):
-            id_switch = int(prog[0][5])
-            val_switch = prog[0][7]
-            R.aiguilles[id_switch] = val_switch
-        else:
-            break
-        prog.pop(0)
+                break
+            prog.pop(0)
 
 ###### Regles ######
 
@@ -182,7 +184,7 @@ def stop(T):
         T.dir = "*"
         return True
     
-def until(T, R):
+"""def until(T, R):
     if T.nextProg() is None:
         return None
 
@@ -212,7 +214,7 @@ def until_cons(T,R):
             if T.pos != neigh and R.auths[T.id] != T.pos and T.dir == args[0]:
                 T.pos = neigh
                 T.depileProg()
-                return True
+                return True"""
         
 def until_ev(T,R,gamma):
     if T.nextProg() is None:
@@ -222,9 +224,10 @@ def until_ev(T,R,gamma):
     prog = T.nextProg()
     #args = [dir, pos] de StartUntil(dir, pos)
     args = re.findall(r"[0-9]+|[LR*]", prog)
-    ev = R.getEv(T.id, neigh)
+    #ev = R.getEv(T.id, neigh)
 
-    if ev and neigh is not None:
+    #if ev and 
+    if neigh is not None:
         if prog.startswith("StartUntil") and neigh != int(args[1]):
             if T.pos != neigh and R.auths[T.id] != T.pos and T.dir == args[0]:
                 T.pos = neigh
@@ -239,9 +242,10 @@ def until_cons_ev(T,R,gamma):
     prog = T.nextProg()
     #args = [dir, pos] de StartUntil(dir, pos)
     args = re.findall(r"[0-9]+|[LR*]", prog)
-    ev = R.getEv(T.id, neigh)
+    #ev = R.getEv(T.id, neigh)
 
-    if ev and neigh is not None:
+    #if ev and 
+    if neigh is not None:
         if prog.startswith("StartUntil") and neigh == int(args[1]):
             if T.pos != neigh and R.auths[T.id] != T.pos and T.dir == args[0]:
                 T.pos = neigh
