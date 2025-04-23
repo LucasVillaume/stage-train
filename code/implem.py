@@ -39,6 +39,7 @@ class Simulation:
         self.baseState = Etat(trains, regulateur)
         self.rules = rules
         self.world = {} # graphe d'intéraction
+        self.parents = {} # graphe enfant : parents
         self.states = {} # Dictionnaire des états
         self.queue = []
         self.collision = False
@@ -84,7 +85,7 @@ class Simulation:
     def startSim(self):
         self.queue.append(self.baseState)
         self.world[str(self.baseState)] = {}
-        self.states[str(self.baseState)] = ""
+        self.parents[str(self.baseState)] = {""}
 
         while self.queue:
             currentState = self.queue.pop(0)
@@ -100,7 +101,9 @@ class Simulation:
                                     self.states[str(etatPrime)] = "red"
                                     
                                 self.world[str(etatPrime)] = {}
+                                self.parents[str(etatPrime)] = {}
                             self.world[str(currentState)][str(etatPrime)] = f"{rule.__name__} on {train.id}"
+                            self.parents[str(etatPrime)][str(currentState)] = f"{rule.__name__} on {train.id}"
 
         return True
     
@@ -122,7 +125,118 @@ class Simulation:
                             self.deadlock = True
 
 
+    def blacklist(self):
+        """
+        Renvoi les états à ne pas afficher dans le graphe
+        """
+        blacklist = []
+        pile = [str(self.baseState)]
+        while pile:
+            current = pile.pop(0)
+            if current not in blacklist:
+                suppr = True
+                for parent in self.parents[current]:
+                    if parent not in blacklist and parent not in self.states:
+                        suppr = False
+                if suppr: #Si tous les parents sont dans la blacklists ou possèdent un statut
+                    blacklist.append(current)
+            for child in self.world[current]:
+                pile.append(child)
+        return set(blacklist)
+
+        
+    
+    #Convertir le dictionnaire en format DOT
     def translateDOT(self, name="world"):
+        #chercher des blocages
+        self.search_deadlock()
+
+        blacklist = self.blacklist()
+        dot = "digraph {\nnode [style = filled]\n"
+
+        for state, color in self.states.items():
+            if state not in blacklist:
+                if color == "red":
+                    dot += f'    "{state}" [fillcolor="#ff4747"];\n'
+                elif color == "yellow":
+                    dot += f'    "{state}" [fillcolor="yellow"];\n'
+                elif color == "blue":
+                    dot += f'    "{state}" [fillcolor="blue"];\n'
+
+
+
+        for base, value in self.world.items():
+            #si l'état n'est pas un satut (crash ou deadlock)
+            if base not in blacklist and base not in self.states:
+                for prime, rule in value.items():
+                    dot += f'    "{base}" -> "{prime}" [label="{rule}"];\n'
+
+        dot += "}"   
+        #Enregistrer le fichier DOT
+        with open(name+".dot", "w") as file:
+            file.write(dot)
+            subprocess.run(["dot", "-Tsvg", name+".dot", "-o", name+".svg"])
+        
+        coolPaths = self.interestingPaths(blacklist)
+        with open(name+"_coolPaths.dot", "w") as file:
+            file.write(coolPaths)
+            subprocess.run(["dot", "-Tsvg", name+"_coolPaths.dot", "-o", name+"_coolPaths.svg"])
+
+
+    def interestingPaths(self, blacklist):
+        """
+        Renvoi les chemins intéressants
+        """        
+        selected = [""]*4
+        for node, children in self.world.items():
+            if node not in blacklist:
+                if node in self.states:
+                    color = self.states[node]
+                    if color == "red" and not selected[1]:
+                        selected[1] = (node, "red")
+                    elif color == "yellow" and not selected[2]:
+                        selected[2] = (node,"yellow")
+                    elif color == "blue" and not selected[3]:
+                        selected[3] = (node,"blue")
+                else:
+                    if children == {}:
+                        selected[0] = (node,None)
+
+        path = "digraph {\nnode [style = filled]\n"
+        for i in range(4):
+            if selected[i]:
+                node, color = selected[i]
+                if color == "red":
+                    path += f'    "{node}" [fillcolor="#ff4747"];\n'
+                elif color == "yellow":
+                    path += f'    "{node}" [fillcolor="yellow"];\n'
+                elif color == "blue":
+                    path += f'    "{node}" [fillcolor="blue"];\n'
+                
+                current = node
+                while current != None:
+                    known = False
+                    for parent, rule in self.parents[current].items():
+                        if not known:
+                            if parent in path:
+                                known = True
+
+                            s = f'    "{parent}" -> "{current}" [label="{rule}"];\n'
+                            if s not in path:
+                                path += s
+
+                        if parent != str(self.baseState) and not known:
+                            current = parent
+                        else:
+                            current = None
+        return path + "}"
+            
+
+        
+
+
+
+    def translateDOT_legacy(self, name="world"):
         #chercher des blocages
         self.search_deadlock()
 
@@ -145,12 +259,11 @@ class Simulation:
         with open(name+".dot", "w") as file:
             file.write(dot)
             subprocess.run(["dot", "-Tsvg", name+".dot", "-o", name+".svg"])
-            
-    
+
+
     def export(self, name="world"):
         with open(name+".json", "w") as file:
             json.dump(self.world, file, indent=4)
-
 
 
 
@@ -177,7 +290,11 @@ def loadScenar(gamma, reg, objectif, nom):
 
     print(f"Simulation terminée en  {time.time()-t_start:.3f}s")
     sim.export("graph/"+nom)
+   
+    t_start = time.time()
     sim.translateDOT("graph/"+nom)
+    print(f"Graphe généré en {time.time()-t_start:.3f}s")
+    sim.translateDOT_legacy("graph/"+nom+"_legacy")
     
     if sim.collision:
         print("Warning : Collision détectée")
@@ -494,7 +611,7 @@ def miniscenar3(name="deadlockTrain"):
     reg = ir.Regul(3, [2], circuit, [])
 
     Gamma = {
-        0: ir.Train(0,0,["Start(R)","Until(1)","Stop()"])
+        0: ir.Train(0,0,["StartUntil(R,1)"])
     }
 
     return Gamma, reg, ["2/*"], name
@@ -524,6 +641,6 @@ def miniscenar4(name="deadlockRegulateur"):
 ### Main 
 
 
-regles = [ir.start, ir.until, ir.until_cons, ir.until_ev ,ir.until_cons_ev, ir.wait, ir.stop]
+regles = [ir.start, ir.until_ev ,ir.until_cons_ev, ir.wait, ir.stop]
 
 loadScenar(*scenar7())
