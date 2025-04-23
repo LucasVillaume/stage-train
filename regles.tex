@@ -16,6 +16,7 @@
 \newcommand\concat[2]{#1;#2}
 \newcommand\train[4]{(#1, #2, #3, #4)}
 \newcommand\trainfull[4]{\Gamma \cup \train{#1}{#2}{#3}{#4}}
+\newcommand\reg[6]{(#1, #2, #3, #4, #5, #6)}
  
 
 \newcommand\ruleStart[3]{ %1 id, 2 pos, 3 D
@@ -195,6 +196,7 @@ Le régulateur est représenté par un sextuplet $(J, A, E, N_e, W, S)$ où :
 \newpage
 \section{Règles}
 
+\subsection{Actions sur le train}
 
 Start : 
 \inferrule
@@ -212,16 +214,54 @@ Stop :
 
 Until :
     \inferrule
-    { suiv(pos, D, R.S) = pos' \\ N \neq pos' \\ R.A[id] \neq pos \\ ev(id, pos') \in R.E \\ apply(R, ev(id, pos)) = R'}
-    {\trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}, R \Rightarrow \trainfull{id}{pos'}{D}{\concat{SU(U,N)}{P'}}, R'}
+    { suiv(pos, D, R.S) = pos' \\ pos' \neq N \\ pos' \neq \varepsilon \\ R.A[id] \neq 0 \\ (id, R.Ne[id]) \notin R.E \\ R.Ne[id] = x}
+    {\trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}, R \Rightarrow \trainfull{id}{pos'}{D}{\concat{SU(U,N)}{P'}}, R.Ne[id] = x+1}
 \vspace{0.5cm}
 
 
 Until' :
     \inferrule
-        { suiv(pos, D, R.S) = pos' \\ R.A[id] \neq pos \\ ev(id, pos') \in R.E \\ apply(R, ev(id, pos)) = R'}
-        {\trainfull{id}{pos}{D}{\concat{SU(D,pos')}{P'}}, R \Rightarrow \trainfull{id}{pos'}{D}{P'}, R'}
+        { suiv(pos, D, R.S) = pos' \\ R.A[id] \neq 0 \\ (id, R.Ne[id]) \notin R.E \\ R.Ne[id] = x}
+        {\trainfull{id}{pos}{D}{\concat{SU(D,pos')}{P'}}, R \Rightarrow \trainfull{id}{pos'}{D}{P'}, R.Ne[id] = x+1}
 \vspace{0.5cm}
 
+\subsection{Actions sur le régulateur}
+
+elim$_{ev}$ :
+\inferrule
+    { R.E[ev].P = \varepsilon \\ ev = (id, R.Ne[id])}
+    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P} \reg{J}{E-ev}{Ne}{A}{W}{S}}
+\vspace{0.5cm}
+
+incr : %incr qui arrive après un att
+\inferrule
+    {  ev = (id, R.Ne[id]) \\ R.J[j] = x \\ R.W[(j, x+1)] = W_{id} \\ nextAtt(W_{id},R) = num}
+    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = \concat{incr(j)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P} \\ \reg{J[j] = x+1}{E[ev].P = P'}{Ne}{A[W_{id}]=num}{W -(j, x+1, W_{id})}{S}}
+\vspace{0.5cm}
+
+incr' : %incr qui arrive avant un att
+\inferrule
+    {  ev = (id, R.Ne[id]) \\ R.J[j] = x \\ R.W[(j, x+1)] = \varepsilon }
+    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = \concat{incr(j)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J[j] = x+1}{E[ev].P = P'}{Ne}{A}{W}{S}}
+\vspace{0.5cm}
+
+att : %att avant que incr soit appliqué
+\inferrule
+    {  ev = (id, R.Ne[id]) \\ R.J[j] = x \\ x \neq y}
+    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = \concat{att(j, y)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = P'}{Ne}{A}{W[(j,y)] = id}{S}}
+\vspace{0.5cm}
+
+att' : %att avant que incr soit appliqué
+\inferrule
+    {  ev = (id, R.Ne[id]) \\ R.J[j] = x \\ nextAtt(id,R) = num}
+    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = \concat{att(j, x)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = P'}{Ne}{A[id] = num}{W}{S}}
+\vspace{0.5cm}
+
+
+
+turn :
+\inferrule
+    {ev = (id, R.Ne[id])}
+    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = \concat{turn(id_{s},state)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = P'}{Ne}{A}{W}{S[id_{s}] = state}}
 
 \end{document}

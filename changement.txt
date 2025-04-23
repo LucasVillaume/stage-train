@@ -2,5 +2,18 @@
     programme du train toujours composé de séquence Start/Until/Stop, plus pratique 
     d'avoir une commade faisant les trois (juste adapter les règles)
 
+----------
+
 - un évènement par tronçon (même si ev vide) :
     permet d'unifier until et until_ev, et donc d'avoir moins de règles
+
+----------
+
+- enlever la position dans l'event :
+    retire de la redondance
+    -> R.A devient un compteur qui décrémente à chaque transition
+
+- tenter de retirer apply des règles :
+    faire ressortir le comportement des events dans les règles
+
+----------
