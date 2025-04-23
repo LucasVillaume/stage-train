@@ -7,7 +7,7 @@
 
 
 
-\title{Brouillon règles}
+\title{Modèle 0}
 \author{}
 
 \begin{document}
@@ -183,11 +183,11 @@ Le régulateur est représenté par un sextuplet $(J, A, E, N_e, W, S)$ où :
     \firstcasesubtil{R}{\varepsilon}{}
     \otherform{stmt || R}{}
     \firstcasesubtil{stmt}{ev(id_{train}, pos, num_{event}) : atom}{}
-    \firstcasesubtil{atom}{\concat{switch}{order}}{}
-    \firstcasesubtil{switch}{\concat{turn(id_{switch}, state)}{switch}}{}
-    \otherform{\varepsilon}{}
-    \firstcasesubtil{order}{incr(j) \gralt att(j, value_{j})}{}
-    \otherform{\concat{incr(j)}{att(j', value_{j'})}}{}
+    \firstcasesubtil{atom}{incr(j)}{}
+    \otherform{att(j, value_{j})}{}
+    \otherform{turn(id_{switch}, state)}{}
+    \otherform{\varepsilon \gralt atom}{}
+
 \end{grammar}
 
 %%%%%% Règles %%%%%%
@@ -206,56 +206,22 @@ Start :
 Stop :
 \inferrule
     { P = \varepsilon \\ dir \neq *}
-    {\trainfull{id}{pos}{dir}{P}, R \Rightarrow \trainfull{id}{pos}{*}{P}, R} 
+    {\trainfull{id}{pos}{dir}{P}, R \Rightarrow \trainfull{id}{pos}{*}{P}, R}
 \vspace{0.5cm}
 
 
 Until :
-\inferrule
-    { suiv(pos, D, R.S) = pos' \\ N \neq pos' \\ R.A[id] \neq pos \\ ev(id, pos') \notin R.E}
-    {\trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}, R \Rightarrow \trainfull{id}{pos'}{D}{\concat{SU(N)}{P'}}, R}
-\vspace{0.5cm}
-
-
-Until' :
-    \inferrule
-        { suiv(pos, D, R.S) = pos' \\ R.A[id] \neq pos \\ ev(id, pos') \notin R.E }
-        {\trainfull{id}{pos}{D}{\concat{SU(D,pos')}{P'}}, R \Rightarrow \trainfull{id}{pos'}{D}{P'}, R}
-\vspace{0.5cm}
-
-
-Until$_{ev}$ :
     \inferrule
     { suiv(pos, D, R.S) = pos' \\ N \neq pos' \\ R.A[id] \neq pos \\ ev(id, pos') \in R.E \\ apply(R, ev(id, pos)) = R'}
     {\trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}, R \Rightarrow \trainfull{id}{pos'}{D}{\concat{SU(U,N)}{P'}}, R'}
 \vspace{0.5cm}
 
 
-Until'$_{ev}$ :
+Until' :
     \inferrule
         { suiv(pos, D, R.S) = pos' \\ R.A[id] \neq pos \\ ev(id, pos') \in R.E \\ apply(R, ev(id, pos)) = R'}
         {\trainfull{id}{pos}{D}{\concat{SU(D,pos')}{P'}}, R \Rightarrow \trainfull{id}{pos'}{D}{P'}, R'}
 \vspace{0.5cm}
-
-%Wait :
-%    \inferrule
-%    {R.A[id] = pos \\ ev(id,pos) \in R.E \\ R.E[ev[id, pos]].P = att(x,y)  \\ apply(R, ev(id, pos)) = R'}
-%    {\trainfull{id}{pos}{dir}{P}, R \Rightarrow \trainfull{id}{pos}{dir}{P}, R'}
-%\\
-%La règle Wait traite le cas particulier où le train démarre et doit directement attendre. Peut la simplifier.
-%\vspace{0.5cm}
-
-%Crash : %en suspend
-%    \inferrule
-%        {id \neq id'}
-%        {\Gamma, \train{id}{pos}{dir}{P}, \train{id'}{pos}{dir'}{P'}  \Rightarrow \bot}
-%\vspace{0.5cm}
-
-
-%Crash': %en suspend
-%    \inferrule
-%        {suiv(p, dir) = \emptyset \\ dir \neq * \\ R.A[id] \neq p}
-%        {\trainfull{id}{p}{dir}{P}, R \Rightarrow \bot}
 
 
 \end{document}
