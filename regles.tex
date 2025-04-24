@@ -95,7 +95,7 @@ Le régulateur est représenté par un sextuplet $(J, A, E, N_e, W, S)$ où :
     \item $J$ : tableau de jetons
     \item $A$ : tableau des autorisations
     \item $E$ : événements du régulateur
-    \item $N_e$ : tableau des numéros des prochains événements
+    \item $N_e$ : tableau des prochains événements
     \item $W$ : file d'attente
     \item $S$ : tableau des aiguillages
 \end{itemize}
@@ -104,15 +104,16 @@ Le régulateur est représenté par un sextuplet $(J, A, E, N_e, W, S)$ où :
 
 \begin{itemize}
     \item $suiv(pos, dir, switch)$ : renvoi la position suivante 
-    \item $switchRes(id, switch)$ : vérifie si le train $id$ peut emprunter l'aiguillage $switch$
-    \item $apply(ev)$ : applique l'événement $ev$ au régulateur : 
-    \begin{itemize}
-        \item incr(j) : incrémente la valeur du jeton $j$ de 1 et remet en marche le train bloqué
-        \item att(p, v) : mets le train en attente du jeton de valeur $v$ pour le canton $p$
-    \end{itemize}
+    %\item $switchRes(id, switch)$ : vérifie si le train $id$ peut emprunter l'aiguillage $switch$
+    %\item $apply(ev)$ : applique l'événement $ev$ au régulateur : 
+    %\begin{itemize}
+    %    \item incr(j) : incrémente la valeur du jeton $j$ de 1 et remet en marche le train bloqué
+    %    \item att(p, v) : mets le train en attente du jeton de valeur $v$ pour le canton $p$
+    %\end{itemize}
 \end{itemize}
 
 %Pseudocode pour les fonctions du régulateur
+\iffalse
 \begin{algorithm}
 \caption{Fonction incr}
     \begin{algorithmic}[1]
@@ -163,7 +164,7 @@ Le régulateur est représenté par un sextuplet $(J, A, E, N_e, W, S)$ où :
         \EndIf
     \end{algorithmic}
 \end{algorithm}
-
+\fi
 %%%%% Grammaire %%%%%%
 
 \section{Grammaire}
@@ -207,54 +208,54 @@ Start :
 
 Stop :
 \inferrule
-    { P = \varepsilon \\ dir \neq *}
+    { P = \varepsilon \\ dir \neq * \\ (id, R.Ne[id]) \notin R.E}
     {\trainfull{id}{pos}{dir}{P}, R \Rightarrow \trainfull{id}{pos}{*}{P}, R}
 \vspace{0.5cm}
 
 
 Until :
     \inferrule
-    { suiv(pos, D, R.S) = pos' \\ pos' \neq N \\ pos' \neq \varepsilon \\ R.A[id] \neq 0 \\ (id, R.Ne[id]) \notin R.E \\ R.Ne[id] = x}
-    {\trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}, R \Rightarrow \trainfull{id}{pos'}{D}{\concat{SU(U,N)}{P'}}, R.Ne[id] = x+1}
+    { suiv(pos, D, R.S) = pos' \\ pos' \neq N \\ pos' \neq \varepsilon \\ R.A[id] = y \\ y \neq 0 \\ (id, R.Ne[id]) \notin R.E \\ R.Ne[id] = x}
+    {\trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}, R \\ \Rightarrow \trainfull{id}{pos'}{D}{\concat{SU(D,N)}{P'}}, R.Ne[id] = x+1, R.A[id] = y-1}
 \vspace{0.5cm}
 
 
 Until' :
     \inferrule
-        { suiv(pos, D, R.S) = pos' \\ R.A[id] \neq 0 \\ (id, R.Ne[id]) \notin R.E \\ R.Ne[id] = x}
-        {\trainfull{id}{pos}{D}{\concat{SU(D,pos')}{P'}}, R \Rightarrow \trainfull{id}{pos'}{D}{P'}, R.Ne[id] = x+1}
+        { suiv(pos, D, R.S) = pos' \\ R.A[id] = y \\ y \neq 0 \\(id, R.Ne[id]) \notin R.E \\ R.Ne[id] = x}
+        {\trainfull{id}{pos}{D}{\concat{SU(D,pos')}{P'}}, R \\ \Rightarrow \trainfull{id}{pos'}{D}{P'}, R.Ne[id] = x+1, R.A[id] = y-1}
 \vspace{0.5cm}
 
 \subsection{Actions sur le régulateur}
 
 elim$_{ev}$ :
 \inferrule
-    { R.E[ev].P = \varepsilon \\ ev = (id, R.Ne[id])}
+    { R.E[ev] = \varepsilon \\ ev = (id, R.Ne[id])}
     {\trainfull{id}{pos}{dir}{P}, \reg{J}{E}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P} \reg{J}{E-ev}{Ne}{A}{W}{S}}
 \vspace{0.5cm}
 
-incr : %incr qui arrive après un att
-\inferrule
-    {  ev = (id, R.Ne[id]) \\ R.J[j] = x \\ R.W[(j, x+1)] = W_{id} \\ nextAtt(W_{id},R) = num}
-    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = \concat{incr(j)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P} \\ \reg{J[j] = x+1}{E[ev].P = P'}{Ne}{A[W_{id}]=num}{W -(j, x+1, W_{id})}{S}}
-\vspace{0.5cm}
-
-incr' : %incr qui arrive avant un att
+incr$_{bf}$ : %incr qui arrive avant un att
 \inferrule
     {  ev = (id, R.Ne[id]) \\ R.J[j] = x \\ R.W[(j, x+1)] = \varepsilon }
-    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = \concat{incr(j)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J[j] = x+1}{E[ev].P = P'}{Ne}{A}{W}{S}}
+    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev] = \concat{incr(j)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J[j] = x+1}{E[ev] = P'}{Ne}{A}{W}{S}}
 \vspace{0.5cm}
 
-att : %att avant que incr soit appliqué
+incr$_{af}$ : %incr qui arrive après un att
+\inferrule
+    {  ev = (id, R.Ne[id]) \\ R.J[j] = x \\ R.W[(j, x+1)] = W_{id} \\ nextAtt(W_{id},R) = num}
+    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev] = \concat{incr(j)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P} \\ \reg{J[j] = x+1}{E[ev] = P'}{Ne}{A[W_{id}]=num}{W -(j, x+1, W_{id})}{S}}
+\vspace{0.5cm}
+
+att$_{bf}$ : %att avant que incr soit appliqué
 \inferrule
     {  ev = (id, R.Ne[id]) \\ R.J[j] = x \\ x \neq y}
-    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = \concat{att(j, y)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = P'}{Ne}{A}{W[(j,y)] = id}{S}}
+    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev] = \concat{att(j, y)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev] = P'}{Ne}{A}{W[(j,y)] = id}{S}}
 \vspace{0.5cm}
 
-att' : %att avant que incr soit appliqué
+att$_{af}$ : %att avant que incr soit appliqué
 \inferrule
     {  ev = (id, R.Ne[id]) \\ R.J[j] = x \\ nextAtt(id,R) = num}
-    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = \concat{att(j, x)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = P'}{Ne}{A[id] = num}{W}{S}}
+    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev] = \concat{att(j, x)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev] = P'}{Ne}{A[id] = num}{W}{S}}
 \vspace{0.5cm}
 
 
@@ -262,6 +263,6 @@ att' : %att avant que incr soit appliqué
 turn :
 \inferrule
     {ev = (id, R.Ne[id])}
-    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = \concat{turn(id_{s},state)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev].P = P'}{Ne}{A}{W}{S[id_{s}] = state}}
+    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev] = \concat{turn(id_{s},state)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev] = P'}{Ne}{A}{W}{S[id_{s}] = state}}
 
 \end{document}
