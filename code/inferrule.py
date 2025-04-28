@@ -130,7 +130,7 @@ def nextAtt(T, R):
         cpt += 1
         auth +=1
     #retourne la distance au dernier event
-    return auth 
+    return auth-1
 
 
 

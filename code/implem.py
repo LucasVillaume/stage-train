@@ -138,13 +138,14 @@ class Simulation:
                 for parent in self.parents[current]:
                     if parent not in blacklist and parent not in self.states:
                         suppr = False
+                        break
                 if suppr: #Si tous les parents sont dans la blacklists ou possèdent un statut
                     blacklist.append(current)
             for child in self.world[current]:
-                pile.append(child)
+                if child not in pile:
+                    pile.append(child)
         return set(blacklist)
 
-        
     
     #Convertir le dictionnaire en format DOT
     def translateDOT(self, name="world"):
@@ -261,6 +262,7 @@ class Simulation:
 
 
 
+
 ### Scenario manager
                             
 
@@ -269,6 +271,7 @@ class Simulation:
 
 
 def loadScenar(gamma, reg, objectif, nom):
+    print(f"#### Scénario {nom} chargé ####\n")
     sim = Simulation(reg.circuit, gamma, reg, regles)
     sim.objectifs = objectif
 
@@ -282,11 +285,11 @@ def loadScenar(gamma, reg, objectif, nom):
 
     print(f"Simulation terminée en  {time.time()-t_start:.3f}s")
     sim.export("graph/"+nom)
-   
+
     t_start = time.time()
     sim.translateDOT("graph/"+nom)
-    print(f"Graphe généré en {time.time()-t_start:.3f}s")
     sim.translateDOT_legacy("graph/"+nom+"_legacy")
+    print(f"Graphe généré en {time.time()-t_start:.3f}s")
     
     if sim.collision:
         print("Warning : Collision détectée")
@@ -320,6 +323,9 @@ def scenar1(name="goodEnding"):
     reg.addEv(1,0,["att(1,1)"])
     reg.addEv(1,2,[])
 
+    reg.nbEv[0] = 3
+    reg.nbEv[1] = 3
+
     objectif = ["2/*", "0/*"]
 
     return Gamma, reg, objectif, name
@@ -351,7 +357,7 @@ def scenar2(name="deadlock"):
     reg.addEv(1,4,["att(3,1)"])
 
     objectif = ["3/*", "0/*"]
-
+    
     return Gamma, reg, objectif, name
 
 
@@ -384,6 +390,9 @@ def scenar3(name="collision"):
         1: ir.Train(1,5,["StartUntil(L,1)"]),
     }
 
+    reg.nbEv[0] = 4
+    reg.nbEv[1] = 4
+
     objectif = ["3/*", "1/*"]
 
     return gamma, reg, objectif, name
@@ -415,13 +424,22 @@ def scenar4(name="maquette"):
 
     aig = ["d", "d", "v", "d", "d"]
 
-    reg = ir.Regul(8, [7,6], graph, aig)
+    reg = ir.Regul(8, [2,1], graph, aig)
 
-    reg.addEv(0,7,["turn(2,d,1)","turn(1,d,1)","incr(2)", "att(2,2)"])
-    reg.addEv(1,6,["att(2,1)"])
-    reg.addEv(1,3,["turn(2,v,0)","incr(2)", "att(2,3)"])
-    reg.addEv(0,2,["turn(2,d,0)","incr(6)"])
-    reg.addEv(0,6,["incr(2)"])
+    #reg.addEv(0,0,[])
+    #reg.addEv(0,1,[])
+    reg.addEv(0,2,["turn(2,d)","turn(1,d)","incr(2)", "att(2,2)"])
+    reg.addEv(0,3,["turn(2,d)","incr(6)"])
+    reg.addEv(0,4,["incr(2)"])
+
+    #reg.addEv(1,0,[])
+    reg.addEv(1,1,["att(2,1)"])
+    #reg.addEv(1,2,[])
+    reg.addEv(1,3,["turn(2,v)","incr(2)", "att(2,3)"])
+    reg.addEv(1,4,[])
+
+    reg.nbEv[0] = 5
+    reg.nbEv[1] = 5
 
     Gamma = {
         0: ir.Train(0,3,["StartUntil(L,7)","StartUntil(R,2)","StartUntil(L,6)"]),
@@ -429,7 +447,6 @@ def scenar4(name="maquette"):
     }
 
     objectif = ["6/*", "2/*"]
-
 
     return Gamma, reg, objectif, name
 
@@ -535,6 +552,44 @@ def scenar7(name="threesome"):
 
     return gamma, reg, objectif, name
 
+
+def scenar8(name="atomic"):
+    circuit = {
+        "0L" : {1:None},
+        "1R" : {0:None},
+        "1L" : {3:[(0,"d")]},
+        "2L" : {3:[(0,"v")]},
+        "3R" : {1:[(0,"d")], 2:[(0,"v")]},
+        "3L" : {4:[(1,"d")], 5:[(1,"v")]},
+        "4R" : {3:[(1,"d")]},
+        "4L" : {6:[(2,"d")]},
+        "5R" : {3:[(1,"v")]},
+        "5L" : {6:[(2,"v")]},
+        "6R" : {4:[(2,"d")], 5:[(2,"v")]},
+        "6L" : {7:[(3,"d")], 8:[(3,"v")]},
+        "7R" : {6:[(3,"d")]},
+        "8R" : {6:[(3,"v")]}
+    }
+
+    aig = ["v","v","v","v"]
+
+    reg = ir.Regul(9, [1,4], circuit, aig)
+
+    reg.addEv(0,1,["att(3,1)"])
+    reg.addEv(0,3,["att(6,1)"])
+
+    reg.addEv(1,2,["turn(0,d)","turn(1,d)", "incr(3)"])
+    reg.addEv(1,4,["turn(2,d)", "turn(3,d)", "incr(6)"])
+
+    Gamma = {
+        0: ir.Train(0,0,["StartUntil(L,7)"]),
+        1: ir.Train(1,2,["StartUntil(L,8)"])
+    }
+
+    reg.nbEv[0] = 6
+    reg.nbEv[1] = 5
+
+    return Gamma, reg, ["7/*", "8/*"], name
 
 """
 Problème d'aiguillage dans l'état initial
