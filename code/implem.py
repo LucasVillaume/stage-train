@@ -110,19 +110,27 @@ class Simulation:
 
     def search_deadlock(self):
         for etat, value in self.world.items():
+            empty = True
+            dl = False
             regex = r"Train [0-9]+ : [0-9]+/[L,R,*] : \[\]"
             if value == {}:
                 line = etat.split("\n")
                 nbTrain = re.findall("Train",etat)
                 for i in range(len(nbTrain)):
                     if not re.search(regex, line[i]):
-                        self.states[str(etat)] = "yellow"
+                        empty = False
+                        dl = True
                         self.deadlock = True
                     else:
                         pos_final = re.findall(r"[0-9]+/[L,R,*]", line[i])[0]
                         if pos_final != self.objectifs[i]:
-                            self.states[str(etat)] = "blue"
+                            dl = True
                             self.deadlock = True
+            if dl:
+                if empty:
+                    self.states[str(etat)] = "blue"
+                else:
+                    self.states[str(etat)] = "yellow"
 
 
     def blacklist(self):
@@ -217,15 +225,16 @@ class Simulation:
                 current = node
                 while current != None:
                     for parent, rule in self.parents[current].items():
-                        s = f'    "{parent}" -> "{current}" [label="{rule}"];\n'
-                        if s not in path:
-                            path += s
+                        if parent not in self.states:
+                            s = f'    "{parent}" -> "{current}" [label="{rule}"];\n'
+                            if s not in path:
+                                path += s
 
-                        if parent != str(self.baseState):
-                            current = parent
-                        else:
-                            current = None
-                        break
+                            if parent != str(self.baseState):
+                                current = parent
+                            else:
+                                current = None
+                            break
         return path + "}"
 
 
@@ -535,12 +544,20 @@ def scenar7(name="threesome"):
 
     aig = ["v", "v"]
 
-    reg = ir.Regul(5, [3,1,9], circuit, aig)
+    reg = ir.Regul(5, [3,3,3], circuit, aig)
 
-    reg.addEv(0,0,["turn(0,d)"])
+    reg.addEv(0,1,["turn(0,d)"])
     reg.addEv(0,2,["turn(1,d)"])
-    reg.addEv(1,4,["turn(1,v)"])
+    reg.addEv(1,1,["turn(1,v)"])
     reg.addEv(1,2,["turn(0,v)"])
+
+    reg.addEv(0,3,[])
+    reg.addEv(1,3,[])
+    reg.addEv(2,3,[])
+
+    reg.nbEv[0] = 4
+    reg.nbEv[1] = 4
+    reg.nbEv[2] = 4
 
     gamma = {
         0: ir.Train(0,9,["StartUntil(R,3)"]),
@@ -656,7 +673,7 @@ def miniscenar3(name="deadlockTrain"):
         "2L" : {1:None}
     }
 
-    reg = ir.Regul(3, [2], circuit, [])
+    reg = ir.Regul(3, [1], circuit, [])
 
     Gamma = {
         0: ir.Train(0,0,["StartUntil(R,1)"])
@@ -687,8 +704,11 @@ def miniscenar4(name="deadlockRegulateur"):
     return Gamma, reg, ["2/*"], name
 
 
+
 ### Main 
 
 
-regles = [ir.start, ir.stop, ir.until ,ir.until_cons, ir.incr_af, ir.incr_bf, ir.att_af, ir.att_bf, ir.turn, ir.elimEv]
-loadScenar(*scenar3())
+
+if __name__ == "__main__":  
+    regles = [ir.start, ir.stop, ir.until ,ir.until_cons, ir.incr_af, ir.incr_bf, ir.att_af, ir.att_bf, ir.turn, ir.elimEv]
+    loadScenar(*miniscenar1())
