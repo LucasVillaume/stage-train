@@ -5,6 +5,7 @@ import json
 import subprocess
 import time
 import re
+import TLA_misc as tm
 
 
 ### Classes
@@ -404,6 +405,9 @@ def scenar3(name="collision"):
 
     objectif = ["3/*", "1/*"]
 
+    print(tm.circuit2fct(circuit))
+
+
     return gamma, reg, objectif, name
 
 ## Scénario 4 : Maquette
@@ -417,7 +421,7 @@ def scenar4(name="maquette"):
         '2R' : {3: [(1,"d")], 0: [(0,"d"), (1,"v")], 1: [(0,"v"), (1,"v")]},
 
         '3L' : {2:  [(1,"d")]},
-        '3R' : {4: [(4,"d")], 6: [(4,"v")]},
+        '3R' : {4: [(4,"d")], 5: [(4,"v")]},
 
         '4L' : {3: [(4,"d")]},
         '4R' : {6: [(3,"d")]},
@@ -425,7 +429,7 @@ def scenar4(name="maquette"):
         '5L' : {3: [(4,"v")]},
         '5R' : {6: [(3,"v")]},
 
-        '6L' : {4: [(3,"d")], 6: [(3,"v")]},
+        '6L' : {4: [(3,"d")], 5: [(3,"v")]},
         '6R' : {2: [(2,"d")]},
 
         '7R' : {2: [(2,"v")]}
@@ -711,4 +715,5 @@ def miniscenar4(name="deadlockRegulateur"):
 
 if __name__ == "__main__":  
     regles = [ir.start, ir.stop, ir.until ,ir.until_cons, ir.incr_af, ir.incr_bf, ir.att_af, ir.att_bf, ir.turn, ir.elimEv]
-    loadScenar(*miniscenar1())
+    #loadScenar(*miniscenar1())
+    scenar3()

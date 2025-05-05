@@ -1,7 +1,7 @@
 ------------------------------- MODULE model0 -------------------------------
 
 
-EXTENDS Integers, TLC, Sequences
+EXTENDS Integers, TLC, Sequences,scenario (*
 VARIABLE gamma, reg, rule
 
 train1 == [
@@ -42,6 +42,24 @@ Suiv(pos, dir, S) == IF pos = "1" /\ dir = "R"               THEN "2"
                 ELSE IF pos = "4" /\ dir = "L" /\ S[1] = "v" THEN "2"
                 ELSE "-1"
 
+
+Init == 
+    /\ gamma = <<train1,train2>>
+    /\ reg = [
+            J  |-> token,
+            E  |-> events,
+            A  |-> auths,
+            Ne |-> nextEv,
+            W  |-> wait,
+            S  |-> switch
+       ]
+    /\ rule = ""
+
+\* *)
+ Init == Init_S3
+ Suiv(pos, dir, S) == Suiv_S3(pos, dir, S)
+
+
 \* Utilitaire
 
 
@@ -73,7 +91,6 @@ NextAtt(id, evs, evCourante) == \*evs : séquence d'events pour un train / evCou
 
 
 \* règles
-\*n : position du train dans gamma
 
 Start(T) == 
     /\ Len(T.prog) > 0
@@ -233,7 +250,6 @@ Incr_af(T) ==
 
 \* Propriétés
 
-
 Liveness ==
     /\  <>[] (gamma[1].pos = "3"
             /\ gamma[1].dir = "*")
@@ -244,19 +260,6 @@ Safety == [] (gamma[1].pos /= gamma[2].pos)
 
 
 \* Spec
-
-
-Init == 
-    /\ gamma = <<train1,train2>>
-    /\ reg = [
-            J  |-> token,
-            E  |-> events,
-            A  |-> auths,
-            Ne |-> nextEv,
-            W  |-> wait,
-            S  |-> switch
-       ]
-    /\ rule = ""
 
 Next == 
     \E i \in 1..Len(gamma) :
@@ -281,5 +284,5 @@ Spec == Init /\ [][Next]_<<gamma,reg, rule>>
 
 =============================================================================
 \* Modification History
-\* Last modified Mon May 05 11:19:20 CEST 2025 by lucas
+\* Last modified Mon May 05 13:14:14 CEST 2025 by lucas
 \* Created Tue Apr 29 13:37:40 CEST 2025 by lucas
