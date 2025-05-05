@@ -3,8 +3,8 @@ import re
 class Regul:
     def __init__(self, nbJ, auths, circuit, aiguille):
         self.jetons = [0]*nbJ
-        self.auths = auths
-        self.ev = dict()
+        self.auths = auths # tableau de compteur qui décrémente
+        self.ev = dict() # couple (idTrain, numEvent) -> prog
         self.nbEv = [0]*len(auths)
         self.nextEventNum = [0]*len(auths)
         self.waiting = dict()
@@ -19,6 +19,10 @@ class Regul:
     
     def incrJeton(self, j):
         self.jetons[j] += 1
+        return self.jetons[j]
+    
+    def getValJeton(self, j):
+        return self.jetons[j]
 
     def addWait(self, id, pos, valJ):
         self.waiting[(pos, valJ)] = id
@@ -29,29 +33,28 @@ class Regul:
             del self.waiting[(pos, valJ)]
             return id
     
-    def addEv(self, id, pos, prog):
-        nb = self.nbEv[id]
-        self.ev[(id, pos, nb)] = prog
+    def addEv(self, id, numEv, prog):
+        self.ev[(id, numEv)] = prog
         self.nbEv[id] += 1
         
-    "numEv chachée du train"
-    def getEv(self, id, pos):
+    # Retourne l'event courant pour le train id
+    def getEv(self, id):
         numEv = self.nextEventNum[id]
-        if (id, pos, numEv) in self.ev:
-            prog = self.ev[(id, pos, numEv)]
-            return prog
+        return self.getEvByNum(id, numEv)
         
     def getEvByNum(self, id, numEv):
-        if numEv < self.nbEv[id]:
-            for key in self.ev.keys():
-                if key[0] == id and key[2] == numEv:
-                    return self.ev[key], key[1]
+        if (id, numEv) in self.ev:
+            prog = self.ev[(id, numEv)]
+            return prog
     
-    def supprEv(self, id, pos):
+    # Supprime l'event courant pour le train id
+    def supprEv(self, id):
         numEv = self.nextEventNum[id]
-        if (id, pos, numEv) in self.ev:
-            del self.ev[(id, pos, numEv)]
-            self.nextEventNum[id] += 1
+        self.supprEvByNum(id, numEv)
+
+    def supprEvByNum(self, id, numEv):
+        if (id, numEv) in self.ev:
+            del self.ev[(id, numEv)]
 
 class Train:
     def __init__(self, id, pos, prog):
@@ -112,59 +115,25 @@ def findById(id, gamma):
         return gamma[id]
 
 #Retourne la position du prochian event contenant "att"
-#ou la position du dernier StartUntil si il n'y en a pas
+#ou la distance au dernier event si il n'y en a pas
 def nextAtt(T, R):
     id_train = T.id
     cpt = R.nextEventNum[id_train]
+    auth = 0
     #cherche dans les prochains events
     while cpt < R.nbEv[id_train]:
-        prog, pos_event = R.getEvByNum(id_train, cpt)
-        if prog is None:
-            return None
-        for instr in prog:
-            if instr.startswith("att"):
-                return pos_event
+        prog = R.getEvByNum(id_train, cpt)
+        if prog is not None:
+            for instr in prog:
+                if instr.startswith("att"):
+                    return auth
         cpt += 1
-    #Pas de prochain event contenant "att", c'est qu'on peut aller à l'objectif
-    for i in range(len(T.prog)-1,-1,-1):
-        if T.prog[i].startswith("StartUntil"):
-            nextPos = re.findall(r"[0-9]+", T.prog[i])[0]
-            return int(nextPos)
+        auth +=1
+    #retourne la distance au dernier event
+    return auth-1
 
 
-def apply(T, R, gamma):
-    id = T.id
-    pos = T.pos
-    prog = R.getEv(id, pos)
-    
-    if prog is not None:
-        R.supprEv(id, pos)
-        while prog:
-            #On applique l'instruction att(jeton, valueJeton)
-            if prog[0].startswith("att"):
-                wPos = int(prog[0][4])
-                wVal = int(prog[0][6])
-                if R.jetons[wPos] != wVal:
-                    R.auths[id] = pos
-                    R.addWait(id, wPos, wVal)
-                else:
-                    R.auths[id] = nextAtt(T, R)
-            #On applique l'instruction incr(jeton)
-            elif prog[0].startswith("incr"):
-                jeton = int(prog[0][5])
-                R.incrJeton(jeton)
-                w_id = R.supprWait(jeton, R.jetons[jeton])
-                if w_id is not None:
-                    T_w = findById(w_id, gamma)
-                    R.auths[w_id] = nextAtt(T_w, R)
-            #On applique l'instruction turn(idSwitch, valueSwitch)
-            elif prog[0].startswith("turn"):
-                id_switch = int(prog[0][5])
-                val_switch = prog[0][7]
-                R.aiguilles[id_switch] = val_switch
-            else:
-                break
-            prog.pop(0)
+
 
 ###### Regles ######
 
@@ -179,91 +148,109 @@ def start(T):
         T.dir = dirStart
         return True
 
-def stop(T):
-    if T.nextProg() is None and T.dir != "*":
+def stop(T,R):
+    ev = R.getEv(T.id)
+    if T.nextProg() is None and T.dir != "*" and ev is None:
         T.dir = "*"
         return True
-    
-"""def until(T, R):
-    if T.nextProg() is None:
+        
+def until(T,R):
+    ev = R.getEv(T.id)
+    if T.nextProg() is None or ev is not None:
         return None
 
     neigh = suivant(T.pos, T.dir, R)
     prog = T.nextProg()
-    #args = [dir, pos] de StartUntil(dir, pos)
+    #args : [dir, pos] de StartUntil(dir, pos)
     args = re.findall(r"[0-9]+|[LR*]", prog)
-    ev = R.getEv(T.id, neigh)
-    if ev is None and neigh is not None: # Pas d'event et un voisin
+
+    if neigh is not None:
         if prog.startswith("StartUntil") and neigh != int(args[1]):
-            if T.pos != neigh and R.auths[T.id] != T.pos and T.dir == args[0]:
+            if T.pos != neigh and R.auths[T.id] != 0 and T.dir == args[0]:
                 T.pos = neigh
+                R.nextEventNum[T.id] += 1
+                R.auths[T.id] -= 1
                 return True
 
 def until_cons(T,R):
-    if T.nextProg() is None:
+    ev = R.getEv(T.id)
+    if T.nextProg() is None or ev is not None:
         return None
 
     neigh = suivant(T.pos, T.dir, R)    
     prog = T.nextProg()
-    #args = [dir, pos] de StartUntil(dir, pos)
+    #args : [dir, pos] de StartUntil(dir, pos)
     args = re.findall(r"[0-9]+|[LR*]", prog)
-    ev = R.getEv(T.id, neigh)
 
-    if ev is None and neigh is not None: # Pas d'event et un voisin
-        if prog.startswith("StartUntil") and neigh == int(args[1]):
-            if T.pos != neigh and R.auths[T.id] != T.pos and T.dir == args[0]:
-                T.pos = neigh
-                T.depileProg()
-                return True"""
-        
-def until_ev(T,R,gamma):
-    if T.nextProg() is None:
-        return None
-
-    neigh = suivant(T.pos, T.dir, R)
-    prog = T.nextProg()
-    #args = [dir, pos] de StartUntil(dir, pos)
-    args = re.findall(r"[0-9]+|[LR*]", prog)
-    #ev = R.getEv(T.id, neigh)
-
-    #if ev and 
-    if neigh is not None:
-        if prog.startswith("StartUntil") and neigh != int(args[1]):
-            if T.pos != neigh and R.auths[T.id] != T.pos and T.dir == args[0]:
-                T.pos = neigh
-                apply(T, R, gamma)
-                return True
-
-def until_cons_ev(T,R,gamma):
-    if T.nextProg() is None:
-        return None
-
-    neigh = suivant(T.pos, T.dir, R)    
-    prog = T.nextProg()
-    #args = [dir, pos] de StartUntil(dir, pos)
-    args = re.findall(r"[0-9]+|[LR*]", prog)
-    #ev = R.getEv(T.id, neigh)
-
-    #if ev and 
     if neigh is not None:
         if prog.startswith("StartUntil") and neigh == int(args[1]):
-            if T.pos != neigh and R.auths[T.id] != T.pos and T.dir == args[0]:
+            if T.pos != neigh and R.auths[T.id] != 0 and T.dir == args[0]:
                 T.pos = neigh
-                apply(T, R, gamma)
                 T.depileProg()
+                R.nextEventNum[T.id] += 1
+                R.auths[T.id] -= 1
                 return True
             
-def wait(T,R, gamma):
-    ev = R.getEv(T.id, T.pos)
-    if ev and R.auths[T.id] == T.pos:
-        if ev[0].startswith("att"):
-            apply(T, R, gamma)
+
+def elimEv(T,R):
+    ev = R.getEv(T.id)
+    if ev is not None and ev == []:
+        R.supprEv(T.id)
+        return True
+
+
+def incr_bf(T,R):
+    ev = R.getEv(T.id)
+    if ev and ev[0].startswith("incr"):
+        token = re.findall(r"[0-9]+", ev[0])[0]
+        value_t = R.getValJeton(int(token))
+        if (int(token), value_t+1) not in R.waiting: #incr avant att
+            R.incrJeton(int(token))
+            ev.pop(0) #dépile l'event
             return True
 
-#T et U deux trains
-def crash(T, U):
-    if T.id != U.id and T.pos == U.pos:
+
+def incr_af(T,R,gamma):
+    ev = R.getEv(T.id)
+    if ev and ev[0].startswith("incr"):
+        token = re.findall(r"[0-9]+", ev[0])[0]
+        value_t = R.getValJeton(int(token))
+        if (int(token), value_t+1) in R.waiting: #incr après att
+            R.incrJeton(int(token))
+            w_id = R.supprWait(int(token), value_t+1)
+            R.auths[w_id] = nextAtt(findById(w_id, gamma), R)
+            ev.pop(0)
+            return True
+
+
+def att_bf(T,R):
+    ev = R.getEv(T.id)
+    if ev and ev[0].startswith("att"):
+        token, value_t = re.findall(r"[0-9]+", ev[0])
+        if R.getValJeton(int(token)) != int(value_t):
+            R.addWait(T.id, int(token), int(value_t))
+            ev.pop(0) #dépile l'event
+            return True
+
+
+def att_af(T,R):
+    ev = R.getEv(T.id)
+    if ev and ev[0].startswith("att"):
+        token, value_t = re.findall(r"[0-9]+", ev[0])
+        if R.getValJeton(int(token)) == int(value_t):
+            ev.pop(0)
+            R.auths[T.id] = nextAtt(T, R)
+            return True
+        
+
+def turn(T,R):
+    ev = R.getEv(T.id)
+    if ev and ev[0].startswith("turn"):
+        switch, state = re.findall(r"[0-9]+|[dv]", ev[0])
+        R.aiguilles[int(switch)] = state
+        ev.pop(0)
         return True
+
 
 
 if __name__ == "__main__":
@@ -279,7 +266,7 @@ if __name__ == "__main__":
 
     aig = ["d"]
 
-    reg = Regul(4, [2,3], circuit, aig)
+    reg = Regul(4, [2,0], circuit, aig)
     car = Train(0,0,["StartUntil(R,2)"])
     tri = Train(1,3,["StartUntil(L,0)"])
 
@@ -288,35 +275,51 @@ if __name__ == "__main__":
     Gamma[1] = tri
 
     reg.addEv(0,2,["incr(1)","turn(0,v)"])
-    reg.addEv(1,3,["att(1,1)"])
+    reg.addEv(1,0,["att(1,1)"])
+    reg.addEv(1,2,[])
 
-
-    """ print("-- Init --")
-    print(f"{reg}\n{car}\n{tri}\n")
+    print("Avant :")
+    print(f"{reg}\nTrain 0 :{car}\nTrain 1 : {tri}\n")
 
     start(car)
-    print(f"{reg}\n{car}\n{tri}\n")
-
+    print(f"start(car)\n{reg}\nTrain 0 :{car}\nTrain 1 : {tri}\n")
+    
     start(tri)
-    print(f"{reg}\n{car}\n{tri}\n")
-
-    wait(tri, reg, Gamma)
-    print(f"{reg}\n{car}\n{tri}\n")
-
+    print(f"start(tri)\n{reg}\nTrain 0 :{car}\nTrain 1 : {tri}\n")
+    
     until(car, reg)
-    print(f"{reg}\n{car}\n{tri}\n")
+    print(f"until(car)\n{reg}\nTrain 0 :{car}\nTrain 1 : {tri}\n")
+    
+    att_bf(tri, reg)
+    print(f"att_bf(tri)\n{reg}\nTrain 0 :{car}\nTrain 1 : {tri}\n")
 
-    until_cons_ev(car, reg, Gamma)
-    print(f"{reg}\n{car}\n{tri}\n")
+    elimEv(tri, reg)
+    print(f"elimEv(tri)\n{reg}\nTrain 0 :{car}\nTrain 1 : {tri}\n")
+
+    until_cons(car, reg)
+    print(f"until_cons(car)\n{reg}\nTrain 0 :{car}\nTrain 1 : {tri}\n")
+
+    incr_af(car, reg, Gamma)
+    print(f"incr_af(car)\n{reg}\nTrain 0 :{car}\nTrain 1 : {tri}\n")
+
+    turn(car, reg)
+    print(f"turn(car)\n{reg}\nTrain 0 :{car}\nTrain 1 : {tri}\n")
+
+    elimEv(car, reg)
 
     until(tri, reg)
-    print(f"{reg}\n{car}\n{tri}\n")
+    print(f"until(tri)\n{reg}\nTrain 0 :{car}\nTrain 1 : {tri}\n")
 
     until_cons(tri, reg)
-    print(f"{reg}\n{car}\n{tri}\n")
+    print(f"until_cons(tri)\n{reg}\nTrain 0 :{car}\nTrain 1 : {tri}\n")
 
-    stop(tri)
-    print(f"{reg}\n{car}\n{tri}\n")
+    elimEv(tri, reg)
+    print(f"elimEv(tri)\n{reg}\nTrain 0 :{car}\nTrain 1 : {tri}\n")
 
-    stop(car)
-    print(f"{reg}\n{car}\n{tri}\n") """ 
+    stop(car, reg)
+    print(f"stop(car)\n{reg}\nTrain 0 :{car}\nTrain 1 : {tri}\n")
+
+    stop(tri, reg)
+    print(f"stop(tri)\n{reg}\nTrain 0 :{car}\nTrain 1 : {tri}\n")
+
+

@@ -5,6 +5,7 @@ import json
 import subprocess
 import time
 import re
+import TLA_misc as tm
 
 
 ### Classes
@@ -110,19 +111,27 @@ class Simulation:
 
     def search_deadlock(self):
         for etat, value in self.world.items():
+            empty = True
+            dl = False
             regex = r"Train [0-9]+ : [0-9]+/[L,R,*] : \[\]"
             if value == {}:
                 line = etat.split("\n")
                 nbTrain = re.findall("Train",etat)
                 for i in range(len(nbTrain)):
                     if not re.search(regex, line[i]):
-                        self.states[str(etat)] = "yellow"
+                        empty = False
+                        dl = True
                         self.deadlock = True
                     else:
                         pos_final = re.findall(r"[0-9]+/[L,R,*]", line[i])[0]
                         if pos_final != self.objectifs[i]:
-                            self.states[str(etat)] = "blue"
+                            dl = True
                             self.deadlock = True
+            if dl:
+                if empty:
+                    self.states[str(etat)] = "blue"
+                else:
+                    self.states[str(etat)] = "yellow"
 
 
     def blacklist(self):
@@ -138,13 +147,14 @@ class Simulation:
                 for parent in self.parents[current]:
                     if parent not in blacklist and parent not in self.states:
                         suppr = False
+                        break
                 if suppr: #Si tous les parents sont dans la blacklists ou possèdent un statut
                     blacklist.append(current)
             for child in self.world[current]:
-                pile.append(child)
+                if child not in pile:
+                    pile.append(child)
         return set(blacklist)
 
-        
     
     #Convertir le dictionnaire en format DOT
     def translateDOT(self, name="world"):
@@ -215,25 +225,18 @@ class Simulation:
                 
                 current = node
                 while current != None:
-                    known = False
                     for parent, rule in self.parents[current].items():
-                        if not known:
-                            if parent in path:
-                                known = True
-
+                        if parent not in self.states:
                             s = f'    "{parent}" -> "{current}" [label="{rule}"];\n'
                             if s not in path:
                                 path += s
 
-                        if parent != str(self.baseState) and not known:
-                            current = parent
-                        else:
-                            current = None
+                            if parent != str(self.baseState):
+                                current = parent
+                            else:
+                                current = None
+                            break
         return path + "}"
-            
-
-        
-
 
 
     def translateDOT_legacy(self, name="world"):
@@ -269,6 +272,7 @@ class Simulation:
 
 
 
+
 ### Scenario manager
                             
 
@@ -277,6 +281,7 @@ class Simulation:
 
 
 def loadScenar(gamma, reg, objectif, nom):
+    print(f"#### Scénario {nom} chargé ####\n")
     sim = Simulation(reg.circuit, gamma, reg, regles)
     sim.objectifs = objectif
 
@@ -290,11 +295,11 @@ def loadScenar(gamma, reg, objectif, nom):
 
     print(f"Simulation terminée en  {time.time()-t_start:.3f}s")
     sim.export("graph/"+nom)
-   
+
     t_start = time.time()
     sim.translateDOT("graph/"+nom)
-    print(f"Graphe généré en {time.time()-t_start:.3f}s")
     sim.translateDOT_legacy("graph/"+nom+"_legacy")
+    print(f"Graphe généré en {time.time()-t_start:.3f}s")
     
     if sim.collision:
         print("Warning : Collision détectée")
@@ -315,7 +320,7 @@ def scenar1(name="goodEnding"):
 
     aig = ["d"]
 
-    reg = ir.Regul(4, [2,3], circuit, aig)
+    reg = ir.Regul(4, [2,0], circuit, aig)
     car = ir.Train(0,0,["StartUntil(R,2)"])
     tri = ir.Train(1,3,["StartUntil(L,0)"])
 
@@ -323,9 +328,13 @@ def scenar1(name="goodEnding"):
     Gamma[0] = car
     Gamma[1] = tri
     
-
+    # addEv(train, numéro d'event, [event])
     reg.addEv(0,2,["turn(0,v)","incr(1)"])
-    reg.addEv(1,3,["att(1,1)"])
+    reg.addEv(1,0,["att(1,1)"])
+    reg.addEv(1,2,[])
+
+    reg.nbEv[0] = 3
+    reg.nbEv[1] = 3
 
     objectif = ["2/*", "0/*"]
 
@@ -358,7 +367,7 @@ def scenar2(name="deadlock"):
     reg.addEv(1,4,["att(3,1)"])
 
     objectif = ["3/*", "0/*"]
-
+    
     return Gamma, reg, objectif, name
 
 
@@ -379,11 +388,11 @@ def scenar3(name="collision"):
 
     aig = ["v", "v"]
 
-    reg = ir.Regul(5, [3,1], circuit, aig)
+    reg = ir.Regul(5, [4,3], circuit, aig)
 
-    reg.addEv(0,0,["turn(0,d)"])
+    reg.addEv(0,1,["turn(0,d)"])
     reg.addEv(0,2,["turn(1,d)"])
-    reg.addEv(1,4,["turn(1,v)"])
+    reg.addEv(1,1,["turn(1,v)"])
     reg.addEv(1,2,["turn(0,v)"])
 
     gamma = {
@@ -391,7 +400,13 @@ def scenar3(name="collision"):
         1: ir.Train(1,5,["StartUntil(L,1)"]),
     }
 
+    reg.nbEv[0] = 4
+    reg.nbEv[1] = 4
+
     objectif = ["3/*", "1/*"]
+
+    print(tm.circuit2fct(circuit))
+
 
     return gamma, reg, objectif, name
 
@@ -406,7 +421,7 @@ def scenar4(name="maquette"):
         '2R' : {3: [(1,"d")], 0: [(0,"d"), (1,"v")], 1: [(0,"v"), (1,"v")]},
 
         '3L' : {2:  [(1,"d")]},
-        '3R' : {4: [(4,"d")], 6: [(4,"v")]},
+        '3R' : {4: [(4,"d")], 5: [(4,"v")]},
 
         '4L' : {3: [(4,"d")]},
         '4R' : {6: [(3,"d")]},
@@ -414,7 +429,7 @@ def scenar4(name="maquette"):
         '5L' : {3: [(4,"v")]},
         '5R' : {6: [(3,"v")]},
 
-        '6L' : {4: [(3,"d")], 6: [(3,"v")]},
+        '6L' : {4: [(3,"d")], 5: [(3,"v")]},
         '6R' : {2: [(2,"d")]},
 
         '7R' : {2: [(2,"v")]}
@@ -422,13 +437,22 @@ def scenar4(name="maquette"):
 
     aig = ["d", "d", "v", "d", "d"]
 
-    reg = ir.Regul(8, [7,6], graph, aig)
+    reg = ir.Regul(8, [2,1], graph, aig)
 
-    reg.addEv(0,7,["turn(2,d,1)","turn(1,d,1)","incr(2)", "att(2,2)"])
-    reg.addEv(1,6,["att(2,1)"])
-    reg.addEv(1,3,["turn(2,v,0)","incr(2)", "att(2,3)"])
-    reg.addEv(0,2,["turn(2,d,0)","incr(6)"])
-    reg.addEv(0,6,["incr(2)"])
+    #reg.addEv(0,0,[])
+    #reg.addEv(0,1,[])
+    reg.addEv(0,2,["turn(2,d)","turn(1,d)","incr(2)", "att(2,2)"])
+    reg.addEv(0,3,["turn(2,d)","incr(6)"])
+    reg.addEv(0,4,["incr(2)"])
+
+    #reg.addEv(1,0,[])
+    reg.addEv(1,1,["att(2,1)"])
+    #reg.addEv(1,2,[])
+    reg.addEv(1,3,["turn(2,v)","incr(2)", "att(2,3)"])
+    reg.addEv(1,4,[])
+
+    reg.nbEv[0] = 5
+    reg.nbEv[1] = 5
 
     Gamma = {
         0: ir.Train(0,3,["StartUntil(L,7)","StartUntil(R,2)","StartUntil(L,6)"]),
@@ -436,7 +460,6 @@ def scenar4(name="maquette"):
     }
 
     objectif = ["6/*", "2/*"]
-
 
     return Gamma, reg, objectif, name
 
@@ -525,12 +548,20 @@ def scenar7(name="threesome"):
 
     aig = ["v", "v"]
 
-    reg = ir.Regul(5, [3,1,9], circuit, aig)
+    reg = ir.Regul(5, [3,3,3], circuit, aig)
 
-    reg.addEv(0,0,["turn(0,d)"])
+    reg.addEv(0,1,["turn(0,d)"])
     reg.addEv(0,2,["turn(1,d)"])
-    reg.addEv(1,4,["turn(1,v)"])
+    reg.addEv(1,1,["turn(1,v)"])
     reg.addEv(1,2,["turn(0,v)"])
+
+    reg.addEv(0,3,[])
+    reg.addEv(1,3,[])
+    reg.addEv(2,3,[])
+
+    reg.nbEv[0] = 4
+    reg.nbEv[1] = 4
+    reg.nbEv[2] = 4
 
     gamma = {
         0: ir.Train(0,9,["StartUntil(R,3)"]),
@@ -542,6 +573,44 @@ def scenar7(name="threesome"):
 
     return gamma, reg, objectif, name
 
+
+def scenar8(name="atomic"):
+    circuit = {
+        "0L" : {1:None},
+        "1R" : {0:None},
+        "1L" : {3:[(0,"d")]},
+        "2L" : {3:[(0,"v")]},
+        "3R" : {1:[(0,"d")], 2:[(0,"v")]},
+        "3L" : {4:[(1,"d")], 5:[(1,"v")]},
+        "4R" : {3:[(1,"d")]},
+        "4L" : {6:[(2,"d")]},
+        "5R" : {3:[(1,"v")]},
+        "5L" : {6:[(2,"v")]},
+        "6R" : {4:[(2,"d")], 5:[(2,"v")]},
+        "6L" : {7:[(3,"d")], 8:[(3,"v")]},
+        "7R" : {6:[(3,"d")]},
+        "8R" : {6:[(3,"v")]}
+    }
+
+    aig = ["v","v","v","v"]
+
+    reg = ir.Regul(9, [1,4], circuit, aig)
+
+    reg.addEv(0,1,["att(3,1)"])
+    reg.addEv(0,3,["att(6,1)"])
+
+    reg.addEv(1,2,["turn(0,d)","turn(1,d)", "incr(3)"])
+    reg.addEv(1,4,["turn(2,d)", "turn(3,d)", "incr(6)"])
+
+    Gamma = {
+        0: ir.Train(0,0,["StartUntil(L,7)"]),
+        1: ir.Train(1,2,["StartUntil(L,8)"])
+    }
+
+    reg.nbEv[0] = 6
+    reg.nbEv[1] = 5
+
+    return Gamma, reg, ["7/*", "8/*"], name
 
 """
 Problème d'aiguillage dans l'état initial
@@ -563,8 +632,8 @@ def miniscenar1(name="crashSwitch"):
     reg.addEv(1,3,["att(1,1)"])
 
     Gamma = {
-        0: ir.Train(0,0,["Start(R)","Until(2)","Stop()"]),
-        1: ir.Train(1,3,["Start(L)","Until(0)","Stop()"]),
+        0: ir.Train(0,0,["StartUntil(R,2)"]),
+        1: ir.Train(1,3,["StartUntil(L,0)"]),
     }
 
     return Gamma, reg, ["2/*", "0/*"], name
@@ -608,7 +677,7 @@ def miniscenar3(name="deadlockTrain"):
         "2L" : {1:None}
     }
 
-    reg = ir.Regul(3, [2], circuit, [])
+    reg = ir.Regul(3, [1], circuit, [])
 
     Gamma = {
         0: ir.Train(0,0,["StartUntil(R,1)"])
@@ -638,9 +707,13 @@ def miniscenar4(name="deadlockRegulateur"):
 
     return Gamma, reg, ["2/*"], name
 
+
+
 ### Main 
 
 
-regles = [ir.start, ir.until_ev ,ir.until_cons_ev, ir.wait, ir.stop]
 
-loadScenar(*scenar7())
+if __name__ == "__main__":  
+    regles = [ir.start, ir.stop, ir.until ,ir.until_cons, ir.incr_af, ir.incr_bf, ir.att_af, ir.att_bf, ir.turn, ir.elimEv]
+    #loadScenar(*miniscenar1())
+    scenar3()

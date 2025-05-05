@@ -1,4 +1,6 @@
-/code/TLA
+/code/TLA/model0.toolbox
+/code/TLA/states
+/code/TLA/tla2tools.jar
 /code/.vscode
 /code/__pycache__
 /code/legacy.txt
@@ -10,3 +12,4 @@
 /regles.fls
 /regles.log
 /regles.synctex.gz
+/ref.txt
