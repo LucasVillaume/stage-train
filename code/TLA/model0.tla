@@ -18,7 +18,7 @@ train2 == [
     prog |-> <<"StartUntil(L,1)">>
 ]
   
-token == <<0,0,0,0>>  
+token == <<0,0,0,0>>
 
 auths == <<2,0>>
 
@@ -34,9 +34,6 @@ wait == [x \in (1..4) \X (0..2) |-> -1] \* créée chaque clé (jeton, valeur) p
 switch == <<"d">>
 
 
-\* Utilitaire
-
-
 Suiv(pos, dir, S) == IF pos = "1" /\ dir = "R"               THEN "2"
                 ELSE IF pos = "2" /\ dir = "R" /\ S[1] = "d" THEN "3"
                 ELSE IF pos = "2" /\ dir = "R" /\ S[1] = "v" THEN "4"
@@ -44,7 +41,10 @@ Suiv(pos, dir, S) == IF pos = "1" /\ dir = "R"               THEN "2"
                 ELSE IF pos = "3" /\ dir = "L" /\ S[1] = "d" THEN "2"
                 ELSE IF pos = "4" /\ dir = "L" /\ S[1] = "v" THEN "2"
                 ELSE "-1"
-             
+
+\* Utilitaire
+
+
 CharAt(str, pos) == SubSeq(str, pos, pos)
              
 StrToI(str) == IF str = "0" THEN 0
@@ -65,8 +65,9 @@ IsAttInSeq(S) == \E x \in DOMAIN S : Len(S[x]) > 3 /\ SubSeq(S[x],1,3) = "att" \
 NextAtt(id, evs, evCourante) == \*evs : séquence d'events pour un train / evCourante : numéro de l'event courant
     LET 
         index == SelectInSeq(evs,IsAttInSeq)
+        offset == Len(reg.E[id])-Len(evs)
     IN
-        IF index /= 0 THEN index-evCourante \*Il existe un prochain attendre
+        IF index /= 0 THEN (offset+index)-evCourante \*Il existe un prochain attendre
         ELSE Len(reg.E[id])-evCourante \*Il n'existe pas de prochain attendre (aller à la fin)
 
 
@@ -101,6 +102,7 @@ Until(T) ==
     IN
         /\ Len(T.prog) > 0
         /\ Len(event) = 0
+        /\ CharAt(T.prog[1],12) = T.dir
         /\ auth /= 0
         /\ SubSeq(order,1,10) = "StartUntil"
         /\ nextC /= "-1"
@@ -122,6 +124,7 @@ Until_cons(T) ==
     IN
         /\ Len(T.prog) > 0
         /\ Len(event) = 0
+        /\ CharAt(T.prog[1],12) = T.dir
         /\ auth /= 0
         /\ SubSeq(order,1,10) = "StartUntil"
         /\ nextC /= "-1"
@@ -216,13 +219,13 @@ Incr_af(T) ==
         val == reg.J[jet]
         id_wait == reg.W[jet,val+1]
         numEv_wait == reg.Ne[id_wait]
-        subseqEv == SubSeq(reg.E[id],numEv_wait,Len(reg.E[id_wait]))
+        subseqEv == SubSeq(reg.E[id_wait],numEv_wait,Len(reg.E[id_wait]))
     IN
         /\ Len(event) > 0
         /\ SubSeq(order,1,4) = "incr"
         /\ id_wait /= -1
         /\ UNCHANGED gamma
-        /\ rule' = "incr_bf"
+        /\ rule' = "incr_af"
         /\ reg' = [reg EXCEPT !.J[jet] = reg.J[jet]+1,
                               !.A[id_wait] = NextAtt(id_wait,subseqEv,numEv_wait),
                               !.E[id][numEv] = Tail(event)]
@@ -268,7 +271,6 @@ Next ==
         \/ Incr_af(gamma[i])
         
 
-
 Spec == Init /\ [][Next]_<<gamma,reg, rule>>
 
 
@@ -279,5 +281,5 @@ Spec == Init /\ [][Next]_<<gamma,reg, rule>>
 
 =============================================================================
 \* Modification History
-\* Last modified Fri May 02 16:31:51 CEST 2025 by lucas
+\* Last modified Mon May 05 11:19:20 CEST 2025 by lucas
 \* Created Tue Apr 29 13:37:40 CEST 2025 by lucas
