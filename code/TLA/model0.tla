@@ -1,21 +1,22 @@
 ------------------------------- MODULE model0 -------------------------------
 
 
-EXTENDS Integers, TLC, Sequences,scenario (*
+EXTENDS Integers, TLC, Sequences\*, scenario (*
 VARIABLE gamma, reg, rule
+
 
 train1 == [
     id |-> 1,
-    pos |-> "1",
+    pos |-> 1,
     dir |-> "*",
-    prog |-> <<"StartUntil(R,3)">>
+    prog |-> << <<"StartUntil", "R", 3>> >>
 ]
 
 train2 == [
     id |-> 2,
-    pos |-> "4",
+    pos |-> 4,
     dir |-> "*",
-    prog |-> <<"StartUntil(L,1)">>
+    prog |-> << <<"StartUntil", "L", 1>> >>
 ]
   
 token == <<0,0,0,0>>
@@ -23,24 +24,27 @@ token == <<0,0,0,0>>
 auths == <<2,0>>
 
 events == <<
-        << <<>>, <<>>, <<"turn(1,v)","incr(2)">> >>,
-        << <<"att(2,1)">>, <<>>, <<>> >>
+        << <<>>, <<>>, <<<<"turn",1,"v">>,<<"incr",2>>>> >>,
+        << <<<<"att",2,1>>>>, <<>>, <<>> >> \* transformer "att(2,1)" en << "att",2,1 >>
      >>
 
 nextEv == <<1,1>>
 
-wait == [x \in (1..4) \X (0..2) |-> -1] \* créée chaque clé (jeton, valeur) pour jeton de 1 à 4 et val de 0 à 2
+nbCanton == 4 \* Nombre de canton du circuit
+maxVal == 3 \* Valeur max que peut prendre un jeton
+
+wait == [x \in (1..nbCanton) \X (0..maxVal) |-> -1] \* créée chaque clé (jeton, valeur) pour jeton de 1 à 4 et val de 0 à 2
 
 switch == <<"d">>
 
 
-Suiv(pos, dir, S) == IF pos = "1" /\ dir = "R"               THEN "2"
-                ELSE IF pos = "2" /\ dir = "R" /\ S[1] = "d" THEN "3"
-                ELSE IF pos = "2" /\ dir = "R" /\ S[1] = "v" THEN "4"
-                ELSE IF pos = "2" /\ dir = "L"               THEN "1"
-                ELSE IF pos = "3" /\ dir = "L" /\ S[1] = "d" THEN "2"
-                ELSE IF pos = "4" /\ dir = "L" /\ S[1] = "v" THEN "2"
-                ELSE "-1"
+Suiv(pos, dir, S) == IF pos = 1 /\ dir = "R"               THEN 2
+                ELSE IF pos = 2 /\ dir = "R" /\ S[1] = "d" THEN 3
+                ELSE IF pos = 2 /\ dir = "R" /\ S[1] = "v" THEN 4
+                ELSE IF pos = 2 /\ dir = "L"               THEN 1
+                ELSE IF pos = 3 /\ dir = "L" /\ S[1] = "d" THEN 2
+                ELSE IF pos = 4 /\ dir = "L" /\ S[1] = "v" THEN 2
+                ELSE -1
 
 
 Init == 
@@ -53,11 +57,11 @@ Init ==
             W  |-> wait,
             S  |-> switch
        ]
-    /\ rule = ""
+    /\ rule = "" \* Mesure de débug, pas présent dans le modèle
 
 \* *)
- Init == Init_S3
- Suiv(pos, dir, S) == Suiv_S3(pos, dir, S)
+\*Init == Init_S4
+\*Suiv(pos, dir, S) == Suiv_S4(pos, dir, S)
 
 
 \* Utilitaire
@@ -74,11 +78,16 @@ StrToI(str) == IF str = "0" THEN 0
 
 Min(S) == CHOOSE x \in S : \A y \in S : x =< y
 
+
 SelectInSeq(seq, Test(_)) == 
   LET I == { i \in 1..Len(seq) : Test(seq[i]) }
   IN IF I # {} THEN Min(I) ELSE 0
 
-IsAttInSeq(S) == \E x \in DOMAIN S : Len(S[x]) > 3 /\ SubSeq(S[x],1,3) = "att" \* True si le tableau comporte une chaîne "att"
+
+IsAttInSeq(S) == 
+    \E x \in DOMAIN S : 
+        S[x][1] = "att" \* True si le tableau comporte une chaîne "att"
+
 
 NextAtt(id, evs, evCourante) == \*evs : séquence d'events pour un train / evCourante : numéro de l'event courant
     LET 
@@ -94,9 +103,9 @@ NextAtt(id, evs, evCourante) == \*evs : séquence d'events pour un train / evCou
 
 Start(T) == 
     /\ Len(T.prog) > 0
-    /\ SubSeq(T.prog[1],1,10) = "StartUntil"
-    /\ CharAt(T.prog[1],12) /= T.dir
-    /\ gamma' = [gamma EXCEPT ![T.id].dir = CharAt(T.prog[1],12)] \*![T.id].dir : T.id uniquement si T.id == pos dans gamma
+    /\ T.prog[1][1] = "StartUntil" 
+    /\ T.prog[1][2] /= T.dir
+    /\ gamma' = [gamma EXCEPT ![T.id].dir = T.prog[1][2]] \*![T.id].dir : T.id uniquement si T.id == pos dans gamma
     /\ rule ' = "start"
     /\ UNCHANGED reg
 
@@ -105,7 +114,7 @@ Stop (T) ==
     /\ T.dir /= "*"
     /\ gamma' = [gamma EXCEPT ![T.id].dir = "*"]
     /\ rule' = "stop"
-   /\ UNCHANGED reg
+    /\ UNCHANGED reg
 
 
 Until(T) == 
@@ -119,11 +128,11 @@ Until(T) ==
     IN
         /\ Len(T.prog) > 0
         /\ Len(event) = 0
-        /\ CharAt(T.prog[1],12) = T.dir
+        /\ order[2] = T.dir 
         /\ auth /= 0
-        /\ SubSeq(order,1,10) = "StartUntil"
-        /\ nextC /= "-1"
-        /\ nextC /= CharAt(order,14)
+        /\ order[1] = "StartUntil"
+        /\ nextC /= -1
+        /\ order[3] /= nextC
         /\ gamma' = [gamma EXCEPT ![id].pos = nextC]
         /\ rule' = "until"
         /\ reg' = [reg EXCEPT !.Ne[id] = numEv+1,
@@ -141,11 +150,11 @@ Until_cons(T) ==
     IN
         /\ Len(T.prog) > 0
         /\ Len(event) = 0
-        /\ CharAt(T.prog[1],12) = T.dir
+        /\ order[2] = T.dir
         /\ auth /= 0
-        /\ SubSeq(order,1,10) = "StartUntil"
-        /\ nextC /= "-1"
-        /\ nextC = CharAt(order,14)
+        /\ order[1] = "StartUntil" 
+        /\ nextC /= -1
+        /\ order[3] = nextC
         /\ gamma' = [gamma EXCEPT 
                             ![T.id].pos = nextC,
                             ![T.id].prog = Tail(T.prog)]
@@ -160,15 +169,15 @@ Turn(T) ==
         numEv == reg.Ne[id] \* numéro de l'event courant
         event == reg.E[id][numEv] \* Sequence d'ordre de l'event
         order == Head(event)
-        numAig == StrToI(CharAt(order,6))
+        numAig == order[2]
     IN
         /\ Len(event) > 0
-        /\ SubSeq(order,1,4) = "turn"
+        /\ order[1] = "turn"
         /\ numAig <= Len(reg.S) 
         /\ numAig >= 0
         /\ UNCHANGED gamma
         /\ rule' = "turn"
-        /\ reg' = [reg EXCEPT !.S[numAig] = CharAt(order,8),
+        /\ reg' = [reg EXCEPT !.S[numAig] = order[3],
                               !.E[id][numEv] = Tail(event)]
 
 Att_bf(T) ==
@@ -177,11 +186,11 @@ Att_bf(T) ==
         numEv == reg.Ne[id] \* numéro de l'event courant
         event == reg.E[id][numEv] \* Sequence d'ordre de l'event
         order == Head(event)
-        jet == StrToI(CharAt(order,5))
-        val == StrToI(CharAt(order,7))
+        jet == order[2]
+        val == order[3]
     IN
         /\ Len(event) > 0
-        /\ SubSeq(order,1,3) = "att"
+        /\ order[1] = "att"
         /\ reg.J[jet] /= val
         /\ UNCHANGED gamma
         /\ rule' = "att_bf"
@@ -194,12 +203,12 @@ Att_af(T) ==
         numEv == reg.Ne[id] \* numéro de l'event courant
         event == reg.E[id][numEv] \* Sequence d'ordre de l'event
         order == Head(event)
-        jet == StrToI(CharAt(order,5))
-        val == StrToI(CharAt(order,7))
+        jet == order[2]
+        val == order[3]
         subseqEv == SubSeq(reg.E[id],numEv+1,Len(reg.E[id]))
     IN
         /\ Len(event) > 0
-        /\ SubSeq(order,1,3) = "att"
+        /\ order[1] = "att"
         /\ reg.J[jet] = val
         /\ UNCHANGED gamma
         /\ rule' = "att_af"
@@ -213,12 +222,12 @@ Incr_bf(T) ==
         numEv == reg.Ne[id] \* numéro de l'event courant
         event == reg.E[id][numEv] \* Sequence d'ordre de l'event
         order == Head(event)
-        jet == StrToI(CharAt(order,6))
+        jet == order[2]
         val == reg.J[jet]
         id_wait == reg.W[jet,val+1]
     IN
         /\ Len(event) > 0
-        /\ SubSeq(order,1,4) = "incr"
+        /\ order[1] = "incr"
         /\ id_wait = -1
         /\ UNCHANGED gamma
         /\ rule' = "incr_bf"
@@ -232,14 +241,14 @@ Incr_af(T) ==
         numEv == reg.Ne[id] \* numéro de l'event courant
         event == reg.E[id][numEv] \* Sequence d'ordre de l'event
         order == Head(event)
-        jet == StrToI(CharAt(order,6))
+        jet == order[2]
         val == reg.J[jet]
         id_wait == reg.W[jet,val+1]
         numEv_wait == reg.Ne[id_wait]
         subseqEv == SubSeq(reg.E[id_wait],numEv_wait,Len(reg.E[id_wait]))
     IN
         /\ Len(event) > 0
-        /\ SubSeq(order,1,4) = "incr"
+        /\ order[1] = "incr"
         /\ id_wait /= -1
         /\ UNCHANGED gamma
         /\ rule' = "incr_af"
@@ -248,13 +257,21 @@ Incr_af(T) ==
                               !.E[id][numEv] = Tail(event)]
 
 
+IDLE ==
+    \A t \in 1..Len(gamma):
+        /\ Len(gamma[t].prog) = 0
+        /\ gamma[t].dir = "*"
+    /\ UNCHANGED gamma
+    /\ rule' = "IDLE" \* UNCHANGED rule 
+    /\ UNCHANGED reg
+
 \* Propriétés
 
-Liveness ==
-    /\  <>[] (gamma[1].pos = "3"
-            /\ gamma[1].dir = "*")
-    /\  <>[] (gamma[2].pos = "1"
-            /\ gamma[2].dir = "*")
+Liveness == 
+    /\  <>[] /\ gamma[1].pos = 3
+             /\ gamma[1].dir = "*"
+    /\  <>[] /\ gamma[2].pos = 1
+             /\ gamma[2].dir = "*"
 
 Safety == [] (gamma[1].pos /= gamma[2].pos)
 
@@ -272,17 +289,19 @@ Next ==
         \/ Att_af(gamma[i])
         \/ Incr_bf(gamma[i])
         \/ Incr_af(gamma[i])
+        \/ IDLE
         
 
-Spec == Init /\ [][Next]_<<gamma,reg, rule>>
+Spec == Init /\ [][Next]_<<gamma,reg, rule>> /\ WF_<<gamma,reg,rule>>(Next)
 
 
 
-\*Eval == ""
+
+Eval == ""
 
 
 
 =============================================================================
 \* Modification History
-\* Last modified Mon May 05 13:14:14 CEST 2025 by lucas
+\* Last modified Wed May 07 09:52:04 CEST 2025 by lucas
 \* Created Tue Apr 29 13:37:40 CEST 2025 by lucas
