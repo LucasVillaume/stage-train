@@ -4,23 +4,26 @@
 \usepackage{package/algorithm}
 \usepackage{package/algpseudocode}
 \usepackage{amsmath}
+\usepackage{mathtools}
 \usepackage{graphicx}
 
 
 
-\title{Modèle 0.1}
+\title{Modèle 1}
 \author{}
 
 \begin{document}
 
 %%%%% Macro %%%%%%%
 \newcommand\concat[2]{#1;#2}
-\newcommand\train[4]{(#1, #2, #3, #4)}
-\newcommand\trainfull[4]{\Gamma \cup \train{#1}{#2}{#3}{#4}}
-\newcommand\reg[6]{(#1, #2, #3, #4, #5, #6)}
+\newcommand\train[6]{(#1, #2, #3, #4, #5, #6)} % #1 id, #2 pos, #3 dir, #4 P, #5 auth, #6 rel
+\newcommand\trainfull[6]{\Gamma \cup \train{#1}{#2}{#3}{#4}{#5}{#6}} 
+\newcommand\reg[4]{(#1, #2, #3, #4)} % #1 Events, #2 Jetons, #3 Aiguillages, #4 File d'attente
+\newcommand\regPP[6]{(#1, #2, #3, #4, #5, #6)} % #1 Events, #2 Jetons, #3 Aiguillages, #4 File d'attente
 
+\newcommand\maj[2]{#1 \gets #2} % #1 : dictionnaire, #2 : valeur
 \newcommand\majtab[3]{#1[#2] \gets #3}
-\newcommand\supprdict[2]{#1 \gets suppr(#1, #2)} % #1 : dictionnaire, #2 : clé
+\newcommand\supprdict[2]{#1' \gets suppr(#1, #2)} % #1 : dictionnaire, #2 : clé
 \newcommand\bracket[2]{
     \begin{math}
         \biggl\{
@@ -96,27 +99,28 @@
 \section{Définition}
 
 \subsection{Représentation du train}
-Dans notre modèle, un train est représenté par un quadruplet $(id, pos, dir, P)$ où :
+Dans notre modèle, un train est représenté par un sextuplet $(id, pos, dir, P, auth, rel)$ où :
 \begin{itemize}
     \item $id$ : identifiant du train
     \item $pos$ : position du train 
     \item $dir$ : direction du train
     \item $P$ : programme du train
+    \item $auth$ : nombre de transition restantes autorisés
+    \item $rel$ : position relative du train par rapport au départ
 \end{itemize}
 
 \subsection{Représentation du régulateur}
-Le régulateur est représenté par un sextuplet $(J, A, E, N_e, W, S)$ où :
+Le régulateur est représenté par un quadruplet $(E, J, S, W)$ où :
 \begin{itemize}
-    \item $J$ : tableau de jetons
-    \item $A$ : tableau des autorisations
     \item $E$ : événements du régulateur
-    \item $N_e$ : tableau des prochains événements
-    \item $W$ : file d'attente
+    \item $J$ : tableau de jetons
     \item $S$ : tableau des aiguillages
+    \item $W$ : file d'attente
 \end{itemize}
 
 
 \subsection{Notation}
+\iffalse
 On note
 \\
 $\mathbf{O}_{e}$ l'ensemble des ordres des événements
@@ -132,6 +136,7 @@ E : dict avec \bracket{a \in \mathbf{A} | a = \langle id_{t}, numEv \rangle}{\ma
 W : dict avec \bracket{a \in \mathbf{A} | a = \langle id_{c}, val_{j} \rangle}{\mathbf{B} \subseteq \mathbf{N}}
 \vspace{0.3cm} \\
 Soit un tableau T, on note la mise à jour de T à la position i avec la valeur v par $\majtab{T}{i}{v}$ 
+\fi
 
 \subsection{Définition des prédicats et fonctions}
 
@@ -171,70 +176,117 @@ Soit un tableau T, on note la mise à jour de T à la position i avec la valeur 
 \newpage
 \section{Règles}
 
+\subsection{Système}
+
+\inferrule
+    {\alpha \xRightarrow{\text{!e}} \alpha' \\ \beta \xRightarrow{\text{?e}} \beta' }
+    {\alpha||\beta \Rightarrow \alpha' || \beta' } 
+\vspace{0.5cm}
+
 \subsection{Actions sur le train}
 
 Start : 
 \inferrule
     { dir \neq D}
-    {\trainfull{id}{pos}{dir}{\concat{SU(D,N)}{P'}}, R \Rightarrow \trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}, R} 
+    {\trainfull{id}{pos}{dir}{\concat{SU(D,N)}{P'}}{auth}{rel} \\ \xRightarrow{\text{!ev(id,rel)}} \\ \trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}{auth}{rel}} 
 \vspace{0.5cm}
 
 
 Stop :
 \inferrule
     { P = \varepsilon \\ dir \neq *}
-    {\trainfull{id}{pos}{dir}{P}, R \Rightarrow \trainfull{id}{pos}{*}{P}, R}
+    {\trainfull{id}{pos}{dir}{P}{auth}{rel} \\ \Rightarrow \\ \trainfull{id}{pos}{*}{P}{auth}{rel}}
 \vspace{0.5cm}
 
 
 Until :
     \inferrule
-    { suiv(pos, D, S) = pos' \\ pos' \neq N \\ pos' \neq \varepsilon \\ A[id] = y \\ y \neq 0 \\ (id, x) \notin E \\ Ne[id] = x}
-    {\trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}, \reg{J}{E}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos'}{D}{\concat{SU(D,N)}{P'}}, \reg{J}{E}{\majtab{Ne}{id}{x+1}}{\majtab{A}{id}{y-1}}{W}{S}}
+    { suiv(pos, D, S) = pos' \\ pos' \neq N \\ pos' \neq \varepsilon \\ auth \neq 0}
+    {\trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}{auth}{rel} \\ \xRightarrow{\text{!ev(id,rel+1)}} \\ \trainfull{id}{pos'}{D}{\concat{SU(D,N)}{P'}}{auth-1}{rel+1}}
 \vspace{0.5cm}
 
 
-Until' :
+Until$_{cons}$ :
     \inferrule
-        { suiv(pos, D, S) = pos' \\ A[id] = y \\ y \neq 0 \\(id, x) \notin E \\ Ne[id] = x}
-        {\trainfull{id}{pos}{D}{\concat{SU(D,pos')}{P'}}, \reg{J}{E}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos'}{D}{P'}, \reg{J}{E}{\majtab{Ne}{id}{x+1}}{\majtab{A}{id}{y-1}}{W}{S}}
+        { suiv(pos, D, S) = pos' \\ auth \neq 0 \\ rel = x}
+        {\trainfull{id}{pos}{D}{\concat{SU(D,pos')}{P'}}{auth}{rel}\\ \xRightarrow{\text{!ev(id,rel+1)}} \\ \trainfull{id}{pos'}{D}{P'}{auth-1}{rel+1}}
 \vspace{0.5cm}
+
+Recv :
+    \inferrule
+        { }
+        {\trainfull{id}{pos}{D}{P}{auth}{rel}\\ \xRightarrow{\text{?(id,suppl)}} \\ \trainfull{id}{pos}{D}{P}{auth+suppl}{rel}}
+\vspace{0.5cm}
+
+\newpage
 
 \subsection{Actions sur le régulateur}
 
-elim$_{ev}$ :
+\subsubsection{Approche grands pas}
+
+Pour cette approche, on ajoute au régulateur un buffer d'événements $B_E$ qui contient les événements en 
+attente d'être traités
+\vspace{0.5cm}
+
+Stockage :
 \inferrule
-    { E[ev] = \varepsilon \\ ev = (id, Ne[id])}
-    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J}{\supprdict{E}{ev}}{Ne}{A}{W}{S}}
+    { len(B_E) = x}
+    {\regPP{E}{J}{S}{W}{B_E}{} \\ \xRightarrow{\text{?ev(id,rel)}} \\ \regPP{E}{J}{S}{W}{\majtab{B_E}{x+1}{(id, rel)}}{}}
+\vspace{0.5cm}
+
+Event :
+\inferrule
+    { Head(B_E) = (id, rel) \\ apply(R, id, rel) = (R',c)}
+    {R \xRightarrow{\text{!(id,c)}} R'}
+\vspace{0.5cm}
+
+\subsubsection{Approche petits pas}
+
+Pour cette approche, on ajoute au régulateur un buffer d'événements $B_E$ qui contient les événements en 
+attente d'être traités, et un tableau des "réponses" $A$ qui contient la réponse à l'événements.
+\vspace{0.5cm}
+
+Stockage :
+\inferrule
+    { len(B_E) = x}
+    {\regPP{E}{J}{S}{W}{B_E}{A} \\ \xRightarrow{\text{?ev(id,rel)}} \\ \regPP{E}{J}{S}{W}{\majtab{B_E}{x+1}{(id, rel)}}{A}}
 \vspace{0.5cm}
 
 incr$_{bf}$ : %incr qui arrive avant un att
 \inferrule
-    {  ev = (id, Ne[id]) \\ J[j] = x \\ W[(j, x+1)] = \varepsilon }
-    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev] = \concat{incr(j)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{\majtab{J}{j}{x+1}}{\majtab{E}{ev}{P'}}{Ne}{A}{W}{S}}
+    { Head(B_E) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ W[(j, x+1)] = \varepsilon }
+    {\regPP{E[ev] \owns \concat{incr(j)}{P'}}{J}{S}{W}{B_E}{A} \\ \Rightarrow \\ \regPP{\majtab{E}{ev}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{B_E}{A}}
 \vspace{0.5cm}
 
 incr$_{af}$ : %incr qui arrive après un att
 \inferrule
-    {  ev = (id, Ne[id]) \\ J[j] = x \\ W[(j, x+1)] = w_{id} \\ nextAtt(W_{id},R) = num}
-    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev] = \concat{incr(j)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P} \\ \reg{\majtab{J}{j}{x+1}}{\majtab{E}{ev}{P'}}{Ne}{\majtab{A}{w_{id}}{num}}{\supprdict{W}{(j, x+1)}}{S}}
+    { Head(B_E) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ W[(j, x+1)] = w_{id} \\ nextEv(w_{id},E) = c}
+    {\regPP{E[ev] \owns \concat{incr(j)}{P'}}{J}{S}{W}{B_E}{A} \\ \Rightarrow \\ \regPP{\majtab{E}{ev}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{B_E}{A \gets c}}
 \vspace{0.5cm}
 
-att$_{bf}$ : %att avant que incr soit appliqué
+att$_{bf}$ : %att qui arrive avant un incr
 \inferrule
-    {  ev = (id, Ne[id]) \\ J[j] = x \\ x \neq y}
-    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev] = \concat{att(j, y)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J}{\majtab{E}{ev}{P'}}{Ne}{A}{\majtab{W}{(j,y)}{id}}{S}}
+    { Head(B_E) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ x \neq y}
+    {\regPP{E[ev] \owns \concat{att(j,y)}{P'}}{J}{S}{W}{B_E}{A} \\ \Rightarrow \\ \regPP{\majtab{E}{ev}{P'}}{J}{S}{{\majtab{W}{(j,y)}{id}}}{B_E}{A}}
 \vspace{0.5cm}
 
-att$_{af}$ : %att avant que incr soit appliqué
+att$_{af}$ : %att qui arrive après un incr
 \inferrule
-    {  ev = (id, Ne[id]) \\ J[j] = x \\ nextAtt(id,R) = num}
-    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev] = \concat{att(j, x)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J}{\majtab{E}{ev}{P'}}{Ne}{\majtab{A}{id}{num}}{W}{S}}
+    { Head(B_E) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ nextEv(w_{id},E) = c}
+    {\regPP{E[ev] \owns \concat{att(j,x)}{P'}}{J}{S}{W}{B_E}{A} \\ \Rightarrow \\ \regPP{\majtab{E}{ev}{P'}}{J}{S}{W}{B_E}{A \gets c}}
 \vspace{0.5cm}
 
-turn :
+turn : 
 \inferrule
-    {ev = (id, Ne[id])}
-    {\trainfull{id}{pos}{dir}{P}, \reg{J}{E[ev] = \concat{turn(id_{s},state)}{P'}}{Ne}{A}{W}{S} \\ \Rightarrow \trainfull{id}{pos}{dir}{P}, \reg{J}{\majtab{E}{ev}{P'}}{Ne}{A}{W}{\majtab{S}{id_{s}}{state}}}
+    { Head(B_E) = (id, rel) \\ ev = (id, rel) \\ nextEv(w_{id},R) = c}
+    {\regPP{E[ev] \owns \concat{turn(id_{s},state)}{P'}}{J}{S}{W}{B_E}{A} \\ \Rightarrow \\ \regPP{\majtab{E}{ev}{P'}}{J}{\majtab{S}{id_{s}}{state}}{W}{B_E}{A \gets c}}
+\vspace{0.5cm}
+
+SendAuth :
+\inferrule
+    { Head(B_E) = (id, rel) \\ ev = (id, rel) \\ suppl = A }
+    {\regPP{E[ev] \owns \varepsilon}{J}{S}{W}{B_E \owns \concat{ev}{M'}}{A} \\ \xRightarrow{\text{!(id,suppl)}} \\ \regPP{E}{J}{S}{W}{B_E}{A \gets \varepsilon}}
+\vspace{0.5cm}
+
 
 \end{document}
