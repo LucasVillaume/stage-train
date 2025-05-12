@@ -280,6 +280,7 @@ turn :
 \inferrule
     { Head(B_E) = (id, rel) \\ ev = (id, rel) \\ nextEv(w_{id},R) = c}
     {\regPP{E[ev] \owns \concat{turn(id_{s},state)}{P'}}{J}{S}{W}{B_E}{A} \\ \Rightarrow \\ \regPP{\majtab{E}{ev}{P'}}{J}{\majtab{S}{id_{s}}{state}}{W}{B_E}{A \gets c}}
+\\Attention, turn dans les events du train concerné (à cause du nextEv) / ou rajouter l'id du train concerné dans les paramètres de turn
 \vspace{0.5cm}
 
 SendAuth :
