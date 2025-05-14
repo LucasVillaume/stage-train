@@ -10,7 +10,6 @@ train1 == [
     pos |-> 1,
     dir |-> "*",
     prog |-> << <<"StartUntil", "R", 3>> >>,
-    \*auth |-> 2,
     rel |-> 1
 ]
 
@@ -19,13 +18,12 @@ train2 == [
     pos |-> 4,
     dir |-> "*",
     prog |-> << <<"StartUntil", "L", 1>> >>,
-   \* auth |-> 0,
     rel |-> 1
 ]
 
 events == <<
         << <<>>, <<>>, <<<<"turn",1,"v",2>>,<<"incr",2>>>> >>,
-        << <<<<"att",2,1>>>>, <<>>, <<>> >> \* transformer "att(2,1)" en << "att",2,1 >>
+        << <<<<"att",2,1>>>>, <<>>, <<>> >>
      >>
 
 nbCanton == 4 \* Nombre de canton du circuit
@@ -36,8 +34,6 @@ token == [x \in 1..nbCanton |-> 0]
 wait == [x \in (1..nbCanton) \X (0..maxVal) |-> -1] 
 
 switch == <<"d">>
-
-repAuth == << <<>>, <<>> >>
 
 traffic_lights == [x \in (1..nbCanton) \X {"L","R"} |-> "V"]
 
@@ -56,7 +52,6 @@ Init ==
             J |-> token,
             S |-> switch,
             W |-> wait,
-            A |-> repAuth,
             G |-> FALSE,
             F |-> [traffic_lights EXCEPT ![4,"R"] = "R",
                                          ![4,"L"] = "R"]
@@ -99,15 +94,16 @@ NextAtt(id, evs, evCourante) == \*evs : séquence d'events pour un train / evCou
 IsntEmpty(S) == Len(S) /= 0
 
 
-RECURSIVE FindSection(_,_,_)
-FindSection(pos,dir,cpt) ==
+RECURSIVE FindSection(_,_,_,_)
+FindSection(pos,dir,cpt,S) ==
     LET
-        nextPos == Suiv(pos,dir,reg.S) \* reg.S pas super propre, voir modifier
+        nextPos == Suiv(pos,dir,S)
     IN 
         IF cpt = 1 THEN 
             nextPos
         ELSE
-            FindSection(nextPos,dir,cpt-1)
+            FindSection(nextPos,dir,cpt-1,S)
+                
             
 
 \* règles
@@ -126,16 +122,17 @@ Start(T) ==
        ELSE \* pas d'event
             UNCHANGED msg
 
-
-
 Stop (T) ==
     /\ Len(T.prog) = 0
     /\ reg.G = FALSE
     /\ T.dir /= "*"
     /\ gamma' = [gamma EXCEPT ![T.id].dir = "*"]
     /\ rule' = "stop"
-    /\ UNCHANGED <<reg,msg>>
-
+    /\ UNCHANGED reg
+    /\ IF Len(reg.E[T.id][T.rel]) /= 0 THEN \* Pas important, juste une petite optimisation
+            msg' = [msg EXCEPT ![1] = Append(msg[1],<<T.id,T.rel>>)]
+       ELSE \* pas d'event
+            UNCHANGED msg
 
 
 Until(T) == 
@@ -143,18 +140,16 @@ Until(T) ==
         id == T.id
         order == Head(T.prog)
         nextC == Suiv(T.pos,T.dir, reg.S)
-        auth == T.auth
     IN
         /\ Len(T.prog) > 0
         /\ reg.G = FALSE
         /\ order[2] = T.dir 
-        /\ reg.F[T.pos,T.dir] = "V" \*auth /= 0
+        /\ reg.F[T.pos,T.dir] = "V"
         /\ order[1] = "StartUntil"
         /\ nextC /= -1
         /\ order[3] /= nextC
         /\ gamma' = [gamma EXCEPT 
                             ![id].pos = nextC,
-                            \*![id].auth = T.auth-1,
                             ![id].rel = T.rel+1]
         /\ rule' = "until"
         /\ UNCHANGED reg
@@ -165,7 +160,7 @@ Until(T) ==
                         UNCHANGED msg
           ELSE
             UNCHANGED msg
-            
+
 
 
 Until_cons(T) == 
@@ -173,43 +168,20 @@ Until_cons(T) ==
         id == T.id
         order == Head(T.prog)
         nextC == Suiv(T.pos,T.dir, reg.S)
-        auth == T.auth
     IN
         /\ Len(T.prog) > 0
         /\ reg.G = FALSE
         /\ order[2] = T.dir
-        /\ reg.F[T.pos,T.dir] = "V" \*auth /= 0
+        /\ reg.F[T.pos,T.dir] = "V"
         /\ order[1] = "StartUntil" 
         /\ nextC /= -1
         /\ order[3] = nextC
         /\ gamma' = [gamma EXCEPT 
                             ![T.id].pos = nextC,
                             ![T.id].prog = Tail(T.prog),
-                            \*![id].auth = T.auth-1,
                             ![id].rel = T.rel+1]
         /\ rule' = "until_cons"
-        /\ UNCHANGED reg
-        /\ IF Len(reg.E[id]) >= T.rel+1 THEN
-                /\ IF Len(reg.E[id][T.rel+1]) /= 0 THEN 
-                        msg' = [msg EXCEPT ![1] = Append(msg[1],<<id,T.rel+1>>)]
-                   ELSE \* pas d'event
-                        UNCHANGED msg
-          ELSE
-            UNCHANGED msg
-
-Recv(T) ==
-    LET
-        id == Head(msg[2])[1]
-        suppl == Head(msg[2])[2]
-        rel_calc == Head(msg[2])[3]
-    IN
-        /\ Len(msg[2]) /= 0
-        /\ reg.G = FALSE
-        /\ T.id = id
-        /\ gamma' = [gamma EXCEPT ![id].auth = suppl-(T.rel-rel_calc)]
-        /\ UNCHANGED reg
-        /\ rule' = "recv message"
-        /\ msg' = [msg EXCEPT ![2] = Tail(msg[2])]
+        /\ UNCHANGED <<reg,msg>>
 
 
         \* Regulateur
@@ -232,10 +204,11 @@ Turn_self ==
         id_turn == order[4] \*train concerné par le turn
         rel_turn == gamma[id_turn].rel \* position relative du train concerné par le turn
         subseqEv == SubSeq(reg.E[id_turn],rel_turn+1,Len(reg.E[id_turn]))
-        cptAuth == NextAtt(id_turn,subseqEv,rel_turn)
+        cptAuth == NextAtt(id,subseqEv,rel)
         pos == gamma[id_turn].pos \* intervention divine (voir pour corriger ça)
         dir == gamma[id_turn].dir \* intervention divine (voir pour corriger ça)
-        target == FindSection(pos, dir, cptAuth)
+        nextS == [reg.S EXCEPT ![numAig] = order[3]] \* peu élégent mais limitation technique
+        target == FindSection(pos, dir, cptAuth, nextS)
     IN
         /\ reg.G = TRUE
         /\ Len(msg[1]) /= 0
@@ -253,7 +226,7 @@ Turn_self ==
                               !.F[pos,"R"]    = "V",
                               !.E[id][rel] = Tail(event)]
         /\ UNCHANGED msg
-        
+
 Turn_other == 
     LET
         id == Head(msg[1])[1]
@@ -308,7 +281,7 @@ Att_af ==
         cptAuth == NextAtt(id,subseqEv,rel)
         dir == gamma[id].dir \* intervention divine, voir pour corriger ça
         pos == gamma[id].pos \* intervention divine, voir pour corriger ça
-        target == FindSection(pos,dir,cptAuth)
+        target == FindSection(pos,dir,cptAuth,reg.S)
     IN
         /\ reg.G = TRUE
         /\ Len(msg[1]) /= 0
@@ -360,7 +333,7 @@ Incr_af ==
         cptAuth == NextAtt(id_wait,subseqEv,rel_wait)
         dir == gamma[id_wait].dir \* intervention divine, voir pour corriger ça
         pos == gamma[id_wait].pos \* intervention divine, voir pour corriger ça
-        target == FindSection(pos,dir,cptAuth)
+        target == FindSection(pos,dir,cptAuth,reg.S)
     IN
         /\ reg.G = TRUE
         /\ Len(msg[1]) /= 0
@@ -368,7 +341,7 @@ Incr_af ==
         /\ order[1] = "incr"
         /\ id_wait /= -1
         /\ UNCHANGED gamma
-        /\ rule' = "incr_af"
+        /\ rule' = "incr_af "
         /\ reg' = [reg EXCEPT !.J[jet] = reg.J[jet]+1,
                               !.F[target,"L"] = "R",
                               !.F[target,"R"] = "R",
@@ -377,7 +350,7 @@ Incr_af ==
                               !.E[id][rel] = Tail(event)]
         /\ UNCHANGED msg
 
-SendAuth ==
+EndEvent ==
     LET
         id == Head(msg[1])[1]
         rel == Head(msg[1])[2]
@@ -387,11 +360,10 @@ SendAuth ==
         /\ Len(msg[1]) /= 0
         /\ Len(event) = 0
         /\ UNCHANGED gamma
-        /\ rule' = "SendAuth"
-        /\ reg' = [reg EXCEPT !.A = [x \in (1..Len(gamma)) |-> <<>>],
-                              !.G = FALSE ]
-        /\ msg' = [msg EXCEPT ![1] = Tail(msg[1]),
-                              ![2] = msg[2] \o SelectSeq([x \in 1..Len(gamma) |-> IF Len(reg.A[x]) /= 0 THEN <<x,reg.A[x][1],reg.A[x][2]>> ELSE <<>>],IsntEmpty) ]
+        /\ rule' = "EndEvent"
+        /\ reg' = [reg EXCEPT !.G = FALSE ]
+        /\ msg' = [msg EXCEPT ![1] = Tail(msg[1])]
+                              
 
 IDLE ==
     \A t \in 1..Len(gamma):
@@ -407,14 +379,12 @@ IDLE ==
 \* Propriétés
 
 Liveness == 
-    /\  <>[] /\ gamma[1].pos = 3
+    /\  <>[] /\ gamma[1].pos = 7
              /\ gamma[1].dir = "*"
-    /\  <>[] /\ gamma[2].pos = 1
+    /\  <>[] /\ gamma[2].pos = 3
              /\ gamma[2].dir = "*"
 
 Safety == [] (gamma[1].pos /= gamma[2].pos)
-
-\*GoodAuths ==  \A x \in 1..2 : [] (gamma[x].auth >= 0)
 
 \* Spec
 
@@ -424,7 +394,6 @@ Next ==
         \/ Until(gamma[i])
         \/ Until_cons(gamma[i])
         \/ Stop(gamma[i])
-        \/ Recv(gamma[i])
         \/ StartEvent
         \/ Turn_self
         \/ Turn_other
@@ -432,7 +401,7 @@ Next ==
         \/ Incr_af
         \/ Att_bf
         \/ Att_af
-        \/ SendAuth
+        \/ EndEvent
         \/ IDLE
         
 
@@ -443,5 +412,5 @@ Eval == [x \in (1..3) \X {"A","B"} |-> -1] \*"Hello" \o " World !"
 
 =============================================================================
 \* Modification History
-\* Last modified Wed May 14 10:37:06 CEST 2025 by lucas
+\* Last modified Wed May 14 15:57:01 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas

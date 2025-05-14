@@ -13,7 +13,6 @@ Init_S3 ==
             pos |-> 9,
             dir |-> "*",
             prog |-> << <<"StartUntil","R",4>> >>,
-            auth |-> 1,
             rel |-> 1
         ]
         train2 == [
@@ -21,7 +20,6 @@ Init_S3 ==
             pos |-> 6,
             dir |-> "*",
             prog |-> << <<"StartUntil","L",2>> >>,
-            auth |-> 1,
             rel |-> 1
         ]
         token == <<0,0,0,0>>
@@ -32,16 +30,19 @@ Init_S3 ==
         nextEv == <<1,1>>
         wait == [x \in (1..4) \X (0..3) |-> -1]
         switch == <<"v", "v">>
-        repAuth == << <<>>, <<>>>>
-
+        traffic_lights == [x \in (1..9) \X {"L","R"} |-> "V"]
     IN
         /\ gamma = <<train1,train2>>
         /\ reg = [
                 E  |-> events,
                 J  |-> token,
                 S  |-> switch,
-                A  |-> repAuth,
-                W  |-> wait
+                W  |-> wait,
+                G  |-> FALSE,
+                F  |-> [traffic_lights EXCEPT ![1,"L"] = "R",
+                                              ![1,"R"] = "R",
+                                              ![5,"L"] = "R",
+                                              ![5,"R"] = "R"]
             ]
         /\ rule = ""
         /\ msg = << <<>>, <<>> >>
@@ -73,7 +74,6 @@ Init_S4 ==
             pos |-> 4,
             dir |-> "*",
             prog |-> << <<"StartUntil","L",8>>,<<"StartUntil","R",3>>,<<"StartUntil","L",7>> >>,
-            auth |-> 2,
             rel |-> 1
         ]
         train2 == [
@@ -81,11 +81,9 @@ Init_S4 ==
             pos |-> 5,
             dir |-> "*",
             prog |-> << <<"StartUntil","R",4>>, <<"StartUntil","L",3>> >>,
-            auth |-> 1,
             rel |-> 1
         ]
         token == <<0,0,0,0>>
-        auths == <<2,1>>
         events == <<
                 << <<>>, <<>>, <<<<"turn",3,"d",2>>,<<"incr",3>>,<<"att",3,2>>>>, <<<<"turn",3,"d",1>>>>, <<<<"incr",3>>>> >>,
                 << <<>>, <<<<"att",3,1>>>>, <<>>, <<<<"turn",3,"v",1>>,<<"incr",3>>,<<"att",3,3>>>>, <<>> >>
@@ -93,16 +91,19 @@ Init_S4 ==
         nextEv == <<1,1>>
         wait == [x \in (1..4) \X (0..3) |-> -1]
         switch == <<"d", "d", "v", "d", "d">> 
-        repAuth == << <<>>, <<>> >>
-
+        traffic_lights == [x \in (1..8) \X {"L","R"} |-> "V"]
     IN
         /\ gamma = <<train1,train2>>
         /\ reg = [
                 E  |-> events,
                 J  |-> token,
                 S  |-> switch,
-                A  |-> repAuth,
-                W  |-> wait
+                W  |-> wait,
+                G  |-> FALSE,
+                F  |-> [traffic_lights EXCEPT ![7,"L"] = "R",
+                                              ![7,"R"] = "R",
+                                              ![8,"R"] = "R",
+                                              ![8,"L"] = "R"]
             ]
         /\ rule = ""
         /\ msg = << <<>>, <<>> >>

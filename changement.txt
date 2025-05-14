@@ -38,3 +38,6 @@
 - sépare turn en deux règles :
     - le cas où on tourne l'aiguillage pour nous (on doit donner une autorisation suite à l'event)
     - le cas où l'aiguillage est pour un autre train (un incr ou att fera le taff de donner l'autorisation => évite les doublons)
+
+- Until_cons n'envoi plus de message au régulateur, mais Stop oui : pour éviter les doublons et avoir la bonne 
+direction pour FindSection (l'event pouvait être exécuter avant le changement de dir et donc ça provoquait une erreur)
