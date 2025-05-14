@@ -17,3 +17,24 @@
     faire ressortir le comportement des events dans les règles
 
 ----------
+
+- Ajouter une règle IDLE dans TLA+ pour régler le problème de deadlock (+ajouter WF à Next)
+
+----------
+
+- Besoin d'un troisième argument pour turn (id du train concerné)
+    - dans m0, on pouvait tricher car un turn est (quasi) toujours accompagné d'un att, donc le att renvoyait l'autorisation
+      possible d'utiliser la même méthode pour m1, mais volonté de faire plus "clean"
+    - pour les turn isolé (scénar4) la garantie d'exécuter l'event dans le m0 était un garde-fou contre les problèmes de ce genre.
+      ces protections enlevées dans le m1 font apparaître ce besoin
+
+- Pour le message d'auth, rajoute rel_calc : << id_train, auth, rel_calc >>
+    - rel_calc permet de dire que l'autorisation donné à été accordé quand le train était à la position relative rel_calc.
+    Cela permet de contrer le problème de synchronisation : si une autorisation est donné et que le train 
+    avance sans la consulter, tous se décale
+
+----------
+
+- sépare turn en deux règles :
+    - le cas où on tourne l'aiguillage pour nous (on doit donner une autorisation suite à l'event)
+    - le cas où l'aiguillage est pour un autre train (un incr ou att fera le taff de donner l'autorisation => évite les doublons)
