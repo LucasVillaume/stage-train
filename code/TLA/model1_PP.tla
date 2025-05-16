@@ -361,16 +361,15 @@ EndEvent ==
         /\ Len(event) = 0
         /\ UNCHANGED gamma
         /\ rule' = "EndEvent"
-        /\ reg' = [reg EXCEPT !.G = FALSE ]
+        /\ reg' = [reg EXCEPT !.G = FALSE]
         /\ msg' = [msg EXCEPT ![1] = Tail(msg[1])]
-                              
+
 
 IDLE ==
     \A t \in 1..Len(gamma):
         /\ Len(gamma[t].prog) = 0
         /\ gamma[t].dir = "*"
     /\ Len(msg[1]) = 0
-    /\ Len(msg[2]) = 0   
     /\ UNCHANGED gamma
     /\ rule' = "IDLE"
     /\ UNCHANGED reg
@@ -379,9 +378,9 @@ IDLE ==
 \* Propriétés
 
 Liveness == 
-    /\  <>[] /\ gamma[1].pos = 7
+    /\  <>[] /\ gamma[1].pos = 3
              /\ gamma[1].dir = "*"
-    /\  <>[] /\ gamma[2].pos = 3
+    /\  <>[] /\ gamma[2].pos = 1
              /\ gamma[2].dir = "*"
 
 Safety == [] (gamma[1].pos /= gamma[2].pos)
@@ -412,5 +411,5 @@ Eval == [x \in (1..3) \X {"A","B"} |-> -1] \*"Hello" \o " World !"
 
 =============================================================================
 \* Modification History
-\* Last modified Wed May 14 15:57:01 CEST 2025 by lucas
+\* Last modified Fri May 16 09:56:07 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas

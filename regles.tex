@@ -6,6 +6,7 @@
 \usepackage{amsmath}
 \usepackage{mathtools}
 \usepackage{graphicx}
+\usepackage[dvipsnames]{xcolor}
 
 
 
@@ -16,10 +17,9 @@
 
 %%%%% Macro %%%%%%%
 \newcommand\concat[2]{#1;#2}
-\newcommand\train[6]{(#1, #2, #3, #4, #5, #6)} % #1 id, #2 pos, #3 dir, #4 P, #5 auth, #6 rel
+\newcommand\train[5]{(#1, #2, #3, #4, #5)} % #1 id, #2 pos, #3 dir, #4 P, #5 rel
 \newcommand\trainfull[6]{\Gamma \cup \train{#1}{#2}{#3}{#4}{#5}{#6}} 
-\newcommand\reg[4]{(#1, #2, #3, #4)} % #1 Events, #2 Jetons, #3 Aiguillages, #4 File d'attente
-\newcommand\regPP[6]{(#1, #2, #3, #4, #5, #6)} % #1 Events, #2 Jetons, #3 Aiguillages, #4 File d'attente
+\newcommand\reg[7]{(#1, #2, #3, #4, #5, #6, #7)} % #1 Events, #2 Jetons, #3 Aiguillages, #4 File d'attente, #5 Garde, #6 Feux, #7 Buffer
 
 \newcommand\maj[2]{#1 \gets #2} % #1 : dictionnaire, #2 : valeur
 \newcommand\majtab[3]{#1[#2] \gets #3}
@@ -99,23 +99,25 @@
 \section{Définition}
 
 \subsection{Représentation du train}
-Dans notre modèle, un train est représenté par un sextuplet $(id, pos, dir, P, auth, rel)$ où :
+Dans notre modèle, un train est représenté par un quintuplet $(id, pos, dir, P, rel)$ où :
 \begin{itemize}
     \item $id$ : identifiant du train
     \item $pos$ : position du train 
     \item $dir$ : direction du train
     \item $P$ : programme du train
-    \item $auth$ : nombre de transition restantes autorisés
     \item $rel$ : position relative du train par rapport au départ
 \end{itemize}
 
 \subsection{Représentation du régulateur}
-Le régulateur est représenté par un quadruplet $(E, J, S, W)$ où :
+Le régulateur est représenté par un septuplet $(E, J, S, W, G, F, B)$ où :
 \begin{itemize}
     \item $E$ : événements du régulateur
     \item $J$ : tableau de jetons
     \item $S$ : tableau des aiguillages
     \item $W$ : file d'attente
+    \item $G$ : garde
+    \item $F$ : feux de signalisation
+    \item $B$ : buffer (unidirectionnel) de messages
 \end{itemize}
 
 
@@ -141,7 +143,8 @@ Soit un tableau T, on note la mise à jour de T à la position i avec la valeur 
 \subsection{Définition des prédicats et fonctions}
 
 \begin{itemize}
-    \item $suiv(pos, dir, switch)$ : renvoi la position suivante 
+    \item $suiv(pos, dir, switch)$ : renvoie la position suivante 
+    \item handleTL(id, {\color{Red}pos, dir}, S) : renvoie la nouvelle valeur des feux de signalisation 
 \end{itemize}
 
 %%%%% Grammaire %%%%%%
@@ -166,7 +169,7 @@ Soit un tableau T, on note la mise à jour de T à la position i avec la valeur 
     \firstcasesubtil{stmt}{ev(id_{train}, num_{event}) : atom}{}
     \firstcasesubtil{atom}{incr(j)}{}
     \otherform{att(j, value_{j})}{}
-    \otherform{turn(id_{switch}, state)}{}
+    \otherform{turn(id_{switch}, state, id_{target})}{}
     \otherform{atom \gralt \varepsilon}{}
 
 \end{grammar}
@@ -185,108 +188,91 @@ Soit un tableau T, on note la mise à jour de T à la position i avec la valeur 
 
 \subsection{Actions sur le train}
 
+\noindent
+
 Start : 
 \inferrule
-    { dir \neq D}
-    {\trainfull{id}{pos}{dir}{\concat{SU(D,N)}{P'}}{auth}{rel} \\ \xRightarrow{\text{!ev(id,rel)}} \\ \trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}{auth}{rel}} 
+    { dir \neq D \\ R.G = false}
+    {\trainfull{id}{pos}{dir}{\concat{SU(D,N)}{P'}}{rel}, R \\ \xRightarrow{\text{!ev(id,rel)}} \\ \trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}{rel},R}
 \vspace{0.5cm}
 
 
 Stop :
 \inferrule
-    { P = \varepsilon \\ dir \neq *}
-    {\trainfull{id}{pos}{dir}{P}{auth}{rel} \\ \Rightarrow \\ \trainfull{id}{pos}{*}{P}{auth}{rel}}
+    { P = \varepsilon \\ dir \neq * \\ R.G = false}
+    {\trainfull{id}{pos}{dir}{P}{rel},R \\ \xRightarrow{\text{!ev(id,rel)}} \\ \trainfull{id}{pos}{*}{P}{rel},R}
 \vspace{0.5cm}
 
 
 Until :
     \inferrule
-    { suiv(pos, D, S) = pos' \\ pos' \neq N \\ pos' \neq \varepsilon \\ auth \neq 0}
-    {\trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}{auth}{rel} \\ \xRightarrow{\text{!ev(id,rel+1)}} \\ \trainfull{id}{pos'}{D}{\concat{SU(D,N)}{P'}}{auth-1}{rel+1}}
+    { suiv(pos, D, S) = pos' \\ pos' \neq N \\ pos' \neq \varepsilon \\ {\color{PineGreen} R.F[(pos,dir)] = V} \\ {\color{PineGreen}R.G = false}}
+    {\trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}{rel},R \\ \xRightarrow{\text{!ev(id,rel+1)}} \\ \trainfull{id}{pos'}{D}{\concat{SU(D,N)}{P'}}{rel+1},R}
 \vspace{0.5cm}
 
 
 Until$_{cons}$ :
     \inferrule
-        { suiv(pos, D, S) = pos' \\ auth \neq 0 \\ rel = x}
-        {\trainfull{id}{pos}{D}{\concat{SU(D,pos')}{P'}}{auth}{rel}\\ \xRightarrow{\text{!ev(id,rel+1)}} \\ \trainfull{id}{pos'}{D}{P'}{auth-1}{rel+1}}
+        { suiv(pos, D, S) = pos' \\ rel = x \\ {\color{PineGreen} R.F[(pos,dir)] = V} \\ {\color{PineGreen} R.G = false}}
+        {\trainfull{id}{pos}{D}{\concat{SU(D,pos')}{P'}}{rel},R\\ \Rightarrow \\ \trainfull{id}{pos'}{D}{P'}{rel+1},R}
 \vspace{0.5cm}
+
+\subsection{Actions sur le régulateur : simulation grands pas avec une approche petits pas}
+
+\noindent
 
 Recv :
-    \inferrule
-        { }
-        {\trainfull{id}{pos}{D}{P}{auth}{rel}\\ \xRightarrow{\text{?(id,suppl)}} \\ \trainfull{id}{pos}{D}{P}{auth+suppl}{rel}}
-\vspace{0.5cm}
-
-\newpage
-
-\subsection{Actions sur le régulateur}
-
-\subsubsection{Approche grands pas}
-
-Pour cette approche, on ajoute au régulateur un buffer d'événements $B_E$ qui contient les événements en 
-attente d'être traités
-\vspace{0.5cm}
-
-Stockage :
 \inferrule
-    { len(B_E) = x}
-    {\regPP{E}{J}{S}{W}{B_E}{} \\ \xRightarrow{\text{?ev(id,rel)}} \\ \regPP{E}{J}{S}{W}{\majtab{B_E}{x+1}{(id, rel)}}{}}
+    { len(B) = x}
+    {\reg{E}{J}{S}{W}{G}{F}{B} \\ \xRightarrow{\text{?ev(id,rel)}} \\ \reg{E}{J}{S}{W}{G}{F}{\majtab{B}{x+1}{(id, rel)}}}
 \vspace{0.5cm}
 
-Event :
+StarEvent :
 \inferrule
-    { Head(B_E) = (id, rel) \\ apply(R, id, rel) = (R',c)}
-    {R \xRightarrow{\text{!(id,c)}} R'}
+    { len(B) \neq 0}
+    {\reg{E}{J}{S}{W}{false}{F}{B} \\ \Rightarrow \\ \reg{E}{J}{S}{W}{true}{F}{B}}
 \vspace{0.5cm}
 
-\subsubsection{Approche petits pas}
-
-Pour cette approche, on ajoute au régulateur un buffer d'événements $B_E$ qui contient les événements en 
-attente d'être traités, et un tableau des "réponses" $A$ qui contient la réponse à l'événements.
-\vspace{0.5cm}
-
-Stockage :
+Incr$_{bf}$ : %incr qui arrive avant un att
 \inferrule
-    { len(B_E) = x}
-    {\regPP{E}{J}{S}{W}{B_E}{A} \\ \xRightarrow{\text{?ev(id,rel)}} \\ \regPP{E}{J}{S}{W}{\majtab{B_E}{x+1}{(id, rel)}}{A}}
+    { Head(B) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ W[(j, x+1)] = \varepsilon }
+    {\reg{E[ev] \owns \concat{incr(j)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{true}{F}{B}}
 \vspace{0.5cm}
 
-incr$_{bf}$ : %incr qui arrive avant un att
+Incr$_{af}$ : %incr qui arrive après un att
 \inferrule
-    { Head(B_E) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ W[(j, x+1)] = \varepsilon }
-    {\regPP{E[ev] \owns \concat{incr(j)}{P'}}{J}{S}{W}{B_E}{A} \\ \Rightarrow \\ \regPP{\majtab{E}{ev}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{B_E}{A}}
+    { Head(B) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ W[(j, x+1)] = w_{id} \\ handleTL(w_{id}, {\color{Red}pos, dir}, S) = F'}
+    {\reg{E[ev] \owns \concat{incr(j)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{true}{F'}{B}}
 \vspace{0.5cm}
 
-incr$_{af}$ : %incr qui arrive après un att
+Att$_{bf}$ : %att qui arrive avant un incr
 \inferrule
-    { Head(B_E) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ W[(j, x+1)] = w_{id} \\ nextEv(w_{id},E) = c}
-    {\regPP{E[ev] \owns \concat{incr(j)}{P'}}{J}{S}{W}{B_E}{A} \\ \Rightarrow \\ \regPP{\majtab{E}{ev}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{B_E}{A \gets c}}
+    { Head(B) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ x \neq y}
+    {\reg{E[ev] \owns \concat{att(j,y)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{J}{S}{{\majtab{W}{(j,y)}{id}}}{true}{F}{B}}
 \vspace{0.5cm}
 
-att$_{bf}$ : %att qui arrive avant un incr
+Att$_{af}$ : %att qui arrive après un incr
 \inferrule
-    { Head(B_E) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ x \neq y}
-    {\regPP{E[ev] \owns \concat{att(j,y)}{P'}}{J}{S}{W}{B_E}{A} \\ \Rightarrow \\ \regPP{\majtab{E}{ev}{P'}}{J}{S}{{\majtab{W}{(j,y)}{id}}}{B_E}{A}}
+    { Head(B) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ handleTL(id, {\color{Red}pos, dir}, S) = F'}
+    {\reg{E[ev] \owns \concat{att(j,x)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{J}{S}{W}{true}{F'}{B}}
 \vspace{0.5cm}
 
-att$_{af}$ : %att qui arrive après un incr
+Turn$_{self}$ : 
 \inferrule
-    { Head(B_E) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ nextEv(w_{id},E) = c}
-    {\regPP{E[ev] \owns \concat{att(j,x)}{P'}}{J}{S}{W}{B_E}{A} \\ \Rightarrow \\ \regPP{\majtab{E}{ev}{P'}}{J}{S}{W}{B_E}{A \gets c}}
+    { Head(B) = (id, rel) \\ S' = \majtab{S}{id_{s}}{state} \\ ev = (id, rel) \\ handleTL(id, {\color{Red}pos, dir}, S') = F'}
+    {\reg{E[ev] \owns \concat{turn(id_{s},state,id)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{J}{S'}{W}{true}{F'}{B}}
 \vspace{0.5cm}
 
-turn : 
+Turn$_{other}$ : 
 \inferrule
-    { Head(B_E) = (id, rel) \\ ev = (id, rel) \\ nextEv(w_{id},R) = c}
-    {\regPP{E[ev] \owns \concat{turn(id_{s},state)}{P'}}{J}{S}{W}{B_E}{A} \\ \Rightarrow \\ \regPP{\majtab{E}{ev}{P'}}{J}{\majtab{S}{id_{s}}{state}}{W}{B_E}{A \gets c}}
-\\Attention, turn dans les events du train concerné (à cause du nextEv) / ou rajouter l'id du train concerné dans les paramètres de turn
+    { Head(B) = (id, rel) \\  \\ ev = (id, rel) \\ id \neq id_t}
+    {\reg{E[ev] \owns \concat{turn(id_{s},state,id_t)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{J}{\majtab{S}{id_{s}}{state}}{W}{true}{F}{B}}
 \vspace{0.5cm}
 
-SendAuth :
+EndEvent :
 \inferrule
-    { Head(B_E) = (id, rel) \\ ev = (id, rel) \\ suppl = A }
-    {\regPP{E[ev] \owns \varepsilon}{J}{S}{W}{B_E \owns \concat{ev}{M'}}{A} \\ \xRightarrow{\text{!(id,suppl)}} \\ \regPP{E}{J}{S}{W}{B_E}{A \gets \varepsilon}}
+    { Head(B) = (id, rel) \\ ev = (id, rel) \\ E[ev] = \varepsilon}
+    {\reg{E}{J}{S}{W}{true}{F}{\concat{m}{B'}} \\ \Rightarrow \\ \reg{E}{J}{S}{W}{false}{F}{B'}}
 \vspace{0.5cm}
 
 
