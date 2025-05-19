@@ -24,8 +24,8 @@ Init_S3 ==
         ]
         token == <<0,0,0,0>>
         events == <<
-                << <<>>, <<<<"turn",1,"d",1>>>>, <<<<"turn",2,"d",1>>>>, <<>> >>,
-                << <<>>, <<<<"turn",2,"v",2>>>>, <<<<"turn",1,"v",2>>>>, <<>> >>
+                << <<>>, <<<<"turn",1,"d",1>>,<<"auth">>>>, <<<<"turn",2,"d",1>>,<<"auth">>>>, <<>> >>,
+                << <<>>, <<<<"turn",2,"v",2>>,<<"auth">>>>, <<<<"turn",1,"v",2>>,<<"auth">>>>, <<>> >>
             >>
         nextEv == <<1,1>>
         wait == [x \in (1..4) \X (0..3) |-> -1]
@@ -66,7 +66,6 @@ Suiv_S3(pos, dir, S) ==
 (********************** Maquette ***********************)
 
 
-
 Init_S4 == 
     LET 
         train1 == [
@@ -85,7 +84,7 @@ Init_S4 ==
         ]
         token == <<0,0,0,0>>
         events == <<
-                << <<>>, <<>>, <<<<"turn",3,"d",2>>,<<"incr",3>>,<<"att",3,2>>>>, <<<<"turn",3,"d",1>>>>, <<<<"incr",3>>>> >>,
+                << <<>>, <<>>, <<<<"turn",3,"d",2>>,<<"incr",3>>,<<"att",3,2>>>>, <<<<"turn",3,"d",1>>,<<"auth">>>>, <<<<"incr",3>>>> >>,
                 << <<>>, <<<<"att",3,1>>>>, <<>>, <<<<"turn",3,"v",1>>,<<"incr",3>>,<<"att",3,3>>>>, <<>> >>
             >>
         nextEv == <<1,1>>
@@ -128,6 +127,192 @@ Suiv_S4(pos, dir, S) ==   IF pos = 1 /\ dir = "L" /\ S[1] = "d" /\ S[2] = "v" TH
                      ELSE IF pos = 7 /\ dir = "R" /\ S[3] = "d"               THEN 3
                      ELSE IF pos = 8 /\ dir = "R" /\ S[3] = "v"               THEN 3
                      ELSE -1
+
+
+(********************** Défaut 1 ***********************)
+
+
+Init_D1 ==
+    LET 
+        train1 == [
+            id |-> 1,
+            pos |-> 1,
+            dir |-> "*",
+            prog |-> << <<"StartUntil","R",4>>,<<"StartUntil","L",1>> >>,
+            rel |-> 1
+        ]
+        train2 == [
+            id |-> 2,
+            pos |-> 4,
+            dir |-> "*",
+            prog |-> << <<"StartUntil","L",1>>, <<"StartUntil","R",4>> >>,
+            rel |-> 1
+        ]
+        token == <<0,0,0,0>>
+        events == <<
+                << <<>>, <<<<"turn",1,"v",2>>,<<"incr",1>>,<<"att",4,1>>>>, <<<<"turn",2,"d",1>>,<<"incr",2>>,<<"att",3,1>>>>, <<<<"turn",2,"v",2>>,<<"incr",4>>,<<"att",1,2>>>>, <<>> >>,
+                << <<>>, <<<<"turn",2,"v",1>>,<<"incr",4>>,<<"att",1,1>>>>, <<<<"turn",1,"d",2>>,<<"incr",3>>,<<"att",2,1>>>>, <<<<"turn",1,"v",1>>,<<"incr",1>>,<<"att",4,2>>>>, <<>> >>
+            >>
+        nextEv == <<1,1>>
+        wait == [x \in (1..4) \X (0..3) |-> -1]
+        switch == <<"d", "d">> 
+        traffic_lights == [x \in (1..4) \X {"L","R"} |-> "V"]
+    IN
+        /\ gamma = <<train1,train2>>
+        /\ reg = [
+                E  |-> events,
+                J  |-> token,
+                S  |-> switch,
+                W  |-> wait,
+                G  |-> FALSE,
+                F  |-> [traffic_lights EXCEPT ![2,"L"] = "R",
+                                              ![2,"R"] = "R",
+                                              ![3,"R"] = "R",
+                                              ![3,"L"] = "R"]
+            ]
+        /\ rule = ""
+        /\ msg = << <<>>, <<>> >>
+
+Suiv_D1(pos, dir, S) ==   IF pos = 1 /\ dir = "R" /\ S[1] = "d" THEN 2
+                     ELSE IF pos = 1 /\ dir = "R" /\ S[1] = "v" THEN 3
+                     ELSE IF pos = 2 /\ dir = "R" /\ S[2] = "v" THEN 4
+                     ELSE IF pos = 2 /\ dir = "L" /\ S[1] = "d" THEN 1
+                     ELSE IF pos = 3 /\ dir = "R" /\ S[2] = "d" THEN 4
+                     ELSE IF pos = 3 /\ dir = "L" /\ S[1] = "v" THEN 1
+                     ELSE IF pos = 4 /\ dir = "L" /\ S[2] = "d" THEN 3
+                     ELSE IF pos = 4 /\ dir = "L" /\ S[2] = "v" THEN 2
+                     ELSE -1
+
+
+(********************** Défaut 2 ***********************)
+
+
+Init_D2 ==
+    LET 
+        train1 == [
+            id |-> 1,
+            pos |-> 1,
+            dir |-> "*",
+            prog |-> << <<"StartUntil","R",2>>, <<"StartUntil","L",3>>, <<"StartUntil","R",1>> >>,
+            rel |-> 1
+        ]
+        train2 == [
+            id |-> 2,
+            pos |-> 3,
+            dir |-> "*",
+            prog |-> << <<"StartUntil","L",1>>, <<"StartUntil","R",2>>, <<"StartUntil","L",3>> >>,
+            rel |-> 1
+        ]
+        token == <<0,0,0,0>>
+        events == <<
+                << <<>>, <<<<"turn",1,"-",2>>,<<"incr",1>>,<<"att",3,1>>>>, <<<<"turn",1,"d",2>>,<<"incr",2>>,<<"att",1,2>>>>, <<<<"turn",1,"v",2>>,<<"incr",3>>>> >>,
+                << <<<<"att",1,1>>>>, <<<<"turn",1,"v",1>>,<<"incr",3>>,<<"att",2,1>>>>, <<<<"turn",1,"-",1>>,<<"incr",1>>,<<"att",3,2>>>>, <<>> >>
+            >>
+        nextEv == <<1,1>>
+        wait == [x \in (1..4) \X (0..3) |-> -1]
+        switch == <<"d">> 
+        traffic_lights == [x \in (1..4) \X {"L","R"} |-> "V"]
+    IN
+        /\ gamma = <<train1,train2>>
+        /\ reg = [
+                E  |-> events,
+                J  |-> token,
+                S  |-> switch,
+                W  |-> wait,
+                G  |-> FALSE,
+                F  |-> [traffic_lights EXCEPT ![2,"L"] = "R",
+                                              ![2,"R"] = "R",
+                                              ![3,"R"] = "R",
+                                              ![3,"L"] = "R"]
+            ]
+        /\ rule = ""
+        /\ msg = << <<>>, <<>> >>
+
+Suiv_D2(pos, dir, S) ==   IF pos = 1 /\ dir = "R" /\ S[1] = "-" THEN 3
+                     ELSE IF pos = 1 /\ dir = "R" /\ S[1] = "d" THEN 2
+                     ELSE IF pos = 1 /\ dir = "L" /\ S[1] = "-" THEN 3
+                     ELSE IF pos = 1 /\ dir = "L" /\ S[1] = "d" THEN 2
+                     
+                     ELSE IF pos = 2 /\ dir = "R" /\ S[1] = "d" THEN 1
+                     ELSE IF pos = 2 /\ dir = "R" /\ S[1] = "v" THEN 3
+                     ELSE IF pos = 2 /\ dir = "L" /\ S[1] = "d" THEN 1
+                     ELSE IF pos = 2 /\ dir = "L" /\ S[1] = "v" THEN 3
+                     
+                     ELSE IF pos = 3 /\ dir = "L" /\ S[1] = "v" THEN 2
+                     ELSE IF pos = 3 /\ dir = "L" /\ S[1] = "-" THEN 1
+                     ELSE IF pos = 3 /\ dir = "R" /\ S[1] = "v" THEN 2
+                     ELSE IF pos = 3 /\ dir = "R" /\ S[1] = "-" THEN 1
+                     ELSE -1
+
+
+(********************** Trois trains ***********************)
+
+
+Init_S8 ==
+    LET 
+        train1 == [
+            id |-> 1,
+            pos |-> 1,
+            dir |-> "*",
+            prog |-> << <<"StartUntil","R",5>> >>,
+            rel |-> 1
+        ]
+        train2 == [
+            id |-> 2,
+            pos |-> 2,
+            dir |-> "*",
+            prog |-> << <<"StartUntil","R",4>> >>,
+            rel |-> 1
+        ]
+        train3 == [
+            id |-> 3,
+            pos |-> 4,
+            dir |-> "*",
+            prog |-> << <<"StartUntil","L",1>> >>,
+            rel |-> 1
+        ]
+        token == <<0,0,0,0,0>>
+        events == <<
+                << <<>>, <<>>, <<<<"turn",2,"d">>,<<"incr",3>> >>>>,
+                << <<<<"att",3,2>>>>, <<>>, <<>>>>,
+                << <<<<"att",3,1>>>>, <<>>, <<<<"turn",1,"v">>,<<"incr",3>>>> >>
+            >>
+        nextEv == <<1,1,1>>
+        wait == [x \in (1..4) \X (0..3) |-> -1]
+        switch == <<"d", "v">>
+        traffic_lights == [x \in (1..5) \X {"L","R"} |-> "V"]
+    IN
+        /\ gamma = <<train1,train2,train3>>
+        /\ reg = [
+                E  |-> events,
+                J  |-> token,
+                S  |-> switch,
+                W  |-> wait,
+                G  |-> FALSE,
+                F  |-> [traffic_lights EXCEPT ![2,"L"] = "R",
+                                              ![2,"R"] = "R",
+                                              ![4,"L"] = "R",
+                                              ![4,"R"] = "R",
+                                              ![5,"L"] = "R",
+                                              ![5,"R"] = "R"]
+            ]
+        /\ rule = ""
+        /\ msg = << <<>>, <<>> >>
+    
+Suiv_S8(pos, dir, S) ==
+    IF      pos = 1 /\ dir = "R" /\ S[1] = "d" THEN 3
+    ELSE IF pos = 2 /\ dir = "R" /\ S[1] = "v" THEN 3
+    ELSE IF pos = 3 /\ dir = "L" /\ S[1] = "d" THEN 1
+    ELSE IF pos = 3 /\ dir = "L" /\ S[1] = "v" THEN 2
+    ELSE IF pos = 3 /\ dir = "R" /\ S[2] = "d" THEN 4
+    ELSE IF pos = 3 /\ dir = "R" /\ S[2] = "v" THEN 5
+    ELSE IF pos = 4 /\ dir = "L" /\ S[2] = "d" THEN 3
+    ELSE IF pos = 5 /\ dir = "L" /\ S[2] = "v" THEN 3
+    ELSE -1
+
+
+
+
 
 
 

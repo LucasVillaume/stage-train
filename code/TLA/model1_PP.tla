@@ -1,7 +1,7 @@
 ----------------------------- MODULE model1_PP -----------------------------
 
 
-EXTENDS Integers, TLC, Sequences\*, scenario_m1 (*
+EXTENDS Integers, TLC, Sequences, scenario_m1 (*
 VARIABLE gamma, reg, rule, msg
 
 
@@ -60,8 +60,8 @@ Init ==
     /\ msg = << <<>>, <<>> >>
 
 \* *)
-\*Init == Init_S4
-\*Suiv(pos, dir, S) == Suiv_S4(pos, dir, S)
+Init == Init_S8
+Suiv(pos, dir, S) == Suiv_S8(pos, dir, S)
 
 
 \* Utilitaire
@@ -80,7 +80,7 @@ IsAttTurnInSeq(S) ==
 
 IsAttInSeq(S) == 
     \E x \in DOMAIN S : 
-        S[x][1] = "att"\* True si le tableau comporte une chaîne "att"
+        S[x][1] = "att" \* True si le tableau comporte une chaîne "att"
 
 NextAtt(id, evs, evCourante) == \*evs : séquence d'events pour un train / evCourante : numéro de l'event courant
     LET 
@@ -103,8 +103,8 @@ FindSection(pos,dir,cpt,S) ==
             nextPos
         ELSE
             FindSection(nextPos,dir,cpt-1,S)
-                
-            
+
+
 
 \* règles
         \* Train
@@ -185,7 +185,7 @@ Until_cons(T) ==
 
 
         \* Regulateur
-        
+
 StartEvent == \*Simuler une approche grands pas
     /\ reg.G = FALSE
     /\ Len(msg[1]) /= 0
@@ -193,48 +193,14 @@ StartEvent == \*Simuler une approche grands pas
     /\ reg' = [reg EXCEPT !.G = TRUE]
     /\ rule' = "StartEvent"
     /\ UNCHANGED msg
-        
-Turn_self == 
-    LET
-        id == Head(msg[1])[1]
-        rel == Head(msg[1])[2]
-        event == reg.E[id][rel] \* Sequence d'ordre de l'event
-        order == Head(event)
-        numAig == order[2]
-        id_turn == order[4] \*train concerné par le turn
-        rel_turn == gamma[id_turn].rel \* position relative du train concerné par le turn
-        subseqEv == SubSeq(reg.E[id_turn],rel_turn+1,Len(reg.E[id_turn]))
-        cptAuth == NextAtt(id,subseqEv,rel)
-        pos == gamma[id_turn].pos \* intervention divine (voir pour corriger ça)
-        dir == gamma[id_turn].dir \* intervention divine (voir pour corriger ça)
-        nextS == [reg.S EXCEPT ![numAig] = order[3]] \* peu élégent mais limitation technique
-        target == FindSection(pos, dir, cptAuth, nextS)
-    IN
-        /\ reg.G = TRUE
-        /\ Len(msg[1]) /= 0
-        /\ Len(event) > 0
-        /\ order[1] = "turn"
-        /\ numAig <= Len(reg.S)
-        /\ numAig >= 0
-        /\ id = id_turn
-        /\ UNCHANGED gamma
-        /\ rule' = "turn_self"
-        /\ reg' = [reg EXCEPT !.S[numAig] = order[3],
-                              !.F[target,"L"] = "R",
-                              !.F[target,"R"] = "R",
-                              !.F[pos,"L"]    = "V",
-                              !.F[pos,"R"]    = "V",
-                              !.E[id][rel] = Tail(event)]
-        /\ UNCHANGED msg
 
-Turn_other == 
+Turn == 
     LET
         id == Head(msg[1])[1]
         rel == Head(msg[1])[2]
         event == reg.E[id][rel] \* Sequence d'ordre de l'event
         order == Head(event)
         numAig == order[2]
-        id_turn == order[4] \*train concerné par le turn
     IN
         /\ reg.G = TRUE
         /\ Len(msg[1]) /= 0
@@ -242,9 +208,8 @@ Turn_other ==
         /\ order[1] = "turn"
         /\ numAig <= Len(reg.S)
         /\ numAig >= 0
-        /\ id /= id_turn
         /\ UNCHANGED gamma
-        /\ rule' = "turn_other"
+        /\ rule' = "turn" 
         /\ reg' = [reg EXCEPT !.S[numAig] = order[3],
                               !.E[id][rel] = Tail(event)]
         /\ UNCHANGED msg
@@ -289,7 +254,7 @@ Att_af ==
         /\ order[1] = "att"
         /\ reg.J[jet] = val
         /\ UNCHANGED gamma
-        /\ rule' = "att_af"
+        /\ rule' = "att_af" \o ToString(pos) \o dir \o ToString(cptAuth) \o ToString(target)
         /\ reg' = [reg EXCEPT !.W[jet,val] = id,
                               !.F[target,"L"] = "R",
                               !.F[target,"R"] = "R",
@@ -341,7 +306,7 @@ Incr_af ==
         /\ order[1] = "incr"
         /\ id_wait /= -1
         /\ UNCHANGED gamma
-        /\ rule' = "incr_af "
+        /\ rule' = "incr_af " \o ToString(pos) \o dir \o ToString(cptAuth) \o ToString(target)
         /\ reg' = [reg EXCEPT !.J[jet] = reg.J[jet]+1,
                               !.F[target,"L"] = "R",
                               !.F[target,"R"] = "R",
@@ -349,6 +314,34 @@ Incr_af ==
                               !.F[pos,"R"]    = "V",
                               !.E[id][rel] = Tail(event)]
         /\ UNCHANGED msg
+
+
+Auth ==
+    LET
+        id == Head(msg[1])[1]
+        rel == Head(msg[1])[2]
+        event == reg.E[id][rel] \* Sequence d'ordre de l'event
+        order == Head(event)
+        subseqEv == SubSeq(reg.E[id],rel+1,Len(reg.E[id]))
+        cptAuth == NextAtt(id,subseqEv,rel)
+        pos == gamma[id].pos \* intervention divine (voir pour corriger ça)
+        dir == gamma[id].dir \* intervention divine (voir pour corriger ça)
+        target == FindSection(pos, dir, cptAuth, reg.S)
+    IN
+        /\ reg.G = TRUE
+        /\ Len(msg[1]) /= 0
+        /\ Len(event) > 0
+        /\ order[1] = "auth"
+        /\ UNCHANGED gamma
+        /\ rule' = "auth"
+        /\ reg' = [reg EXCEPT !.F[target,"L"] = "R",
+                              !.F[target,"R"] = "R",
+                              !.F[pos,"L"]    = "V",
+                              !.F[pos,"R"]    = "V",
+                              !.E[id][rel] = Tail(event)]
+        /\ UNCHANGED msg
+
+
 
 EndEvent ==
     LET
@@ -394,12 +387,12 @@ Next ==
         \/ Until_cons(gamma[i])
         \/ Stop(gamma[i])
         \/ StartEvent
-        \/ Turn_self
-        \/ Turn_other
+        \/ Turn
         \/ Incr_bf
         \/ Incr_af
         \/ Att_bf
         \/ Att_af
+        \/ Auth
         \/ EndEvent
         \/ IDLE
         
@@ -407,9 +400,10 @@ Next ==
 Spec == Init /\ [][Next]_<<gamma,reg,rule,msg>> /\ WF_<<gamma,reg,rule,msg>>(Next)
 \* WF_ : Weak Fairness, "si une règle peut être appliquée, je l'applique"
 
-Eval == [x \in (1..3) \X {"A","B"} |-> -1] \*"Hello" \o " World !"
+
+Eval == "Hello" \o " World !"
 
 =============================================================================
 \* Modification History
-\* Last modified Fri May 16 09:56:07 CEST 2025 by lucas
+\* Last modified Mon May 19 11:20:47 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas

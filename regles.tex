@@ -120,26 +120,6 @@ Le régulateur est représenté par un septuplet $(E, J, S, W, G, F, B)$ où :
     \item $B$ : buffer (unidirectionnel) de messages
 \end{itemize}
 
-
-\subsection{Notation}
-\iffalse
-On note
-\\
-$\mathbf{O}_{e}$ l'ensemble des ordres des événements
-\vspace{0.3cm} \\
-dict : $\mathbf{A} \rightarrow \mathbf{B}$ avec $\mathbf{A}$ l'ensemble des clés et $\mathbf{B}$ l'ensemble des valeurs
-\\ $\mathbf{A} \times \mathbf{B}$ telque \{ $\langle k,v \rangle$ si $k_{j} \neq k_{i}$ \} \\
-\vspace{0.1cm} \\
-suppr(D,k) = \bracket{D \backslash \{\langle x,D[x] \rangle\} \text{ si } k = x}{D \text{ sinon}}
-\\
-\vspace{0.3cm} \\
-E : dict avec \bracket{a \in \mathbf{A} | a = \langle id_{t}, numEv \rangle}{\mathbf{B} \subseteq \mathbf{O}_{e}}
-\vspace{0.3cm} \\
-W : dict avec \bracket{a \in \mathbf{A} | a = \langle id_{c}, val_{j} \rangle}{\mathbf{B} \subseteq \mathbf{N}}
-\vspace{0.3cm} \\
-Soit un tableau T, on note la mise à jour de T à la position i avec la valeur v par $\majtab{T}{i}{v}$ 
-\fi
-
 \subsection{Définition des prédicats et fonctions}
 
 \begin{itemize}
@@ -169,7 +149,8 @@ Soit un tableau T, on note la mise à jour de T à la position i avec la valeur 
     \firstcasesubtil{stmt}{ev(id_{train}, num_{event}) : atom}{}
     \firstcasesubtil{atom}{incr(j)}{}
     \otherform{att(j, value_{j})}{}
-    \otherform{turn(id_{switch}, state, id_{target})}{}
+    \otherform{turn(id_{switch}, state)}{}
+    \otherform{auth}{}
     \otherform{atom \gralt \varepsilon}{}
 
 \end{grammar}
@@ -257,16 +238,16 @@ Att$_{af}$ : %att qui arrive après un incr
     {\reg{E[ev] \owns \concat{att(j,x)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{J}{S}{W}{true}{F'}{B}}
 \vspace{0.5cm}
 
-Turn$_{self}$ : 
+Turn : 
 \inferrule
-    { Head(B) = (id, rel) \\ S' = \majtab{S}{id_{s}}{state} \\ ev = (id, rel) \\ handleTL(id, {\color{Red}pos, dir}, S') = F'}
-    {\reg{E[ev] \owns \concat{turn(id_{s},state,id)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{J}{S'}{W}{true}{F'}{B}}
+    { Head(B) = (id, rel)  \\ ev = (id, rel)}
+    {\reg{E[ev] \owns \concat{turn(id_{s},state)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{J}{\majtab{S}{id_{s}}{state}}{W}{true}{F}{B}}
 \vspace{0.5cm}
 
-Turn$_{other}$ : 
+Auth : 
 \inferrule
-    { Head(B) = (id, rel) \\  \\ ev = (id, rel) \\ id \neq id_t}
-    {\reg{E[ev] \owns \concat{turn(id_{s},state,id_t)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{J}{\majtab{S}{id_{s}}{state}}{W}{true}{F}{B}}
+    { Head(B) = (id, rel) \\ ev = (id, rel) \\ handleTL(id, {\color{Red}pos, dir}, S) = F'}
+    {\reg{E[ev] \owns \concat{auth}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{J}{S}{W}{true}{F'}{B}}
 \vspace{0.5cm}
 
 EndEvent :
