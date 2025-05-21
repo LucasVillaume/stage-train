@@ -311,7 +311,91 @@ Suiv_S8(pos, dir, S) ==
     ELSE -1
 
 
+(********************** Maquette Composition ***********************)
 
+
+Init_S4_1 == 
+    LET 
+        train1 == [
+            id |-> 1,
+            pos |-> 4,
+            dir |-> "*",
+            prog |-> << <<"StartUntil","L",8>>>>,
+            rel |-> 1
+        ]
+        train2 == [
+            id |-> 2,
+            pos |-> 5,
+            dir |-> "*",
+            prog |-> << <<"StartUntil","R",3>>>>,
+            rel |-> 1
+        ]
+        token == <<0,0,0,0>>
+        events == <<
+                << <<>>, <<>>, <<<<"turn",3,"d",2>>,<<"incr",3>>>> >>,
+                << <<>>, <<<<"att",3,1>>>>, <<>> >>
+            >>
+        nextEv == <<1,1>>
+        wait == [x \in (1..4) \X (0..3) |-> -1]
+        switch == <<"d", "d", "v", "d", "d">> 
+        traffic_lights == [x \in (1..8) \X {"L","R"} |-> "V"]
+    IN
+        /\ gamma = <<train1,train2>>
+        /\ reg = [
+                E  |-> events,
+                J  |-> token,
+                S  |-> switch,
+                W  |-> wait,
+                G  |-> FALSE,
+                F  |-> [traffic_lights EXCEPT ![7,"L"] = "R",
+                                              ![7,"R"] = "R",
+                                              ![8,"R"] = "R",
+                                              ![8,"L"] = "R"]
+            ]
+        /\ rule = ""
+        /\ msg = << <<>>, <<>> >>
+
+
+Init_S4_2 == 
+    LET 
+        train1 == [
+            id |-> 1,
+            pos |-> 8,
+            dir |-> "*",
+            prog |-> <<<<"StartUntil","R",3>>,<<"StartUntil","L",7>> >>,
+            rel |-> 1
+        ]
+        train2 == [
+            id |-> 2,
+            pos |-> 3,
+            dir |-> "*",
+            prog |-> << <<"StartUntil","R",4>>, <<"StartUntil","L",3>> >>,
+            rel |-> 1
+        ]
+        token == <<0,0,0,0>>
+        events == <<
+                << <<<<"att",3,1>>>>, <<<<"turn",3,"d">>,<<"auth">>>>, <<<<"incr",3>>>> >>,
+                << <<>>, <<<<"turn",3,"v">>,<<"incr",3>>,<<"att",3,2>>>>, <<>> >>
+            >>
+        nextEv == <<1,1>>
+        wait == [x \in (1..4) \X (0..3) |-> -1]
+        switch == <<"d", "d", "d", "d", "d">> 
+        traffic_lights == [x \in (1..8) \X {"L","R"} |-> "V"]
+    IN
+        /\ gamma = <<train1,train2>>
+        /\ reg = [
+                E  |-> events,
+                J  |-> token,
+                S  |-> switch,
+                W  |-> wait,
+                G  |-> FALSE,
+                F  |-> [traffic_lights EXCEPT ![4,"L"] = "R",
+                                              ![4,"R"] = "R",
+                                              ![8,"R"] = "R",
+                                              ![8,"L"] = "R"]
+            ]
+        /\ rule = ""
+        /\ msg = << <<>>, <<>> >>
 
 
 

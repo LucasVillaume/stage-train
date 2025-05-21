@@ -1,0 +1,125 @@
+\documentclass[12pt]{article}
+\usepackage{package/formal-grammar}
+\usepackage{package/mathpartir}
+\usepackage{package/algorithm}
+\usepackage{package/algpseudocode}
+\usepackage{amsmath}
+\usepackage{mathtools}
+\usepackage{graphicx}
+\usepackage[dvipsnames]{xcolor}
+
+
+
+\title{Composition de deux listes d'ordres}
+\author{}
+
+\begin{document}
+
+\maketitle
+
+\textbf{Hypothèse} : Les trains sont identiques dans les deux listes d'ordres.
+Aucune disparition, aucune apparition de train.
+
+\section{Propriétés nécéssaires à la composition}
+
+\textbf{Symétrie des positions} : 
+Soient $o1$ et $o2$ deux listes d'ordres.
+Soit $F$ la liste des positions et directions finales de la liste d'ordre $o1$.
+Soit $I$ la liste des positions et directions initiales de la liste d'ordre $o2$.
+Si $F$ et $I$ sont égales, alors la propriété est vérifiée.
+\vspace{0.5cm}\\
+\textbf{Symétrie des aiguillages} : 
+Soient $o1$ et $o2$ deux listes d'ordres.
+Soit $S_1$ l'état des aiguillages à la fin de $o1$. 
+Soit $S_2$ l'état des aiguillages au début de $o2$.
+Si $S_1$ et $S_2$ sont égaux, alors la propriété est vérifiée.
+
+\section{Cas complet vs Cas incomplet}
+\subsection{Définition}
+On dénombre deux cas ; le \textbf{cas complet} telque o1 et o2 n'ont pas de ressources critiques en commun,
+et le \textbf{cas incomplet} telque o1 et o2 ont des ressources critiques en commun.
+\vspace{0.5cm}\\
+Par exemple, sur le circuit de la maquette :
+\begin{itemize}
+    \item o1 : $T_1 = 4* \rightarrow 8*$ et $T_2 = 5* \rightarrow 3*$ \\
+          o2 : $T_1 = 8* \rightarrow 7*$ et $T_2 = 3* \rightarrow 3*$ \\
+          Cas complet, pas de ressources critiques entre les listes, uniquement à l'intérieur de chacune d'elles.
+    \item o1 : $T_1 = 4* \rightarrow 8*$ et $T_2 = 5* \rightarrow 7*$ \\
+          o2 : $T_1 = 8* \rightarrow 7*$ et $T_2 = 7* \rightarrow 3*$ \\
+          Cas incomplet, ressources critiques (canton 3) entre les deux listes d'ordres.
+\end{itemize}
+On fait face à un problème, comment distinguer les deux cas ? Pour l'exemple du cas simple,
+chaque liste d'ordres possèdent localement le canton 3 comme ressources critiques. 
+C'est-à-dire qu'elles gèrent cette ressource pour que ce ne soit pas un problème,
+contrairement au cas incomplet.\\
+Il faut lister les ressources critiques pour chaque couple de trains, puis examiner
+si cette ressource pour ce couple est traitée localement dans o1.
+
+\newpage
+
+\subsection{Traitement des cas incomplet}
+Une fois le cas incomplet détecté et tous les couples (trains/ressources critiques) identifiés,
+il est possible de gérer la ressources critiques.
+Il suffit d'ajouter des ordres incr et att dans les derniers events des trains concernés.
+Si dans le premier events d'un train de o2 le pattern "turn(...);auth" est présent, il faut
+alors ajouter un "turn" avant le "incr" précédent, en retirant ce pattern.
+\\
+\textbf{Exemple} :
+\vspace{0.5cm}
+\\
+\fbox{%
+\begin{minipage}{0.75\textwidth}
+      o1 : $T_1 = 4* \rightarrow 8*$ / $T_2 = 5* \rightarrow 7*$\\
+      T$_1$ : \{SU(L,8)\} / T$_2$ : \{SU(R,7)\}\\
+      E : \{$\varepsilon$\}
+      \vspace{0.4cm}\\
+      o2 : $T_1 = 8* \rightarrow 7*$ / $T_2 = 7* \rightarrow 3*$\\
+      T$_1$ : \{SU(R,3);SU(L,7)\} / T$_2$ : \{SU(R,4);SU(L,3)\}\\
+      E : \{\{ev(T$_1$,1): att(3,1)\};
+            \{ev(T$_2$,1): {\color{Red}turn(3,d);auth}\};...\}
+\end{minipage}
+}
+\vspace{0.5cm}\\
+Local$_{o1}$ : $\varepsilon$ / Local$_{o2}$ : (T1/T2) : 3 / Global : {\color{Cerulean}(T1$_{o1}$/T2$_{o2}$) : 3} \\
+\textbf{Transformation}
+\vspace{0.2cm}
+\\
+\fbox{%
+\begin{minipage}{0.75\textwidth}
+      o1 : $T_1 = 4* \rightarrow 8*$ / $T_2 = 5* \rightarrow 7*$\\
+      T$_1$ : \{SU(L,8)\} / T$_2$ : \{SU(R,7)\}\\
+      E : \{\{ev(T$_1$,3): {\color{Red}turn(3,d)};{\color{Cerulean}incr(3)}\};\{ev(T$_2$,2): {\color{Cerulean}att(3,1)}\}\}
+      \vspace{0.4cm}\\
+      o2 : $T_1 = 8* \rightarrow 7*$ / $T_2 = 7* \rightarrow 3*$\\
+      T$_1$ : \{SU(R,3);SU(L,7)\} / T$_2$ : \{SU(R,4);SU(L,3)\}\\
+      E : \{\{ev(T$_1$,1): att(3,1)\};...\}
+\end{minipage}
+}
+\vspace{0.5cm}\\
+On peut désormais appliquer les règles de transformation sur les deux listes d'ordres.
+
+\section{Règles de transformation}
+\subsection{Concernant les trains}
+
+\textbf{Programme} :
+Une fois la concaténation des deux programmes effectuée au sein d'un même train, si deux
+"StartUntil" partagent la même direction, alors il faut {\color{Plum}écraser le premier au profit du second}. 
+
+\subsection{Concernant le régulateur}
+\textbf{Fusion des events} :
+Les events de o1 peuvent être {\color{Plum}intégrés sans changement}. 
+Soit $E_{x1}$ le nombre d'events pour le train x dans o1, alors les positions relatives
+des events pour le train x de o2 {\color{Plum}augmentent de $E_{x1}$-1}.
+Dans le cas où un event issue de o1 et un event issue de o2 doivent fusionner, il faut
+faire attention à ce que les "turn" soient en premières positions.
+\vspace{0.5cm}\\
+\textbf{Jetons et attendre} :
+{\color{Plum}Aucune modification} pour o1.
+Pour o2, il faut changer les jetons pour "att" {\color{Plum}en se basant sur les valeurs courantes
+à la fin de o1}. Ainsi, si $J[j] = x$ dans o1, alors \textit{"att(j,1)"} devient
+\textit{"att(j,x+1)"}.
+
+
+
+\end{document}
+
