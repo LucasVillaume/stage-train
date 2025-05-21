@@ -60,8 +60,8 @@ Init ==
     /\ msg = << <<>>, <<>> >>
 
 \* *)
-Init == Init_S8
-Suiv(pos, dir, S) == Suiv_S8(pos, dir, S)
+Init == Init_S4
+Suiv(pos, dir, S) == Suiv_S4(pos, dir, S)
 
 
 \* Utilitaire
@@ -371,9 +371,9 @@ IDLE ==
 \* Propriétés
 
 Liveness == 
-    /\  <>[] /\ gamma[1].pos = 3
+    /\  <>[] /\ gamma[1].pos = 7
              /\ gamma[1].dir = "*"
-    /\  <>[] /\ gamma[2].pos = 1
+    /\  <>[] /\ gamma[2].pos = 3
              /\ gamma[2].dir = "*"
 
 Safety == [] (gamma[1].pos /= gamma[2].pos)
@@ -405,5 +405,5 @@ Eval == "Hello" \o " World !"
 
 =============================================================================
 \* Modification History
-\* Last modified Mon May 19 11:20:47 CEST 2025 by lucas
+\* Last modified Wed May 21 10:33:42 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas

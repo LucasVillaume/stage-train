@@ -41,3 +41,8 @@
 
 - Until_cons n'envoi plus de message au régulateur, mais Stop oui : pour éviter les doublons et avoir la bonne 
 direction pour FindSection (l'event pouvait être exécuter avant le changement de dir et donc ça provoquait une erreur)
+
+----------
+
+- Turn ne donne plus d'autorisation, regroupé les deux règles en une seul
+    - création de l'ordre d'event "auth", permettant de manipuler les feux pour atteindre le prochain point d'arrêt
