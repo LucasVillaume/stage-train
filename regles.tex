@@ -34,63 +34,6 @@
     \end{math}
 }
 
-\iffalse
-\newcommand\ruleStart[3]{ %1 id, 2 pos, 3 D
-    \inferrule
-    { }
-    {\trainfull{#1}{#2}{*}{\concat{Start(#3)}{P'}}, R \Rightarrow \trainfull{#1}{#2}{#3}{P'}, R} 
-}
-
-\newcommand\ruleStop[3]{ %1 id, 2 pos, 3 dir
-    \inferrule
-    { }
-    {\trainfull{#1}{#2}{#3}{\concat{Stop()}{P'}}, R \Rightarrow \trainfull{#1}{#2}{*}{P'}, R} 
-}
-
-\newcommand\ruleUntil[5]{ %1 id, 2 pos, 3 dir, 4 pos', 5 N
-    \inferrule
-    { suiv(#2, #3) = #4 \\ #2 \neq #4 \\ R.A[#1] \neq #2}
-    {\trainfull{#1}{#2}{#3}{\concat{Until(#5)}{P'}}, R \Rightarrow \trainfull{#1}{#4}{#3}{\concat{Until(#5)}{P'}}, R}
-}
-
-
-\newcommand\ruleUntilCons[4]{ %1 id, 2 pos, 3 dir, 4 pos'
-    \inferrule
-    { suiv(#2, #3) = #4 \\ #2 \neq #4 \\ R.A[#1] \neq #2}
-    {\trainfull{#1}{#2}{#3}{\concat{Until(#4)}{P'}}, R \Rightarrow \trainfull{#1}{#4}{#3}{P'}, R}
-}
-
-\newcommand\ruleUntilEv[5]{ %1 id, 2 pos, 3 dir, 4 pos', 5 N
-    \inferrule
-    { suiv(#2, #3) = #4 \\ #2 \neq #4 \\ R.A[#1] \neq #2 \\ ev(#1, #4) \in R.E \\ apply(R, ev(#1, #4)) = R'}
-    {\trainfull{#1}{#2}{#3}{\concat{Until(#5)}{P'}}, R \Rightarrow \trainfull{#1}{#4}{#3}{\concat{Until(#5)}{P'}}, R'}
-}
-
-\newcommand\ruleUntilConsEv[4]{ %1 id, 2 pos, 3 dir, 4 pos'
-    \inferrule
-    { suiv(#2, #3) = #4 \\ #2 \neq #4 \\ R.A[#1] \neq #2 \\ ev(#1, #4) \in R.E \\ apply(R, ev(#1, #4)) = R'}
-    {\trainfull{#1}{#2}{#3}{\concat{Until(#4)}{P'}}, R \Rightarrow \trainfull{#1}{#4}{#3}{P'}, R'}
-}
-
-\newcommand\ruleWait[4]{ %1 id, 2 pos, 3 dir, 4 x,y
-    \inferrule
-    {R.A[#1] = #2 \\ ev(#1,#2) \in R.E \\ R.E[ev[#1, #2]].P = att(#4)  \\ apply(R, ev(#1, #2)) = R'}
-    {\trainfull{#1}{#2}{#3}{P}, R \Rightarrow \trainfull{#1}{#2}{#3}{P}, R'}
-}
-
-\newcommand\ruleCrash[2]{ %1 id, 2 id'
-    \inferrule
-        {#1 \neq #2}
-        {\Gamma, \train{#1}{pos}{dir}{P}, \train{#2}{pos}{dir'}{P'}  \Rightarrow \bot}
-}
-
-\newcommand\ruleCrashSec[3]{ %1 id, 2 pos, 3 dir
-    \inferrule
-        {\lnot suiv(#2, #3) = \emptyset \\ #3 \neq * \\ R.A[#1] \neq #2}
-        {\trainfull{#1}{#2}{#3}{P}, R \Rightarrow \bot}
-}
-\fi
-
 
 
 \maketitle
@@ -138,7 +81,9 @@ Le régulateur est représenté par un septuplet $(E, J, S, W, G, F, B)$ où :
     \otherform{\varepsilon }{}
     \firstcasesubtil{seq}{StartUntil(D,N)}{}
     \firstcasesubtil{D}{L \gralt R}{}
-    \firstcasesubtil{N}{0 \gralt 1 \gralt ... }{} 
+    \firstcasesubtil{N}{[ sections ]}{}
+    \firstcasesubtil{sections}{\concat{section}{sections} \gralt section \gralt \varepsilon}{} 
+    \firstcasesubtil{section}{0 \gralt 1 \gralt ... }{} 
 \end{grammar}
 
 \vspace{0.5cm}
@@ -174,28 +119,28 @@ Le régulateur est représenté par un septuplet $(E, J, S, W, G, F, B)$ où :
 Start : 
 \inferrule
     { dir \neq D \\ R.G = false}
-    {\trainfull{id}{pos}{dir}{\concat{SU(D,N)}{P'}}{rel}, R \\ \xRightarrow{\text{!ev(id,rel)}} \\ \trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}{rel},R}
+    {\trainfull{id}{pos}{dir}{\concat{SU(D,[\concat{n}{N'}])}{P'}}{rel}, R \\ \xRightarrow{\text{!ev(id)}} \\ \trainfull{id}{pos}{D}{\concat{SU(D,[\concat{N}{N'}])}{P'}}{rel},R}
 \vspace{0.5cm}
 
 
 Stop :
 \inferrule
     { P = \varepsilon \\ dir \neq * \\ R.G = false}
-    {\trainfull{id}{pos}{dir}{P}{rel},R \\ \xRightarrow{\text{!ev(id,rel)}} \\ \trainfull{id}{pos}{*}{P}{rel},R}
+    {\trainfull{id}{pos}{dir}{P}{rel},R \\ \xRightarrow{\text{!ev(id)}} \\ \trainfull{id}{pos}{*}{P}{rel},R}
 \vspace{0.5cm}
 
 
 Until :
     \inferrule
-    { suiv(pos, D, S) = pos' \\ pos' \neq N \\ pos' \neq \varepsilon \\ {\color{PineGreen} R.F[(pos,dir)] = V} \\ {\color{PineGreen}R.G = false}}
-    {\trainfull{id}{pos}{D}{\concat{SU(D,N)}{P'}}{rel},R \\ \xRightarrow{\text{!ev(id,rel+1)}} \\ \trainfull{id}{pos'}{D}{\concat{SU(D,N)}{P'}}{rel+1},R}
+    { suiv(pos, D, S) = n \\ {\color{PineGreen} R.F[(pos,dir)] = V} \\ {\color{PineGreen}R.G = false}}
+    {\trainfull{id}{pos}{D}{\concat{SU(D,[\concat{n}{N'}])}{P'}}{rel},R \\ \xRightarrow{\text{!ev(id)}} \\ \trainfull{id}{n}{D}{\concat{SU(D,[N'])}{P'}}{rel+1},R}
 \vspace{0.5cm}
 
 
 Until$_{cons}$ :
     \inferrule
-        { suiv(pos, D, S) = pos' \\ rel = x \\ {\color{PineGreen} R.F[(pos,dir)] = V} \\ {\color{PineGreen} R.G = false}}
-        {\trainfull{id}{pos}{D}{\concat{SU(D,pos')}{P'}}{rel},R\\ \Rightarrow \\ \trainfull{id}{pos'}{D}{P'}{rel+1},R}
+        { suiv(pos, D, S) = n \\ {\color{PineGreen} R.F[(pos,dir)] = V} \\ {\color{PineGreen} R.G = false}}
+        {\trainfull{id}{pos}{D}{\concat{SU(D,[\concat{n}{\varepsilon}])}{P'}}{rel},R\\ \Rightarrow \\ \trainfull{id}{n}{D}{P'}{rel+1},R}
 \vspace{0.5cm}
 
 \subsection{Actions sur le régulateur : simulation grands pas avec une approche petits pas}
@@ -205,7 +150,7 @@ Until$_{cons}$ :
 Recv :
 \inferrule
     { len(B) = x}
-    {\reg{E}{J}{S}{W}{G}{F}{B} \\ \xRightarrow{\text{?ev(id,rel)}} \\ \reg{E}{J}{S}{W}{G}{F}{\majtab{B}{x+1}{(id, rel)}}}
+    {\reg{E}{J}{S}{W}{G}{F}{B} \\ \xRightarrow{\text{?ev(id)}} \\ \reg{E}{J}{S}{W}{G}{F}{\majtab{B}{x+1}{id}}}
 \vspace{0.5cm}
 
 StarEvent :
@@ -216,43 +161,43 @@ StarEvent :
 
 Incr$_{bf}$ : %incr qui arrive avant un att
 \inferrule
-    { Head(B) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ W[(j, x+1)] = \varepsilon }
-    {\reg{E[ev] \owns \concat{incr(j)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{true}{F}{B}}
+    { Head(B) = t_{id} \\ J[j] = x \\ W[(j, x+1)] = \varepsilon }
+    {\reg{E[t_{id}] \owns \concat{incr(j)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{true}{F}{B}}
 \vspace{0.5cm}
 
 Incr$_{af}$ : %incr qui arrive après un att
 \inferrule
-    { Head(B) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ W[(j, x+1)] = w_{id} \\ handleTL(w_{id}, {\color{Red}pos, dir}, S) = F'}
-    {\reg{E[ev] \owns \concat{incr(j)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{true}{F'}{B}}
+    { Head(B) = t_{id} \\ J[j] = x \\ W[(j, x+1)] = w_{id} \\ handleTL(w_{id}, {\color{Red}pos, dir}, S) = F'}
+    {\reg{E[t_{id}] \owns \concat{incr(j)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{true}{F'}{B}}
 \vspace{0.5cm}
 
 Att$_{bf}$ : %att qui arrive avant un incr
 \inferrule
-    { Head(B) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ x \neq y}
-    {\reg{E[ev] \owns \concat{att(j,y)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{J}{S}{{\majtab{W}{(j,y)}{id}}}{true}{F}{B}}
+    { Head(B) = t_{id} \\ J[j] = x \\ x \neq y}
+    {\reg{E[t_{id}] \owns \concat{att(j,y)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{{\majtab{W}{(j,y)}{id}}}{true}{F}{B}}
 \vspace{0.5cm}
 
 Att$_{af}$ : %att qui arrive après un incr
 \inferrule
-    { Head(B) = (id, rel) \\ ev = (id, rel) \\ J[j] = x \\ handleTL(id, {\color{Red}pos, dir}, S) = F'}
-    {\reg{E[ev] \owns \concat{att(j,x)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{J}{S}{W}{true}{F'}{B}}
+    { Head(B) = t_{id} \\ J[j] = x \\ handleTL(id, {\color{Red}pos, dir}, S) = F'}
+    {\reg{E[t_{id}] \owns \concat{att(j,x)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{W}{true}{F'}{B}}
 \vspace{0.5cm}
 
 Turn : 
 \inferrule
-    { Head(B) = (id, rel)  \\ ev = (id, rel)}
-    {\reg{E[ev] \owns \concat{turn(id_{s},state)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{J}{\majtab{S}{id_{s}}{state}}{W}{true}{F}{B}}
+    { Head(B) = t_{id}}
+    {\reg{E[t_{id}] \owns \concat{turn(id_{s},state)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{\majtab{S}{id_{s}}{state}}{W}{true}{F}{B}}
 \vspace{0.5cm}
 
 Auth : 
 \inferrule
-    { Head(B) = (id, rel) \\ ev = (id, rel) \\ handleTL(id, {\color{Red}pos, dir}, S) = F'}
-    {\reg{E[ev] \owns \concat{auth}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{ev}{P'}}{J}{S}{W}{true}{F'}{B}}
+    { Head(B) = t_{id} \\ handleTL(id, {\color{Red}pos, dir}, S) = F'}
+    {\reg{E[t_{id}] \owns \concat{auth}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{W}{true}{F'}{B}}
 \vspace{0.5cm}
 
 EndEvent :
 \inferrule
-    { Head(B) = (id, rel) \\ ev = (id, rel) \\ E[ev] = \varepsilon}
+    { Head(B) = t_{id} \\ E[t_{id}] = \varepsilon}
     {\reg{E}{J}{S}{W}{true}{F}{\concat{m}{B'}} \\ \Rightarrow \\ \reg{E}{J}{S}{W}{false}{F}{B'}}
 \vspace{0.5cm}
 

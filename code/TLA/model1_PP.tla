@@ -1,7 +1,7 @@
 ----------------------------- MODULE model1_PP -----------------------------
 
 
-EXTENDS Integers, TLC, Sequences, scenario_m1 (*
+EXTENDS Integers, TLC, Sequences\*, scenario_m1 (*
 VARIABLE gamma, reg, rule, msg
 
 
@@ -9,7 +9,7 @@ train1 == [
     id |-> 1,
     pos |-> 1,
     dir |-> "*",
-    prog |-> << <<"StartUntil", "R", 3>> >>,
+    prog |-> << <<"StartUntil", "R", <<2,3>> >> >>,
     rel |-> 1
 ]
 
@@ -17,7 +17,7 @@ train2 == [
     id |-> 2,
     pos |-> 4,
     dir |-> "*",
-    prog |-> << <<"StartUntil", "L", 1>> >>,
+    prog |-> << <<"StartUntil", "L", <<2,1>> >> >>,
     rel |-> 1
 ]
 
@@ -60,8 +60,8 @@ Init ==
     /\ msg = << <<>>, <<>> >>
 
 \* *)
-Init == Init_S4
-Suiv(pos, dir, S) == Suiv_S4(pos, dir, S)
+\*Init == Init_S4
+\*Suiv(pos, dir, S) == Suiv_S4(pos, dir, S)
 
 
 \* Utilitaire
@@ -112,7 +112,7 @@ FindSection(pos,dir,cpt,S) ==
 Start(T) == 
     /\ Len(T.prog) > 0
     /\ reg.G = FALSE
-    /\ T.prog[1][1] = "StartUntil" 
+    /\ T.prog[1][1] = "StartUntil"
     /\ T.prog[1][2] /= T.dir
     /\ gamma' = [gamma EXCEPT ![T.id].dir = T.prog[1][2]]
     /\ rule ' = "start"
@@ -139,17 +139,19 @@ Until(T) ==
     LET
         id == T.id
         order == Head(T.prog)
-        nextC == Suiv(T.pos,T.dir, reg.S)
+        nextC == Suiv(T.pos,T.dir,reg.S)
     IN
         /\ Len(T.prog) > 0
         /\ reg.G = FALSE
         /\ order[2] = T.dir 
         /\ reg.F[T.pos,T.dir] = "V"
-        /\ order[1] = "StartUntil"
-        /\ nextC /= -1
-        /\ order[3] /= nextC
+        /\ order[1] = "StartUntil" \*un peu inutile
+        /\ nextC /= -1 \*un peu inutile : compare, plus tard, nextC avec Head(order[3]) (jamais -1)
+        /\ Head(order[3]) = nextC
+        /\ Len(Tail(order[3])) /= 0 \* pas le dernier élément
         /\ gamma' = [gamma EXCEPT 
                             ![id].pos = nextC,
+                            ![id].prog[1][3] = Tail(order[3]),
                             ![id].rel = T.rel+1]
         /\ rule' = "until"
         /\ UNCHANGED reg
@@ -158,7 +160,7 @@ Until(T) ==
                         msg' = [msg EXCEPT ![1] = Append(msg[1],<<id,T.rel+1>>)]
                    ELSE \* pas d'event
                         UNCHANGED msg
-          ELSE
+           ELSE
             UNCHANGED msg
 
 
@@ -173,9 +175,10 @@ Until_cons(T) ==
         /\ reg.G = FALSE
         /\ order[2] = T.dir
         /\ reg.F[T.pos,T.dir] = "V"
-        /\ order[1] = "StartUntil" 
+        /\ order[1] = "StartUntil" \*un peu inutile
         /\ nextC /= -1
-        /\ order[3] = nextC
+        /\ Head(order[3]) = nextC
+        /\ Len(Tail(order[3])) = 0 \* dernier élément
         /\ gamma' = [gamma EXCEPT 
                             ![T.id].pos = nextC,
                             ![T.id].prog = Tail(T.prog),
@@ -193,6 +196,7 @@ StartEvent == \*Simuler une approche grands pas
     /\ reg' = [reg EXCEPT !.G = TRUE]
     /\ rule' = "StartEvent"
     /\ UNCHANGED msg
+
 
 Turn == 
     LET
@@ -371,9 +375,9 @@ IDLE ==
 \* Propriétés
 
 Liveness == 
-    /\  <>[] /\ gamma[1].pos = 7
+    /\  <>[] /\ gamma[1].pos = 3
              /\ gamma[1].dir = "*"
-    /\  <>[] /\ gamma[2].pos = 3
+    /\  <>[] /\ gamma[2].pos = 1
              /\ gamma[2].dir = "*"
 
 Safety == [] (gamma[1].pos /= gamma[2].pos)
@@ -405,5 +409,5 @@ Eval == "Hello" \o " World !"
 
 =============================================================================
 \* Modification History
-\* Last modified Wed May 21 10:33:42 CEST 2025 by lucas
+\* Last modified Tue May 27 15:57:17 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas
