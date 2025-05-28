@@ -31,6 +31,7 @@ Init_S3 ==
         wait == [x \in (1..4) \X (0..3) |-> -1]
         switch == <<"v", "v">>
         traffic_lights == [x \in (1..9) \X {"L","R"} |-> "V"]
+        historique == [x \in (1..2) |-> -1]
     IN
         /\ gamma = <<train1,train2>>
         /\ reg = [
@@ -39,6 +40,7 @@ Init_S3 ==
                 S  |-> switch,
                 W  |-> wait,
                 G  |-> FALSE,
+                H  |-> historique,
                 F  |-> [traffic_lights EXCEPT ![1,"L"] = "R",
                                               ![1,"R"] = "R",
                                               ![5,"L"] = "R",
@@ -72,24 +74,25 @@ Init_S4 ==
             id |-> 1,
             pos |-> 4,
             dir |-> "*",
-            prog |-> << <<"StartUntil","L",8>>,<<"StartUntil","R",3>>,<<"StartUntil","L",7>> >>,
+            prog |-> << <<"StartUntil","L",<<3,8>>>>,<<"StartUntil","R",<<3>>>>,<<"StartUntil","L",<<7>>>> >>,
             rel |-> 1
         ]
         train2 == [
             id |-> 2,
             pos |-> 5,
             dir |-> "*",
-            prog |-> << <<"StartUntil","R",4>>, <<"StartUntil","L",3>> >>,
+            prog |-> << <<"StartUntil","R",<<7,3,4>>>>, <<"StartUntil","L",<<3>>>> >>,
             rel |-> 1
         ]
         token == <<0,0,0,0>>
         events == <<
-                << <<>>, <<>>, <<<<"turn",3,"d",2>>,<<"incr",3>>,<<"att",3,2>>>>, <<<<"turn",3,"d",1>>,<<"auth">>>>, <<<<"incr",3>>>> >>,
-                << <<>>, <<<<"att",3,1>>>>, <<>>, <<<<"turn",3,"v",1>>,<<"incr",3>>,<<"att",3,3>>>>, <<>> >>
+                << <<4,<<>>>>, <<3,<<>>>>, <<8,<<<<"turn",3,"d",2>>,<<"incr",3>>,<<"att",3,2>>>>>>, <<3,<<<<"turn",3,"d",1>>,<<"auth">>>>>>, <<7,<<<<"incr",3>>>>>> >>,
+                << <<5,<<>>>>, <<7,<<<<"att",3,1>>>>>>, <<3,<<>>>>, <<4,<<<<"turn",3,"v",1>>,<<"incr",3>>,<<"att",3,3>>>>>>, <<3,<<>>>> >>
             >>
         nextEv == <<1,1>>
         wait == [x \in (1..4) \X (0..3) |-> -1]
         switch == <<"d", "d", "v", "d", "d">> 
+        historique == [x \in (1..2) |-> -1]
         traffic_lights == [x \in (1..8) \X {"L","R"} |-> "V"]
     IN
         /\ gamma = <<train1,train2>>
@@ -99,6 +102,7 @@ Init_S4 ==
                 S  |-> switch,
                 W  |-> wait,
                 G  |-> FALSE,
+                H  |-> historique,
                 F  |-> [traffic_lights EXCEPT ![7,"L"] = "R",
                                               ![7,"R"] = "R",
                                               ![8,"R"] = "R",
@@ -138,24 +142,25 @@ Init_D1 ==
             id |-> 1,
             pos |-> 1,
             dir |-> "*",
-            prog |-> << <<"StartUntil","R",4>>,<<"StartUntil","L",1>> >>,
+            prog |-> << <<"StartUntil","R",<<2,4>>>>,<<"StartUntil","L",<<3,1>>>> >>,
             rel |-> 1
         ]
         train2 == [
             id |-> 2,
             pos |-> 4,
             dir |-> "*",
-            prog |-> << <<"StartUntil","L",1>>, <<"StartUntil","R",4>> >>,
+            prog |-> << <<"StartUntil","L",<<3,1>>>>, <<"StartUntil","R",<<2,4>>>> >>,
             rel |-> 1
         ]
         token == <<0,0,0,0>>
         events == <<
-                << <<>>, <<<<"turn",1,"v",2>>,<<"incr",1>>,<<"att",4,1>>>>, <<<<"turn",2,"d",1>>,<<"incr",2>>,<<"att",3,1>>>>, <<<<"turn",2,"v",2>>,<<"incr",4>>,<<"att",1,2>>>>, <<>> >>,
-                << <<>>, <<<<"turn",2,"v",1>>,<<"incr",4>>,<<"att",1,1>>>>, <<<<"turn",1,"d",2>>,<<"incr",3>>,<<"att",2,1>>>>, <<<<"turn",1,"v",1>>,<<"incr",1>>,<<"att",4,2>>>>, <<>> >>
+                << <<1,<<>>>>, <<2,<<<<"turn",1,"v",2>>,<<"incr",1>>,<<"att",4,1>>>>>>, <<4,<<<<"turn",2,"d",1>>,<<"incr",2>>,<<"att",3,1>>>>>>, <<3,<<<<"turn",2,"v",2>>,<<"incr",4>>,<<"att",1,2>>>>>>, <<1,<<>>>> >>,
+                << <<4,<<>>>>, <<3,<<<<"turn",2,"v",1>>,<<"incr",4>>,<<"att",1,1>>>>>>, <<1,<<<<"turn",1,"d",2>>,<<"incr",3>>,<<"att",2,1>>>>>>, <<2,<<<<"turn",1,"v",1>>,<<"incr",1>>,<<"att",4,2>>>>>>, <<4,<<>>>> >>
             >>
         nextEv == <<1,1>>
         wait == [x \in (1..4) \X (0..3) |-> -1]
         switch == <<"d", "d">> 
+        historique == [x \in (1..2) |-> -1]
         traffic_lights == [x \in (1..4) \X {"L","R"} |-> "V"]
     IN
         /\ gamma = <<train1,train2>>
@@ -165,6 +170,7 @@ Init_D1 ==
                 S  |-> switch,
                 W  |-> wait,
                 G  |-> FALSE,
+                H  |-> historique,
                 F  |-> [traffic_lights EXCEPT ![2,"L"] = "R",
                                               ![2,"R"] = "R",
                                               ![3,"R"] = "R",
@@ -193,24 +199,25 @@ Init_D2 ==
             id |-> 1,
             pos |-> 1,
             dir |-> "*",
-            prog |-> << <<"StartUntil","R",2>>, <<"StartUntil","L",3>>, <<"StartUntil","R",1>> >>,
+            prog |-> << <<"StartUntil","R",<<2>>>>, <<"StartUntil","L",<<3>>>>, <<"StartUntil","R",<<1>>>> >>,
             rel |-> 1
         ]
         train2 == [
             id |-> 2,
             pos |-> 3,
             dir |-> "*",
-            prog |-> << <<"StartUntil","L",1>>, <<"StartUntil","R",2>>, <<"StartUntil","L",3>> >>,
+            prog |-> << <<"StartUntil","L",<<1>>>>, <<"StartUntil","R",<<2>>>>, <<"StartUntil","L",<<3>>>> >>,
             rel |-> 1
         ]
         token == <<0,0,0,0>>
         events == <<
-                << <<>>, <<<<"turn",1,"-",2>>,<<"incr",1>>,<<"att",3,1>>>>, <<<<"turn",1,"d",2>>,<<"incr",2>>,<<"att",1,2>>>>, <<<<"turn",1,"v",2>>,<<"incr",3>>>> >>,
-                << <<<<"att",1,1>>>>, <<<<"turn",1,"v",1>>,<<"incr",3>>,<<"att",2,1>>>>, <<<<"turn",1,"-",1>>,<<"incr",1>>,<<"att",3,2>>>>, <<>> >>
+                << <<1,<<>>>>, <<2,<<<<"turn",1,"-",2>>,<<"incr",1>>,<<"att",3,1>>>>>>, <<3,<<<<"turn",1,"d",2>>,<<"incr",2>>,<<"att",1,2>>>>>>, <<1,<<<<"turn",1,"v",2>>,<<"incr",3>>>>>> >>,
+                << <<3,<<<<"att",1,1>>>>>>, <<1,<<<<"turn",1,"v",1>>,<<"incr",3>>,<<"att",2,1>>>>>>, <<2,<<<<"turn",1,"-",1>>,<<"incr",1>>,<<"att",3,2>>>>>>, <<3,<<>>>> >>
             >>
         nextEv == <<1,1>>
         wait == [x \in (1..4) \X (0..3) |-> -1]
         switch == <<"d">> 
+        historique == [x \in (1..2) |-> -1]
         traffic_lights == [x \in (1..4) \X {"L","R"} |-> "V"]
     IN
         /\ gamma = <<train1,train2>>
@@ -220,6 +227,7 @@ Init_D2 ==
                 S  |-> switch,
                 W  |-> wait,
                 G  |-> FALSE,
+                H  |-> historique,
                 F  |-> [traffic_lights EXCEPT ![2,"L"] = "R",
                                               ![2,"R"] = "R",
                                               ![3,"R"] = "R",

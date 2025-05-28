@@ -52,3 +52,5 @@ direction pour FindSection (l'event pouvait être exécuter avant le changement 
 - StartUntil ne contient plus que la destination mais tous le sillon. Permet d'obtenir plus de robustesse pour la futur composition
 
 ----------
+
+- Changement de la forme des events pour retirer la position relative 
