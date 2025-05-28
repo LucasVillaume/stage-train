@@ -21,3 +21,12 @@
 /composition.log
 /composition.synctex.gz
 /ref.txt
+/code/composition/states
+/code/composition/graphe_mouvements.pdf
+
+/code/composition/__pycache__
+/code/composition/model/tla2tools.jar
+/code/composition/model/out.log
+/code/composition/model/states
+
+

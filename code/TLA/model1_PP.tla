@@ -64,18 +64,13 @@ Init ==
     /\ msg = << <<>>, <<>> >>
 
 \* *)
-Init == Init_D2
-Suiv(pos, dir, S) == Suiv_D2(pos, dir, S)
+Init == Init_S4
+Suiv(pos, dir, S) == Suiv_S4(pos, dir, S)
 
 
 \* Utilitaire
 
 Min(S) == CHOOSE x \in S : \A y \in S : x =< y
-
-
-SelectInSeq(seq, Test(_)) == 
-  LET I == { i \in 1..Len(seq) : Test(seq[i]) }
-  IN IF I # {} THEN Min(I) ELSE 0
 
 IsAttTurnInSeq(S) == 
     \E x \in DOMAIN S[2] : 
@@ -87,22 +82,6 @@ NextAttTurn(id, evs) == \*evs : séquence d'events pour un train / evCourante : 
     IN
         IF Len(res) /= 0 THEN res[1][1]\*Il existe un prochain attendre
         ELSE evs[Len(evs)][1]\*Il n'existe pas de prochain attendre (aller à la fin)
-
-
-IsntEmpty(S) == Len(S) /= 0
-
-
-RECURSIVE FindSection(_,_,_,_)
-FindSection(pos,dir,cpt,S) ==
-    LET
-        nextPos == Suiv(pos,dir,S)
-    IN 
-        IF cpt = 1 THEN 
-            nextPos
-        ELSE
-            FindSection(nextPos,dir,cpt-1,S)
-
-
 
 \* règles
         \* Train
@@ -412,5 +391,5 @@ Eval == SelectSeq(<< <<8,<<<<"">>, <<"">>, <<" ">>>>>>, <<2,<<<<"">>>>>> >>, IsA
 
 =============================================================================
 \* Modification History
-\* Last modified Wed May 28 10:54:06 CEST 2025 by lucas
+\* Last modified Wed May 28 11:04:24 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas
