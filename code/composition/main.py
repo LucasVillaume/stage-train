@@ -93,4 +93,4 @@ if __name__ == "__main__":
         print(f"Setting up for {etat1} and {etat2}")
         setup(s1, e1, s2, e2)
         execution()
-        print("Execution time:", time.time() - t) """
+        print(f"Execution time: {time.time() - t:.2f} seconds") """

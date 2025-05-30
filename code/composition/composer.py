@@ -36,6 +36,7 @@ class Train:
         self.arr = arrivee
         self.prog = []
         self.last_crit = [0]*nb_trains #position du dernier critique
+        self.offset_crit = [0]*nb_trains
         self.troncons = []
 
     def __str__(self):
@@ -133,48 +134,96 @@ def createProgram(start, end, paths, nb_trains=3):
     return Trajet(trains, events)
 
 
+def reduc_turns(t1,t2):
+    for e2 in range(len(t2)):
+        event2 = t2[e2]
+        for o2 in range(len(t2[e2])):
+            found = False
+            for e1 in range(len(t1)-1,-1,-1):
+                event1 = t1[e1]
+                for o1 in range(len(t1[e1])):
+                    if event2[o2][0] == "turn" and event1[o1][0] == "turn" and event2[o2][1] == event1[o1][1]:
+                        found = True
+                        if event2[o2][2] == event1[o1][2]:  # même état
+                            del event2[o2]
+                        break
+                if found:
+                    break
+            if found:
+                break
 
-def findCritical(t1, t2):
+
+
+def clean_turns(o1):
+    for t in range(len(o1.events)):
+        cpy_eventsT = copy.deepcopy(o1.events[t])
+        for e in range(len(o1.events[t])):
+            if len(o1.events[t][e]) > 0:
+                for i in range(len(o1.events[t][e])):
+                    ordre = o1.events[t][e][i]
+                    if ordre[0] == "turn" and o1.switch_init[ordre[1]][1]: # aiguillage pas encore assigné
+                        o1.switch_init[ordre[1]] = (ordre[2], False)
+                        cpy_eventsT[e].remove(ordre)
+        o1.events[t] = cpy_eventsT
+
+
+def findCritical(t1, t2, o1):
     crit = [("",float('-inf'))]
     beginT1 = t1.last_crit[t2.id]
     beginT2 = t2.last_crit[t1.id]
     for i in range(beginT1,len(t1.troncons)):
         for j in range(beginT2,len(t2.troncons)):
             if t1.troncons[i] == t2.troncons[j]:
+                t2.offset_crit[t1.id] = len(o1.trains[t2.id].troncons) - 1
                 if i-j > crit[0][1]:
                     crit = [(t1.troncons[i], i-j)]
-                    t1.last_crit[t2.id] = i
+                    t1.last_crit[t2.id] = i#+1
                     t2.last_crit[t1.id] = j
                 elif i-j == crit[0][1]:
                     crit.append((t1.troncons[i], i-j))
     return crit #renvoyer une liste des crit (si certains on le meme "score")
 
 
-
 def handleCritical(t1, t2, crit, o2, o1):
-    index_c = 0
+    index_cI = 0
+    index_cA = 0
+    #cherche la sortie du canton critique dans o1
     for i in range(len(t1.troncons)-1, -1, -1):
         if t1.troncons[i] == crit:
-            index_c = i+1
+            index_cI = i+1
             break
-    for o in range(len(o2.events[t2.id][0])):
-        order = o2.events[t2.id][0][o]
-        if order[0] == "turn":
-            o1.events[t1.id][index_c].append(order)
-            del o2.events[t2.id][0][o]
 
-    o1.events[t1.id][index_c].append(("incr", crit))
+    #cherche l'entrée du canton critique dans o2
+    for i in range(len(t2.troncons)-1):
+        if t2.troncons[i+1] == crit: #+1 car on veut l'entrée du canton
+            index_cA = i
+            break
+
+    for o in range(len(o2.events[t2.id][index_cA])):
+        order = o2.events[t2.id][index_cA][o]
+        if order[0] == "turn":
+            o1.events[t1.id][index_cI].append(order)
+            del o2.events[t2.id][index_cA][o]
+
+    o1.events[t1.id][index_cI].append(("incr", crit))
     o2.tokens[int(crit)] += 1
-    o2.events[t2.id][0].append(("att", crit, o2.tokens[int(crit)]))
+    o2.events[t2.id][index_cA].append(("att", crit, o2.tokens[int(crit)]))
 
 
 
 def preparation(o1, o2):
+    #traitez les aiguillage "critiques"
+    for i in range(len(o1.trains)):
+        for j in range(len(o2.trains)):
+            if i != j:
+                reduc_turns(o1.events[i], o2.events[j])
+    clean_turns(o1)
+
     #traitez les ressources critiques
     for i in range(len(o1.trains)):
         for j in range(len(o2.trains)):
             if i != j:
-                crit = findCritical(o1.trains[i], o2.trains[j])
+                crit = findCritical(o1.trains[i], o2.trains[j], o1)
                 if crit[0][0] != "":
                     for canton_crit in crit:
                         handleCritical(o1.trains[i], o2.trains[j], canton_crit[0], o2, o1)
@@ -186,8 +235,8 @@ def preparation(o1, o2):
                 if o2.events[i][j][k][0] == "att":
                     jeton = o2.events[i][j][k][1]
                     value = o2.events[i][j][k][2]
-                    o2.events[i][j][k] = ("att", jeton, value+o1.tokens[int(jeton)])
-            
+                    o2.events[i][j][k] = ("att", jeton, value+o1.tokens[int(jeton)])            
+
 
 
 def assemblage(o1, o2):
@@ -199,8 +248,8 @@ def assemblage(o1, o2):
         trains[i].prog = o1.trains[i].prog + o2.trains[i].prog
         trains[i].troncons = o1.trains[i].troncons + o2.trains[i].troncons[1:]
         t1_lc = o1.trains[i].last_crit
-        t2_lc = o2.trains[i].last_crit
-        trains[i].last_crit = t2_lc if t2_lc > t1_lc else t1_lc    
+        t2_lc = [x+y for x, y in zip(o2.trains[i].last_crit, o2.trains[i].offset_crit)]
+        trains[i].last_crit = t2_lc if t2_lc > t1_lc else t1_lc # TODO: voir ça
 
         #assemble events
         events.append(o1.events[i])
@@ -218,13 +267,16 @@ def assemblage(o1, o2):
 
 def findFirstStop(o1):
     for t in range(len(o1.trains)):
+        found = False
         for e in range(len(o1.events[t])):
             for order in o1.events[t][e]:
-                if order[0] == "att" or order[0] == "stop":
+                if order[0] == "att" or order[0] == "auth":
                     o1.first_stop[t] = o1.trains[t].troncons[e]
+                    found = True
                     break
-            """ if o1.first_stop[t] == -1:  # Si pas de stop trouvé, on prend le dernier tronçon
-                o1.first_stop[t] = o1.trains[t].troncons[-1] """
+            if found:
+                break
+        
 
 def addAuth(o1):
     for t in range(len(o1.trains)):
@@ -254,20 +306,8 @@ def nettoyage(o1):
                 offset += 1
         o1.trains[i].prog = prog_tmp
 
-        #events
-        events_tmp = copy.deepcopy(o1.events[i])
-        #events[i] : events de train i / events[i][j] : jème event / #events[i][j][k] : kème ordre
-        for j in range(len(o1.events[i])):
-            for k in range(len(o1.events[i][j])):
-                if o1.events[i][j][k][0] == "turn":
-                    aig = o1.events[i][j][k][1]
-                    state = o1.events[i][j][k][2]
-                    if o1.switch_init[aig][1]: #si l'aiguillage est libre
-                        o1.switch_init[aig] = (state, False) #on le bloque
-                        events_tmp[j].remove(o1.events[i][j][k])
-        o1.events[i] = events_tmp
-    findFirstStop(o1)
     addAuth(o1)
+    findFirstStop(o1)
                         
 def compose(o1, o2):
     """
@@ -304,10 +344,27 @@ if __name__ == "__main__":
     print(f"o3\n{o3}")
     print(f"o3 switch_init : {o3.switch_init}") """
 
-    s4_1 = etats["N8R5*7L -> N2R5*4L"].split("__")
-    o1 = createProgram("N8R5*7L", "N2R5*4L", s4_1)
+    """ s5 = etats["N8*4R2* -> N8R4*2*"].split("__")
+    o4 = createProgram("N8*4R2*", "N8R4*2*", s5)
+    print(f"o4\n{o4}")
+    o5 = compose(o3, o4)
+    print(f"o5\n{o5}")
+
+    s6 = etats["N8R4*2* -> N3R4*2*"].split("__")
+    o6 = createProgram("N8R4*2*", "N3R4*2*", s6)
+    print(f"o6\n{o6}")
+    o7 = compose(o5, o6)
+    print(f"o7\n{o7}") """
+
+    s1 = etats["N2L7L6L -> N3L5L4L"].split("__")
+    o1 = createProgram("N2L7L6L", "N3L5L4L", s1)
+    s2 = etats["N3L5L4L -> N6L5*4*"].split("__")
+    o2 = createProgram("N3L5L4L", "N6L5*4*", s2)
     print(f"o1\n{o1}")
-    from TLAModel import trajet2model
-    model = trajet2model(o1)
-    print(model)
+    print(f"o2\n{o2}")
+    o3 = compose(o1, o2)
+    print(f"o3\n{o3}")
+    print(f"o3 switch_init : {o3.switch_init}")
+    
+    
 
