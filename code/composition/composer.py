@@ -48,6 +48,7 @@ class Trajet:
         self.events = events
         # "numAiguillage" : ("état", "free") / free à False si l'aiguillage doit être ainsi dans l'état initial
         self.switch_init = {"9": ("d",True), "10": ("d",True), "11": ("d",True), "12": ("d",True), "13": ("d",True)}
+        self.histo_switch = {"9": [], "10": [], "11": [], "12": [], "13": []} #pour l'historique des aiguillages
         self.tokens = [0]*9 #un token par canton
         self.first_stop = self.firstStop()
 
@@ -130,8 +131,24 @@ def createProgram(start, end, paths, nb_trains=3):
     for i in range(nb_trains):
         if trains[i].arr[1] != "*":
             trains[i].prog.append(("SU",trains[i].arr[1],trains[i].troncons[1:]))
-            
-    return Trajet(trains, events)
+
+    #construit l'historique des aiguillages pour le sillon
+    histo_switch = {"9": [], "10": [], "11": [], "12": [], "13": []}
+    for t in range(len(events)):
+        for e in range(len(events[t])):
+            for order in events[t][e]:
+                if order[0] == "turn":
+                    histo_switch[order[1]].append((t, e))
+
+    sillon = Trajet(trains, events)
+    sillon.histo_switch = histo_switch
+    return sillon
+
+
+def merge_historique(o1, o2):
+    for k,v in o2.histo_switch.items():
+        for train, event in v:
+            o1.histo_switch[k].append((train, event + len(o1.events[train])-1))
 
 
 def reduc_turns(t1,t2):
@@ -161,27 +178,26 @@ def clean_turns(o1):
             if len(o1.events[t][e]) > 0:
                 for i in range(len(o1.events[t][e])):
                     ordre = o1.events[t][e][i]
-                    if ordre[0] == "turn" and o1.switch_init[ordre[1]][1]: # aiguillage pas encore assigné
-                        o1.switch_init[ordre[1]] = (ordre[2], False)
-                        cpy_eventsT[e].remove(ordre)
+                    if ordre[0] == "turn":
+                        if o1.switch_init[ordre[1]][1]: # aiguillage pas encore assigné
+                            o1.switch_init[ordre[1]] = (ordre[2], False)
+                            cpy_eventsT[e].remove(ordre)
         o1.events[t] = cpy_eventsT
 
 
 def findCritical(t1, t2, o1):
-    crit = [("",float('-inf'))]
-    beginT1 = t1.last_crit[t2.id]
-    beginT2 = t2.last_crit[t1.id]
-    for i in range(beginT1,len(t1.troncons)):
-        for j in range(beginT2,len(t2.troncons)):
-            if t1.troncons[i] == t2.troncons[j]:
+    crit = []
+
+    for i in range(len(t2.troncons)):
+        endT1 = t1.last_crit[t2.id]
+        for j in range(len(t1.troncons)-1, endT1-1, -1):
+            if t2.troncons[i] == t1.troncons[j]:
                 t2.offset_crit[t1.id] = len(o1.trains[t2.id].troncons) - 1
-                if i-j > crit[0][1]:
-                    crit = [(t1.troncons[i], i-j)]
-                    t1.last_crit[t2.id] = i#+1
-                    t2.last_crit[t1.id] = j
-                elif i-j == crit[0][1]:
-                    crit.append((t1.troncons[i], i-j))
-    return crit #renvoyer une liste des crit (si certains on le meme "score")
+                crit.append(t2.troncons[i])
+                t1.last_crit[t2.id] = j
+                t2.last_crit[t1.id] = i
+                break
+    return crit
 
 
 def handleCritical(t1, t2, crit, o2, o1):
@@ -199,11 +215,23 @@ def handleCritical(t1, t2, crit, o2, o1):
             index_cA = i
             break
 
+    cpy_eventsT = copy.deepcopy(o2.events[t2.id][index_cA])
+    offset = 0
     for o in range(len(o2.events[t2.id][index_cA])):
         order = o2.events[t2.id][index_cA][o]
         if order[0] == "turn":
-            o1.events[t1.id][index_cI].append(order)
-            del o2.events[t2.id][index_cA][o]
+            index = o1.histo_switch[order[1]].index((t2.id, index_cA+len(o1.events[t2.id])-1))
+            if index > 0:
+                train, event = o1.histo_switch[order[1]][index-1] # prend le précédent
+                if train != t1.id: #Pas vraiment utile, petit optimisation pour éviter des "auth" inutiles
+                    o1.events[train][event+1].append(order)
+                else:
+                    o1.events[t1.id][index_cI].append(order)
+            else:
+                o1.events[t1.id][index_cI].append(order)
+            del cpy_eventsT[o-offset]
+            offset += 1
+    o2.events[t2.id][index_cA] = cpy_eventsT
 
     o1.events[t1.id][index_cI].append(("incr", crit))
     o2.tokens[int(crit)] += 1
@@ -212,10 +240,11 @@ def handleCritical(t1, t2, crit, o2, o1):
 
 
 def preparation(o1, o2):
+    merge_historique(o1, o2)
     #traitez les aiguillage "critiques"
     for i in range(len(o1.trains)):
         for j in range(len(o2.trains)):
-            if i != j:
+            if i != j: #pas clair ça, certainement à suprimer
                 reduc_turns(o1.events[i], o2.events[j])
     clean_turns(o1)
 
@@ -224,10 +253,10 @@ def preparation(o1, o2):
         for j in range(len(o2.trains)):
             if i != j:
                 crit = findCritical(o1.trains[i], o2.trains[j], o1)
-                if crit[0][0] != "":
+                if len(crit) > 0:
                     for canton_crit in crit:
-                        handleCritical(o1.trains[i], o2.trains[j], canton_crit[0], o2, o1)
-    
+                        handleCritical(o1.trains[i], o2.trains[j], canton_crit, o2, o1)
+
     #mise à jour des tokens pour att
     for i in range(len(o2.trains)):
         for j in range(len(o2.events[i])):
@@ -258,6 +287,7 @@ def assemblage(o1, o2):
 
     o3 = Trajet(trains, events)
     o3.switch_init = o1.switch_init
+    o3.histo_switch = o1.histo_switch
 
     #assemble les tokens
     for i in range(len(o1.tokens)):
@@ -332,31 +362,38 @@ if __name__ == "__main__":
     with open("etat_elem.json", "r") as file:
         etats = json.load(file)
 
-    """ s4_1 = etats["N4L5R2* -> N8L7R2*"].split("__")
+    """s4_1 = etats["N4L5R2* -> N8L7R2*"].split("__")
     o1 = createProgram("N4L5R2*", "N8L7R2*",s4_1) 
     s4_2 = etats["N8L7R2* -> N8*4R2*"].split("__")
     o2 = createProgram("N8L7R2*", "N8*4R2*",s4_2)
     print(f"o1\n{o1}")
+    print(f"o1 histo_switch : {o1.histo_switch}")
     print(f"o2\n{o2}")
+    print(f"o2 histo_switch : {o2.histo_switch}")
     preparation(o1, o2)
     o3 = assemblage(o1, o2)
     nettoyage(o3)
     print(f"o3\n{o3}")
-    print(f"o3 switch_init : {o3.switch_init}") """
+    print(f"o3 switch_init : {o3.switch_init}")
+    print(f"o3 switch historique : {o3.histo_switch}")
 
-    """ s5 = etats["N8*4R2* -> N8R4*2*"].split("__")
+
+    s5 = etats["N8*4R2* -> N8R4*2*"].split("__")
     o4 = createProgram("N8*4R2*", "N8R4*2*", s5)
     print(f"o4\n{o4}")
     o5 = compose(o3, o4)
     print(f"o5\n{o5}")
+    print(f"o5 switch historique : {o5.histo_switch}")
+
 
     s6 = etats["N8R4*2* -> N3R4*2*"].split("__")
     o6 = createProgram("N8R4*2*", "N3R4*2*", s6)
     print(f"o6\n{o6}")
     o7 = compose(o5, o6)
-    print(f"o7\n{o7}") """
+    print(f"o7\n{o7}")
+    print(f"o7 switch historique : {o7.histo_switch}") """
 
-    s1 = etats["N2L7L6L -> N3L5L4L"].split("__")
+    """ s1 = etats["N2L7L6L -> N3L5L4L"].split("__")
     o1 = createProgram("N2L7L6L", "N3L5L4L", s1)
     s2 = etats["N3L5L4L -> N6L5*4*"].split("__")
     o2 = createProgram("N3L5L4L", "N6L5*4*", s2)
@@ -364,7 +401,15 @@ if __name__ == "__main__":
     print(f"o2\n{o2}")
     o3 = compose(o1, o2)
     print(f"o3\n{o3}")
+    print(f"o3 switch_init : {o3.switch_init}") """
+
+    s1 = etats["N8*7R6* -> N8*5R6L"].split("__")
+    o1 = createProgram("N8*7R6*", "N8*5R6L", s1)
+    s2 = etats["N8*5R6L -> N8*2R4L"].split("__")
+    o2 = createProgram("N8*5R6L", "N8*2R4L", s2)
+    print(f"o1\n{o1}")
+    print(f"o2\n{o2}")
+    o3 = compose(o1, o2)
+    print(f"o3\n{o3}")
     print(f"o3 switch_init : {o3.switch_init}")
-    
-    
 

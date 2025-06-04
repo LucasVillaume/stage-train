@@ -26,6 +26,13 @@ def afficher_progression(current, total, largeur=40):
 
 
 if __name__ == "__main__":
+
+    version = ""
+    if len(sys.argv) > 1:
+        version = sys.argv[1]
+
+    total = 10000
+
     etats = dict()
     with open("etat_elem.json", "r") as file:
         etats = json.load(file)
@@ -34,7 +41,7 @@ if __name__ == "__main__":
     
     t = time.time()
     #try:
-    for i in range(1000):
+    for i in range(total):
         good = False
 
         while not good or len(etats) == 0:
@@ -55,11 +62,11 @@ if __name__ == "__main__":
         model = trajet2model(o1)
         with open("model/composition.tla", "w") as file:
             file.write(model)
-        with open("test/testElem.txt", "a") as file:
-            file.write(f"Trajet {i+1} : {selected}\n") 
+        with open("test/testElem"+version+".txt", "a") as file:
+            file.write(f"Trajet {i+1} : {selected}\n")
         execution()
-        afficher_progression(i + 1, 1000)
+        afficher_progression(i + 1, total)
     """ except Exception as e:
         print(f"{e}")
         print("Fin de la génération des trajets.") """
-    print(f"Temps d'exécution : {time.time() - t} secondes")
+    print(f"\nTemps d'exécution : {time.time() - t} secondes")

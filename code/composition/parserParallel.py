@@ -20,8 +20,26 @@ def parseGraph(path):
     return etat
 
 
+def simplifyGraph(save=False):
+    with open("etat_elem.json", "r") as file:
+        etat = json.load(file)
+
+    graph = dict()
+    for states, transitions in etat.items():
+        e1, e2 = states.split(" -> ")
+        if e1 not in graph:
+            graph[e1] = dict()
+        graph[e1][e2] = transitions
+
+    if save:
+        with open("graph_simple.json", "w") as file:
+            json.dump(graph, file, indent=4)
+    
+    return graph
+    
+
 if __name__ == "__main__":
-    etat = parseGraph("parallel_mouvement.dot")
+    """ etat = parseGraph("parallel_mouvement.dot")
 
     # enregistre le dictionnaire dans un fichier json
     with open("etat_elem.json", "w") as save:
@@ -31,4 +49,9 @@ if __name__ == "__main__":
         etat = json.load(file)
         res = etat["N4*5*2* -> N4L5R2*"]
         print(res)
-        print([x for x in res.split('__')])
+        print([x for x in res.split('__')]) """
+    
+    graph = simplifyGraph(True)
+    print(f"Nombre d'états : {len(graph)}")
+    mean = sum(len(transitions) for transitions in graph.values()) / len(graph)
+    print(f"Nombre moyen de transitions par état : {mean:.2f}")

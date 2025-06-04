@@ -28,5 +28,9 @@
 /code/composition/model/tla2tools.jar
 /code/composition/model/out.log
 /code/composition/model/states
+/code/composition/graph_simple.json
+/code/composition/model/model1_1.toolbox
+/code/composition/model/save_errors.log
+/code/composition/model/errors.log
 
 
