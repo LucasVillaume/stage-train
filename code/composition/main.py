@@ -1,11 +1,12 @@
 from composer import compose
 from composer import createProgram
 from TLAModel import trajet2model
+from math import ceil
+from multiprocessing import Process, Array, Value
 import json
 import subprocess
 import re
 import time
-from math import ceil
 
 g_etats = dict()
 with open("etat_elem.json", "r") as file:
@@ -32,7 +33,6 @@ def execution(dir="model"):
     if dir != "model":
         comand.insert(4,"-metadir")
         comand.insert(5, dir+"/tmp")
-        print(f"Executing command: {' '.join(comand)}")
 
     f = open(f"{dir}/out.log", "w")
     res = subprocess.call(comand, stdout=f, stderr=f)
@@ -81,16 +81,16 @@ def divide_dict(d,n):
             dicts.append(items[ceil(i*q):])
     return [dict(i) for i in dicts]
 
-if __name__ == "__main__":
+
+def analyse(data=None, dir=None, tab=None):
     etats = g_etats
+    if data is None:
+        data = etats
+
     cpt = 0
-    
     total_erreurs = 0
 
-    e1 = ""
-    e2 = ""
-
-    for etat1 in etats.keys():
+    for etat1 in data.keys():
         for etat2 in etats.keys():
             try:
                 if check(etat1, etat2):
@@ -98,16 +98,58 @@ if __name__ == "__main__":
                     s1, e1 = etat1.split(" -> ")
                     s2, e2 = etat2.split(" -> ")
                     if etat1 != etat2 and e1 == s2:
-                        setup(s1, e1, s2, e2)
-                        execution()
+                        if dir is None:
+                            setup(s1, e1, s2, e2)
+                            execution()
+                        else:
+                            setup(s1, e1, s2, e2, dir)
+                            execution(dir)
                         cpt += 1
-                        print(f"Execution {cpt} : {etat1} et {etat2} en {time.time() - t:.2f} secondes")
+                        if tab is None:
+                            print(f"Execution {cpt} : {etat1} et {etat2} en {time.time() - t:.2f} secondes")
+                        else:
+                            tab[1] += 1
             except Exception as e:
                 total_erreurs += 1
-                print(f"Erreur entre {etat1} et {etat2}: {e} / Nombre total d'erreurs: {total_erreurs}")
+                if tab is None:
+                    print(f"Erreur entre {etat1} et {etat2}: {e} / Nombre total d'erreurs: {total_erreurs}")
+                else:
+                    tab[0] += 1
+                    print(f"Erreur entre {etat1} et {etat2}: {e} / Nombre total d'erreurs: {tab[1]}")
                 with open("model/errors.log","a") as error_file:
                     error_file.write(f"Erreur entre {etat1} et {etat2} : {e}\n")
                 #exit(1)
+
+
+def affichage(array, term):
+    while term != True:
+        total = [0,0]
+        for i in range(len(array)):
+            total[0] += array[i][0]
+            total[1] += array[i][1]
+        print(f"Total erreurs : {total[0]} / Total executions : {total[1]}")
+        time.sleep(2)
+
+if __name__ == "__main__":
+    etats = g_etats
+
+    """ divided = divide_dict(etats, 100)
+
+    d_procs = [divided[1],divided[2]]
+    procs = []
+    arrays = []
+    for i in range(len(d_procs)):
+        arrays.append(Array('i', [0, 0]))
+        p = Process(target=analyse, args=(d_procs[i], "model/compo"+str(i+1), arrays[i]))
+        procs.append(p)
+        p.start()
+
+    p_aff = Process(target=affichage, args=(arrays, False)) #utiliser Value pour le paramètre term
+    p_aff.start() """
+    
+
+    analyse()
+
 
     """ t = time.time()
     etat1 = "N4R1*5* -> N2R1*5L"

@@ -278,7 +278,10 @@ def assemblage(o1, o2):
         trains[i].troncons = o1.trains[i].troncons + o2.trains[i].troncons[1:]
         t1_lc = o1.trains[i].last_crit
         t2_lc = [x+y for x, y in zip(o2.trains[i].last_crit, o2.trains[i].offset_crit)]
-        trains[i].last_crit = t2_lc if t2_lc > t1_lc else t1_lc # TODO: voir ça
+
+        for j in range(len(trains[i].last_crit)):
+            trains[i].last_crit[j] = t2_lc[j] if t2_lc[j] > t1_lc[j] else t1_lc[j]
+        #trains[i].last_crit = t2_lc if t2_lc > t1_lc else t1_lc
 
         #assemble events
         events.append(o1.events[i])
