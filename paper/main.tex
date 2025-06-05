@@ -114,11 +114,11 @@ For our last research problem, we show that TLA+ may be used to refine a regulat
 \label{sec:formal-model}
 
 
-\subsection{Modélisation d'une liste d'ordre}
+\subsection{Modélisation d'une liste d'odre}
 La modélisation de notre liste d'ordre doit prendre en compte les besoins et contraintes évoqués plus haut.
 Pour cela, nous avons choisi de la représenter comme cela : $O = \{\Gamma, R\}$, avec $\Gamma$ l'ensemble des trains et $R$ notre régulateur.
 Chaque train peut être représenté par un identifiant unique, une position, une direction et son programme : $t = (id, pos, dir, P)$, avec $t \in \Gamma$.
-Le régulateur, portant une grande partie de la logique du modèle, se représente de manière plus complexe : $R = (E,T,S,W,G,H,TL)$.
+Le régulateur, portant une grande partie de la logique du modèle, se représente de manière plus complexe : $R = (E,T,S,W,G,H,TL,B)$.
 %##########
 %Définit ce qu'est un event à ce moment ou plus haut ?
 %##########
@@ -133,7 +133,7 @@ Avoir un unique token par ressource complexifie les règles.
 Nous avons défini formellement la modélisation du système, il est temps d'ajouter du mouvement à notre modèle.
 Une règle de transition nous permet de définir de manière formelle une évolution du système. 
 Si l'on note notre état de base $e$ alors une règle de transition $r$ nous emmène dans un état différent $e'$. On a donc $r: e \rightarrow e'$.
-Cependant, nous voulons ajouter des conditions, le train n'avance que si le feu est vert $r:$ \inferrule{feu = vert}{e \rightarrow e'}.
+Cependant, nous voulons ajouter des conditions, le train n'avance que si le feu est vert $r:$ \inferrule{feu = vert \\ cond2 \\ cond3 \\ \dots}{e \rightarrow e'}.
 \\Dans notre modèle, nous avons plusieurs sémantiques, une pour les trains, une pour le régulateur et une pour le système.
 Ainsi, le régulateur et les trains sont isolés, permettant une approche plus proche de la réalité.
 
@@ -155,11 +155,32 @@ Ainsi, le régulateur et les trains sont isolés, permettant une approche plus p
 Cette section est particulièrement importante, modéliser les problèmes que l'on peut rencontrer permet de les détecter.
 Cette phrase peut paraître évidente, mais elle est centrale dans notre méthodologie. Ici, nous pouvons faire face à deux problèmes : 
 les trains n'arrivent pas destination, c'est un deadlock, ou les trains partagent une même ressource, c'est un crash. 
-Point important, nos règles de transitions se basent sur l'interleaving, les trains ne peuvent donc pas se croiser. (($\triangle$,2)->($\triangle$,3) || ($O$,3)->($O$,2)).
+Point important, nos règles de transitions se basent sur l'interleaving, les trains ne peuvent donc pas se croiser. (($\triangle$,2) $\Rightarrow$ ($\triangle$,3) || ($O$,3) $\Rightarrow$ ($O$,2)).
 Le premier problème représente notre propriété de Liveness, les trains arrivent à destination, et le second représente notre propriété de Safety, les trains ne se crashent pas.
 
-\section{Formalisation en TLA}
+\section{Formalisation en TLA+}
 \label{sec:tla-formalisation}
+
+\subsection{Intro ?}
+
+\subsection{Fonctionnement de TLA+}
+Comme nous l'avons vu, TLA+ repose sur la logique temporelle et nous permet de modéliser des systèmes afin de vérifier leurs propriétés.
+Pour cela, nous commençons par définir les variables du système, dans la philosophie de TLA+, c'est ce qui évolue dans le temps. 
+Pour notre modèle, nous avons $\Gamma$, $R$, mais aussi deux dernières variables sur lesquelles nous reviendrons plus tard.
+Ensuite, il nous faut décrire l'état initial de notre système, traditionnellement dans une "fonction" nommée Init.
+Le prochain point réside dans la définition des règles de transitions, c'est le moteur de notre système. 
+Toutes ces règles doivent être rassemblées, traditionnellement sous la fonction Next. 
+Enfin, cette étape s'achève par la définition de la spécification du système, globalement, la mise en commun de tout ce que nous avons créé.
+\\Ainsi, nous créons la fonction Spec comme ceci : \textit{$$Spec == Init /\backslash [][Next]\_variables$$} %Revoir la syntaxe au cas où
+Vous avez désormais une vue d'ensemble sur la construction d'une spécification TLA+.
+Rentrons désormais dans les détails de l'implémentation.
+
+\subsection{Implémentation du modèle}
+TLA+ n'étant pas un langage de programmation, nous devons utiliser les structures de données misent à disposition pour représenter les éléments de notre modèle.
+Or, ce dernier gère très bien les fonctions et les ensembles, ainsi ce qu'on apparente à un tableau ou une structure n'est qu'une fonction.
+Par exemple, pour la sequence $[8,7,6,5]$, on créer en TLA+ une fonction $s$ telle que $s(1) = 8$, $s(2) = 7$\dots
+Le procédé est similaire pour les structures, on associe une chaîne de caractères à une donnée.
+
 
 \section{Composition}
 \label{sec:composition}
