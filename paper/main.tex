@@ -4,6 +4,7 @@
 \usepackage{graphicx}
 \usepackage{tikz}
 \usepackage{wrapfig}
+\usepackage{package/mathpartir}
 
 
 \begin{document}
@@ -78,8 +79,8 @@ From an IT point of view, our system is shaped as shown on the right. We find tw
 \section{Modèle formel}
 \label{sec:formal-model}
 
-\subsection{Mosélisation d'une liste d'odre}
 
+\subsection{Mosélisation d'une liste d'odre}
 La modélisation de notre liste d'ordre doit prendre en compte les besoins et contraintes évoqués plus haut.
 Pour cela, nous avons choisi de la représenter comme cela : $O = \{\Gamma, R\}$, avec $\Gamma$ l'ensemble des trains et $R$ notre régulateur.
 Chaque train peut être représenté par un identifiant unique, une position, une direction et son programme : $t = (id, pos, dir, P)$, avec $t \in \Gamma$.
@@ -93,10 +94,33 @@ $T$ le token courant pour chaque ressource et $H$ la dernière position connue d
 Idée: Pourquoi besoin des jetons ? Plusieurs trains peuvent attendre la même ressource critique, il faut donc créer un "ordre de passage".
 Avoir un unique token par ressource complexifie les règles.
 
+
+\subsection{Règles de transitions}
+Nous avons défini formellement la modélisation du système, il est temps d'ajouter du mouvement à notre modèle.
+Une règle de transition nous permet de définir de manière formelle une évolution du système. 
+Si l'on note notre état de base $e$ alors une règle de transition $r$ nous emmène dans un état différent $e'$. On a donc $r: e \rightarrow e'$.
+Cependant, nous voulons ajouter des conditions, le train n'avance que si le feu est vert $r:$ \inferrule{feu = vert}{e \rightarrow e'}.
+\\Dans notre modèle, nous avons plusieurs sémantiques, une pour les trains, une pour le régulateur et une pour le système.
+Ainsi, le régulateur et les trains sont isolés, permettant une approche plus proche de la réalité.
+
+%Montrer les déplacements d'un train
+\noindent
+\\Start : 
+\\Stop : 
+\\Until : 
+\\Until$_{cons}$ : 
+
+%Quelques régles du régulateur
+\noindent
+\\Recv : 
+\\Incr$_{af}$ :
+
+
+
 \subsection{Détecter les problèmes}
 Cette section est particulièrement importante, modéliser les problèmes que l'on peut rencontrer permet de les détecter.
 Cette phrase peut paraître évidente, mais elle est centrale dans notre méthodologie. Ici, nous pouvons faire face à deux problèmes : 
-les trains n'arrivent pas destination, c'est un deadlock, ou les trains partage une même ressource, c'est un crash. 
+les trains n'arrivent pas destination, c'est un deadlock, ou les trains partagent une même ressource, c'est un crash. 
 Point important, nos règles de transitions se basent sur l'interleaving, les trains ne peuvent donc pas se croiser. (($\triangle$,2)->($\triangle$,3) || ($O$,3)->($O$,2)).
 Le premier problème représente notre propriété de Liveness, les trains arrivent à destination, et le second représente notre propriété de Safety, les trains ne se crashent pas.
 
