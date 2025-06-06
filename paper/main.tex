@@ -5,7 +5,7 @@
 \usepackage{tikz}
 \usepackage{wrapfig}
 \usepackage{package/mathpartir}
-
+\usepackage{todonotes}
 
 \begin{document}
 %
@@ -24,9 +24,17 @@
 \institute{Université de Lorraine -- CNRS -- INRIA -- LORIA}
 %
 \maketitle
+\todo{Je serai d'avis de mettre Lucas en 1er auteur, car (i) il est le contributeur principal, et (ii) Il y a un best paper award pour étudiants, mais il faut que l'étudiant soit 1er auteur}
 %
 \begin{abstract}
-	...
+	% Contexte
+	Trains networks are critical system which failure may lead to numerous fatalities, in case of crashes, or important loss, if trains are not properly routed. 
+	% Problème
+	In this paper, our goal is to formally verify the correctness of train routes. More precisely, we verify the absence of deadlocks, the termination, and the absence of crashes.
+	% Approche
+	To address this question, we model train systems in TLA+. Our model include trains, as well as switches and traffic lights. Both switches and traffic lights are controlled by a regulator upon train events. We provide trains and the regulator lists of event, which characterise the train scheduling, which is then checked using TLA+'s model checker.
+	% Resultats
+	Our contributions are threefold: first, we provide a TLA+ specification which can be adapted to various train networks and schedules; second, we report tests we ran on the model on a non-trivial network, composed of 3 trains, 8 blocks and 5 switches; finally we show how to sequentially compose two schedules and to verify the result.
 
 \keywords{First keyword  \and Second keyword \and Another keyword.}
 \end{abstract}
