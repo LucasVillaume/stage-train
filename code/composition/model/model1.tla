@@ -5,24 +5,24 @@ EXTENDS Integers, TLC, Sequences, composition
 
 \* Circuit
 Suiv(pos, dir, S) ==   IF pos = 1 /\ dir = "L" /\ S[1] = "d" /\ S[2] = "v" THEN 3
-                     ELSE IF pos = 2 /\ dir = "L" /\ S[1] = "v" /\ S[2] = "v" THEN 3
-                     ELSE IF pos = 3 /\ dir = "L" /\ S[3] = "d"               THEN 7
-                     ELSE IF pos = 3 /\ dir = "L" /\ S[3] = "v"               THEN 8
-                     ELSE IF pos = 3 /\ dir = "R" /\ S[2] = "d"               THEN 4
-                     ELSE IF pos = 3 /\ dir = "R" /\ S[1] = "d" /\ S[2] = "v" THEN 1
-                     ELSE IF pos = 3 /\ dir = "R" /\ S[1] = "v" /\ S[2] = "v" THEN 2
-                     ELSE IF pos = 4 /\ dir = "L" /\ S[2] = "d"               THEN 3
-                     ELSE IF pos = 4 /\ dir = "R" /\ S[5] = "d"               THEN 5
-                     ELSE IF pos = 4 /\ dir = "R" /\ S[5] = "v"               THEN 6
-                     ELSE IF pos = 5 /\ dir = "L" /\ S[5] = "d"               THEN 4
-                     ELSE IF pos = 5 /\ dir = "R" /\ S[4] = "d"               THEN 7
-                     ELSE IF pos = 6 /\ dir = "L" /\ S[5] = "v"               THEN 4
-                     ELSE IF pos = 6 /\ dir = "R" /\ S[4] = "v"               THEN 7
-                     ELSE IF pos = 7 /\ dir = "L" /\ S[4] = "d"               THEN 5
-                     ELSE IF pos = 7 /\ dir = "L" /\ S[4] = "v"               THEN 6
-                     ELSE IF pos = 7 /\ dir = "R" /\ S[3] = "d"               THEN 3
-                     ELSE IF pos = 8 /\ dir = "R" /\ S[3] = "v"               THEN 3
-                     ELSE -1
+                ELSE IF pos = 2 /\ dir = "L" /\ S[1] = "v" /\ S[2] = "v" THEN 3
+                ELSE IF pos = 3 /\ dir = "L" /\ S[3] = "d"               THEN 7
+                ELSE IF pos = 3 /\ dir = "L" /\ S[3] = "v"               THEN 8
+                ELSE IF pos = 3 /\ dir = "R" /\ S[2] = "d"               THEN 4
+                ELSE IF pos = 3 /\ dir = "R" /\ S[1] = "d" /\ S[2] = "v" THEN 1
+                ELSE IF pos = 3 /\ dir = "R" /\ S[1] = "v" /\ S[2] = "v" THEN 2
+                ELSE IF pos = 4 /\ dir = "L" /\ S[2] = "d"               THEN 3
+                ELSE IF pos = 4 /\ dir = "R" /\ S[5] = "d"               THEN 5
+                ELSE IF pos = 4 /\ dir = "R" /\ S[5] = "v"               THEN 6
+                ELSE IF pos = 5 /\ dir = "L" /\ S[5] = "d"               THEN 4
+                ELSE IF pos = 5 /\ dir = "R" /\ S[4] = "d"               THEN 7
+                ELSE IF pos = 6 /\ dir = "L" /\ S[5] = "v"               THEN 4
+                ELSE IF pos = 6 /\ dir = "R" /\ S[4] = "v"               THEN 7
+                ELSE IF pos = 7 /\ dir = "L" /\ S[4] = "d"               THEN 5
+                ELSE IF pos = 7 /\ dir = "L" /\ S[4] = "v"               THEN 6
+                ELSE IF pos = 7 /\ dir = "R" /\ S[3] = "d"               THEN 3
+                ELSE IF pos = 8 /\ dir = "R" /\ S[3] = "v"               THEN 3
+                ELSE -1
 
 
 \* Utilitaire
@@ -333,5 +333,5 @@ Spec == Init /\ [][Next]_<<gamma,reg,rule,msg>> /\ WF_<<gamma,reg,rule,msg>>(Nex
 
 =============================================================================
 \* Modification History
-\* Last modified Fri Jun 06 10:28:23 CEST 2025 by lucas
+\* Last modified Fri Jun 06 16:16:06 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas
