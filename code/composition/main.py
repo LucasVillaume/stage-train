@@ -44,9 +44,6 @@ def execution(dir="model"):
         with open(f"{dir}/out.log", "r") as output:
             warn = re.findall(r"Warning:.*", "".join(output.readlines()))
             if len(warn) > 1:
-                print("Warnings:")
-                for w in range(1,len(warn)):
-                    print("    "+warn[w])
                 raise Exception(f"Warnings trouvés dans le fichier de log. Veuillez vérifier {dir}/out.log pour plus de détails.")
 
 

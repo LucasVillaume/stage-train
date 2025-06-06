@@ -315,13 +315,18 @@ def addAuth(o1):
     for t in range(len(o1.trains)):
         for e in range(len(o1.events[t])):
             if len(o1.events[t][e]) > 0:
-                only_turn = True
+                for o in range(len(o1.events[t][e])):
+                    if o1.events[t][e][o][0] == "turn" and (t,e) in o1.histo_switch[o1.events[t][e][o][1]]:
+                        o1.events[t][e].append(["auth"])
+                        break
+
+                """only_turn = True
                 for o in range(len(o1.events[t][e])):
                     if o1.events[t][e][o][0] != "turn":
                         only_turn = False
                         break
                     if only_turn and o == len(o1.events[t][e])-1:
-                        o1.events[t][e].append(["auth"])
+                        o1.events[t][e].append(["auth"]) """
 
 
 
@@ -406,10 +411,10 @@ if __name__ == "__main__":
     print(f"o3\n{o3}")
     print(f"o3 switch_init : {o3.switch_init}") """
 
-    s1 = etats["N8*7R6* -> N8*5R6L"].split("__")
-    o1 = createProgram("N8*7R6*", "N8*5R6L", s1)
-    s2 = etats["N8*5R6L -> N8*2R4L"].split("__")
-    o2 = createProgram("N8*5R6L", "N8*2R4L", s2)
+    s1 = etats["N2L7L6L -> N2*5L3L"].split("__")
+    o1 = createProgram("N2L7L6L", "N2*5L3L", s1)
+    s2 = etats["N2*5L3L -> N2*4L8L"].split("__")
+    o2 = createProgram("N2*5L3L", "N2*4L8L", s2)
     print(f"o1\n{o1}")
     print(f"o2\n{o2}")
     o3 = compose(o1, o2)

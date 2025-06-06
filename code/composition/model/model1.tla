@@ -81,8 +81,7 @@ Until(T) ==
         /\ order[2] = T.dir 
         /\ reg.F[T.pos,T.dir] = "V"
         /\ order[1] = "StartUntil" \*un peu inutile
-        /\ nextC /= -1 \*un peu inutile : compare, plus tard, nextC avec Head(order[3]) (jamais -1)
-        /\ Head(order[3]) = nextC
+        /\ nextC /= -1
         /\ Len(Tail(order[3])) /= 0 \*pas le dernier élément
         /\ gamma' = [gamma EXCEPT 
                             ![id].pos = nextC,
@@ -109,7 +108,6 @@ Until_cons(T) ==
         /\ reg.F[T.pos,T.dir] = "V"
         /\ order[1] = "StartUntil" \*un peu inutile
         /\ nextC /= -1
-        /\ Head(order[3]) = nextC
         /\ Len(Tail(order[3])) = 0 \*dernier élément
         /\ gamma' = [gamma EXCEPT 
                             ![T.id].pos = nextC,
@@ -335,5 +333,5 @@ Spec == Init /\ [][Next]_<<gamma,reg,rule,msg>> /\ WF_<<gamma,reg,rule,msg>>(Nex
 
 =============================================================================
 \* Modification History
-\* Last modified Mon May 26 13:19:55 CEST 2025 by lucas
+\* Last modified Fri Jun 06 10:28:23 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas

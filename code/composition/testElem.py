@@ -1,4 +1,6 @@
 from composer import createProgram
+from composer import clean_turns
+from composer import addAuth
 from TLAModel import trajet2model
 from main import execution
 import json
@@ -22,8 +24,10 @@ def afficher_progression(current, total, largeur=40):
     sys.stdout.flush()
 
 
-
-
+def preparation(o1):
+    clean_turns(o1)
+    addAuth(o1)
+    
 
 if __name__ == "__main__":
 
@@ -31,42 +35,52 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         version = sys.argv[1]
 
-    total = 10000
-
     etats = dict()
     with open("etat_elem.json", "r") as file:
         etats = json.load(file)
-    with open("test/testElem.txt", "w") as file:
-        file.write(f"Test des trajets élémentaires\n\n")
-    
+
+    total = len(etats)
     t = time.time()
-    #try:
-    for i in range(total):
+    i = 0
+
+    while len(etats) > 0:
+    #for i in range(total):
         good = False
 
-        while not good or len(etats) == 0:
-            good = True
-            selected = random.choice(list(etats.keys()))
-            saved_etat = etats[selected] 
-            etats.pop(selected)
-            pos = re.findall(r"\d+[LR*]", selected)
-            for j in range(len(pos)-3):
-                if "*" in pos[j] and pos[j] != pos[j+3]:
-                    good = good and False
 
-        if not good:
-            raise ("Plus de trajet pour tester !")
-        d, f = selected.split(" -> ")
-        p = saved_etat.split("__")
-        o1 = createProgram(d, f, p)
-        model = trajet2model(o1)
-        with open("model/composition.tla", "w") as file:
-            file.write(model)
-        with open("test/testElem"+version+".txt", "a") as file:
-            file.write(f"Trajet {i+1} : {selected}\n")
-        execution()
-        afficher_progression(i + 1, total)
-    """ except Exception as e:
-        print(f"{e}")
-        print("Fin de la génération des trajets.") """
+        try:
+            #recherche un trajet à tester
+            while not good or len(etats) == 0:
+                good = True
+                selected = random.choice(list(etats.keys()))
+                saved_etat = etats[selected] 
+                etats.pop(selected)
+                pos = re.findall(r"\d+[LR*]", selected)
+                for j in range(len(pos)-3):
+                    if "*" in pos[j] and pos[j] != pos[j+3]: #traite pas les trains qui démarrent juste
+                        good = good and False
+
+            if not good:
+                raise ("Plus assez de trajet pour tester !")
+            
+            d, f = selected.split(" -> ")
+            p = saved_etat.split("__")
+            o1 = createProgram(d, f, p)
+
+            preparation(o1)
+            model = trajet2model(o1)
+            with open("model/composition.tla", "w") as file:
+                file.write(model)
+
+            execution()
+            
+            with open("test/testElem"+version+".txt", "a") as file:
+                file.write(f"Trajet {i+1} : {selected}\n")
+        except Exception as e:
+            with open("test/errorElem"+version+".log", "a") as file:
+                file.write(f"Trajet {i+1} : {selected} | {e}\n")
+        finally:
+            i += 1
+            afficher_progression(i + 1, total)
+
     print(f"\nTemps d'exécution : {time.time() - t} secondes")
