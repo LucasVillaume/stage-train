@@ -35,7 +35,7 @@
 \section{Introduction}
 \label{sec:introduction}
 
-This contribution finds its origin in a cyber-warefare we are organising for the IT students at the University of Lorraine, see~\cite{CHE}. In the game-play, we have both IT infrastructures and physical systems, with connections between them. On the physical side, we built a small train network that tries to be a good model of real systems.  Our system manages customer informations, train regulation and finally the physical/infrastructure layer. Attackers can hit any of the three parts: disfiguring the website, changing a platform or blocking a signal. Defenders will protect their system, typically via a strict network policy.
+This contribution finds its origin in a cyber-warefare we are organising for students at the University of Lorraine concerned by cyber-security, see~\cite{CHE}. In the game-play, we have both IT infrastructures and physical systems, with connections between them. On the physical side, we built a small train network that tries to be a good model of real systems.  Our system manages customer informations, train regulation and finally the physical/infrastructure layer. Attackers can hit any of the three parts: disfiguring the website, changing a platform or blocking a signal. Defenders will protect their system, typically via a strict network policy.
 
 \medskip
 
@@ -45,10 +45,10 @@ This contribution finds its origin in a cyber-warefare we are organising for the
 \end{wrapfigure}
 
 
-From an IT point of view, our system is shaped as shown on the right. Switches are controlled by a raspberry (TURNOUT) running an OpenPLC program, signals are controlled by an other raspberry and SIGNAL has access to turnout positions via modbus. Then, the SIGNAL PLC reads mouvement sensors outputs (not all links shown in the figure) and updates accordingly the status of signals. Next to that, we have a third machine, the regulator: it is in charge of updating train routes (as required by the customer IT),  of the regulation of turnouts and finally it may lock some signal (turn it to "red"). All the network connections are done via a single switch, connections from REGULATOR to TURNOUT and SIGNAL are done via modbus while the customer IT and the regulator talks  are based on TCP/IP.  To activate train mouvements, we use the DCC protocol via an Arduino, but this part is strictly related to the fact we have a model train. 
+From an Information Technology (IT) point of view, our system is shaped as shown on the right. Switches are controlled by a raspberry (TURNOUT) running an OpenPLC program, signals are controlled by an other raspberry, SIGNAL, with access to turnout positions via modbus. Then, the SIGNAL PLC reads mouvement sensors  (not all links shown in the figure) to update the status of signals. Next to that, we have a third machine, the regulator: it is in charge of updating train routes (as required by the customer IT),  of the regulation of turnouts and finally it may lock some signal (turn it to "red"). All the network connections are done via a single switch. Connections from REGULATOR to TURNOUT and SIGNAL are done via modbus while the customer IT and the regulator exchanges  are based on TCP/IP.  To be complete, to activate train mouvements, we use the DCC protocol via an Arduino, but this part is strictly related to the fact we have a train model. 
 
 
-\begin{wrapfigure}[5]{r}{0.3\textwidth}
+\begin{wrapfigure}[6]{r}{0.3\textwidth}
 \hspace{-10mm}
  \begin{minipage}{0.3\textwidth}
         \centering
@@ -57,7 +57,7 @@ From an IT point of view, our system is shaped as shown on the right. Switches a
     \end{minipage}
 \end{wrapfigure}
 
- The customer IT is deported from the infrastructure (thus the cloud).  It is itself composed of three machines: one for the station screens, one for the databases and a final orchestrator. On the orchestrator, there are two main services: we have a web-service (with front and backend, on the right) and the general route scheduler.  Our model is completely automatic, no manual intervention is needed apart from minor mechanical problems that come with our scale model.
+ The customer IT is deported from the infrastructure (thus the cloud).  It is itself composed of three machines: one for the station screens, one for the databases and a final orchestrator. On the orchestrator, there are two main services: we have a web-service (with front and backend, on the right) and the general route scheduler.  Our model is completely automatic, no manual intervention is needed apart from minor electrical/mechanical problems that come with our scale model.
  
 \begin{wrapfigure}[8]{r}{0.28\textwidth}
  \begin{minipage}{0.28\textwidth}
@@ -70,13 +70,13 @@ From an IT point of view, our system is shaped as shown on the right. Switches a
 Final words on the N-scale model. Our circuit has 8 blocks, 5 switches. Each block is bidirectional with a signal at each end.  We operate  three trains in parallel. Due to the size of the model, we reduced our signals  to "red" and "green" status, the train being too close one from the other. Furthermore, in case of a red signal, we make the hypothesis that the train will be able to stop before it reaches the end of the block. In practice, we stop the trains in the middle. 
 
 
-Routes are not computed in advance. The schedule is renewed every "day"\footnote{We use a time scale factor: one of our "day" corresponds to 20 minutes in real time.}  and we introduce some randomness in the process: some trains are inserted, some trains departure/destination may change, and so on. Finally, in our model, we distinguish freight and  passengers routes giving priority to the latter. Routes are computed each time a train as finished its duty. 
+Routes are not computed in advance. The schedule is renewed every "day"\footnote{We use a time scale factor: one of our "day" corresponds to 20 minutes in real time.}  and we introduce some randomness in the process: some trains are inserted, some trains departure/destination may change, and so on. Finally, in our model, we distinguish freight and  passengers routes giving priority to the latter. Routes are recomputed each time a train as finished its duty. 
  
- Now, we can enter in more details about how the train regulation works. First, we have sensors on the rails at the two ends of each block. Accordingly, we make the hypothesis we can catch train entrances within blocks. Second, we make the hypothesis that switches can be swapped from one position to the other without fault. Our method could cope such issues, but we leave that for future work. 
+ Now, we can enter in more details about how the train regulation works. First, we have sensors on the rails at the two ends of each block. Accordingly,  we can catch train entrances within blocks. We make the hypothesis that this task is performed without errors. Second, the switches can be swapped from one position to the other, again, we suppose it is done without fault. Our method could cope such issues, but we leave that for future work. 
  
-  Third, for trains, we have a simple policy.  According to its plan, it may start in some direction (Forward/Backward) up to some final position. Then, the train will run according to the signals: when green, it (re-)starts, when red, it stops.  We do not make hypotheses on the durations of travels, but once a train is running, it will reach in finite time the next block. Trains run in parallel. One train may leave a block, while an other is still in the middle of its own and the third train is breaking. There is no communications between the trains.
+  Third, for trains, we have a simple policy.  According to its plan, a train may start in some direction (Forward/Backward) up to some final position. Then, once started, the train will run according to the signals: when green, it (re-)starts, when red, it stops.  We do not make hypotheses on the durations of travels, but once a train is running, it will reach in finite time the next block. Trains run in parallel. One train may enter a block, while an other is crossing some switch and the third one is breaking. There is no communications between the trains.
 
-Fourth,  the regulator is capable of reading train block entrance events, changing some switch position and finally locking (that is make sure a signal is red)/unlocking some signal. We consider that those latter operations can be carried out without delay. Finally, the regulator may append some new duty to a train. To sum up, to control the train mouvements, the regulator can only lock/unlock some signal. Naturally, a signal intended to block train $T_1$ may block $T_2$ if not set at the right time.   
+Fourth,  the regulator is capable of reading train block entrance events, requiring some switch swap and finally locking (that is make sure a signal is red)/unlocking some signal. We consider that those latter operations can be carried out without delay. Finally, the regulator may append some new duty to a train. To sum up, to control the train mouvements, the regulator can only lock/unlock signals. Naturally, a signal intended to block train $T_1$ may block $T_2$ if not set at the right time.   
  
  All these operations are done by what we call  \emph{orders}. Roughly speaking, trains Orders have the shape "Start in direction Until position". Regulator orders are: XXX. 
  
@@ -87,7 +87,7 @@ Fourth,  the regulator is capable of reading train block entrance events, changi
  **** Comparaison avec les travaux antérieurs ****
  
  
-Due to the distributed nature of the regulation, building a safe policy can be very tricky. We want to show in this paper that tools from formal methods are of great help.  In this paper, we describe in  a first step the formalisation process. We go up to a TLA+ specification that will allow us checking two properties of route orchestration: safety and liveness. This is our first research question. 
+Due to the distributed nature of the regulation, building a safe policy can be very tricky. We want to show in this paper that tools from formal methods are very useful in this respect.  In this paper, we describe in  a first step the formalisation process. We go up to a TLA+ specification that will allow us checking two properties of route orchestration: safety and liveness. This is our first research question. 
 
 Our second research question is the related to the following need. Suppose we want to append a new duty once a train reached its destination. This can be formalised as a composition problem (how to compose/concatenate some routes with some others). We describe such a composition procedure and then, again, we check that the routes are both safe and deadlock free. 
 
