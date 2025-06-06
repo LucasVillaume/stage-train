@@ -17,9 +17,9 @@
 
 %%%%% Macro %%%%%%%
 \newcommand\concat[2]{#1;#2}
-\newcommand\train[5]{(#1, #2, #3, #4, #5)} % #1 id, #2 pos, #3 dir, #4 P, #5 rel
-\newcommand\trainfull[6]{\Gamma \cup \train{#1}{#2}{#3}{#4}{#5}{#6}} 
-\newcommand\reg[7]{(#1, #2, #3, #4, #5, #6, #7)} % #1 Events, #2 Jetons, #3 Aiguillages, #4 File d'attente, #5 Garde, #6 Feux, #7 Buffer
+\newcommand\train[4]{(#1, #2, #3, #4)} % #1 id, #2 pos, #3 dir, #4 P
+\newcommand\trainfull[4]{\Gamma \cup \train{#1}{#2}{#3}{#4}} 
+\newcommand\reg[8]{(#1, #2, #3, #4, #5, #6, #7, #8)} % #1 Events, #2 Jetons, #3 Aiguillages, #4 File d'attente, #5 Garde, #6 Feux, #7 Buffer, #Historique
 
 \newcommand\maj[2]{#1 \gets #2} % #1 : dictionnaire, #2 : valeur
 \newcommand\majtab[3]{#1[#2] \gets #3}
@@ -42,32 +42,32 @@
 \section{Définition}
 
 \subsection{Représentation du train}
-Dans notre modèle, un train est représenté par un quintuplet $(id, pos, dir, P, rel)$ où :
+Dans notre modèle, un train est représenté par un quadruplet $(id, pos, dir, P)$ où :
 \begin{itemize}
     \item $id$ : identifiant du train
     \item $pos$ : position du train 
     \item $dir$ : direction du train
     \item $P$ : programme du train
-    \item $rel$ : position relative du train par rapport au départ
 \end{itemize}
 
 \subsection{Représentation du régulateur}
-Le régulateur est représenté par un septuplet $(E, J, S, W, G, F, B)$ où :
+Le régulateur est représenté par un octuplet $(E, J, S, W, G, F, B, H)$ où :
 \begin{itemize}
     \item $E$ : événements du régulateur
     \item $J$ : tableau de jetons
     \item $S$ : tableau des aiguillages
     \item $W$ : file d'attente
-    \item $G$ : garde
+    \item $G$ : garde (pour la simulation grands pas)
     \item $F$ : feux de signalisation
     \item $B$ : buffer (unidirectionnel) de messages
+    \item $H$ : tableau des dernières positions connue des trains
 \end{itemize}
 
 \subsection{Définition des prédicats et fonctions}
 
 \begin{itemize}
-    \item $suiv(pos, dir, switch)$ : renvoie la position suivante 
-    \item $handleTL(id, {\color{Red}pos, dir}, S)$ : renvoie la nouvelle valeur des feux de signalisation 
+    \item $suiv(pos, dir, switch)$ : renvoie la position suivante, $\varepsilon$ si aucun suivant n'existe
+    \item $handleTL(id, pos)$ : renvoie la nouvelle valeur des feux de signalisation
 \end{itemize}
 
 %%%%% Grammaire %%%%%%
@@ -119,28 +119,30 @@ Le régulateur est représenté par un septuplet $(E, J, S, W, G, F, B)$ où :
 Start : 
 \inferrule
     { dir \neq D \\ R.G = false}
-    {\trainfull{id}{pos}{dir}{\concat{SU(D,[\concat{n}{N'}])}{P'}}{rel}, R \\ \xRightarrow{\text{!ev(id)}} \\ \trainfull{id}{pos}{D}{\concat{SU(D,[\concat{N}{N'}])}{P'}}{rel},R}
+    {\trainfull{id}{pos}{dir}{\concat{SU(D,[\concat{n}{N'}])}{P'}}, R \\ \xRightarrow{\text{!ev(id,pos)}} \\ \trainfull{id}{pos}{D}{\concat{SU(D,[\concat{n}{N'}])}{P'}},R}
 \vspace{0.5cm}
 
 
 Stop :
 \inferrule
     { P = \varepsilon \\ dir \neq * \\ R.G = false}
-    {\trainfull{id}{pos}{dir}{P}{rel},R \\ \xRightarrow{\text{!ev(id)}} \\ \trainfull{id}{pos}{*}{P}{rel},R}
+    {\trainfull{id}{pos}{dir}{P},R \\ \xRightarrow{\text{!ev(id,pos)}} \\ \trainfull{id}{pos}{*}{P},R}
 \vspace{0.5cm}
 
+\noindent
+Pour les deux prochaines règles, on espère que les valeurs de $n$ et de $s$ sont égales, sinon ça annonce des problèmes futurs.
+\vspace{0.5cm}
 
 Until :
     \inferrule
-    { suiv(pos, D, S) = n \\ {\color{PineGreen} R.F[(pos,dir)] = V} \\ {\color{PineGreen}R.G = false}}
-    {\trainfull{id}{pos}{D}{\concat{SU(D,[\concat{n}{N'}])}{P'}}{rel},R \\ \xRightarrow{\text{!ev(id)}} \\ \trainfull{id}{n}{D}{\concat{SU(D,[N'])}{P'}}{rel+1},R}
+    { suiv(pos, D, S) = s \\ s \neq \varepsilon \\ {\color{PineGreen} R.F[(pos,dir)] = V} \\ {\color{PineGreen}R.G = false}}
+    {\trainfull{id}{pos}{D}{\concat{SU(D,[\concat{n}{N'}])}{P'}},R \\ \xRightarrow{\text{!ev(id,s)}} \\ \trainfull{id}{s}{D}{\concat{SU(D,[N'])}{P'}},R}
 \vspace{0.5cm}
-
 
 Until$_{cons}$ :
     \inferrule
-        { suiv(pos, D, S) = n \\ {\color{PineGreen} R.F[(pos,dir)] = V} \\ {\color{PineGreen} R.G = false}}
-        {\trainfull{id}{pos}{D}{\concat{SU(D,[\concat{n}{\varepsilon}])}{P'}}{rel},R\\ \Rightarrow \\ \trainfull{id}{n}{D}{P'}{rel+1},R}
+        { suiv(pos, D, S) = s \\ s \neq \varepsilon \\ {\color{PineGreen} R.F[(pos,dir)] = V} \\ {\color{PineGreen} R.G = false}}
+        {\trainfull{id}{pos}{D}{\concat{SU(D,[\concat{n}{\varepsilon}])}{P'}},R \\ \Rightarrow \\ \trainfull{id}{s}{D}{P'},R}
 \vspace{0.5cm}
 
 \subsection{Actions sur le régulateur : simulation grands pas avec une approche petits pas}
@@ -150,55 +152,55 @@ Until$_{cons}$ :
 Recv :
 \inferrule
     { len(B) = x}
-    {\reg{E}{J}{S}{W}{G}{F}{B} \\ \xRightarrow{\text{?ev(id)}} \\ \reg{E}{J}{S}{W}{G}{F}{\majtab{B}{x+1}{id}}}
+    {\reg{E}{J}{S}{W}{G}{F}{B}{H} \\ \xRightarrow{\text{?ev(id,pos)}} \\ \reg{E}{J}{S}{W}{G}{F}{\majtab{B}{x+1}{id}}{H}}
 \vspace{0.5cm}
 
 StarEvent :
 \inferrule
-    { len(B) \neq 0}
-    {\reg{E}{J}{S}{W}{false}{F}{B} \\ \Rightarrow \\ \reg{E}{J}{S}{W}{true}{F}{B}}
+    { len(B) \neq 0 \\ Head(B) = (t_{id},t_{pos})}
+    {\reg{E}{J}{S}{W}{false}{F}{B}{H} \\ \Rightarrow \\ \reg{E}{J}{S}{W}{true}{F}{B}{\majtab{H}{t_{id}}{t_{pos}}}}
 \vspace{0.5cm}
 
 Incr$_{bf}$ : %incr qui arrive avant un att
 \inferrule
-    { Head(B) = t_{id} \\ J[j] = x \\ W[(j, x+1)] = \varepsilon }
-    {\reg{E[t_{id}] \owns \concat{incr(j)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{true}{F}{B}}
+    { Head(B) = (t_{id}, t_{pos}) \\ J[j] = x \\ W[(j, x+1)] = \varepsilon }
+    {\reg{E[t_{id}] \owns \concat{incr(j)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{true}{F}{B}{H}}
 \vspace{0.5cm}
 
 Incr$_{af}$ : %incr qui arrive après un att
 \inferrule
-    { Head(B) = t_{id} \\ J[j] = x \\ W[(j, x+1)] = w_{id} \\ handleTL(w_{id}, {\color{Red}pos, dir}, S) = F'}
-    {\reg{E[t_{id}] \owns \concat{incr(j)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{true}{F'}{B}}
+    { Head(B) = (t_{id}, t_{pos}) \\ J[j] = x \\ W[(j, x+1)] = w_{id} \\ H[w_{id}] = w_{pos} \\ handleTL(w_{id}, w_{pos}, S) = F'}
+    {\reg{E[t_{id}] \owns \concat{incr(j)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{true}{F'}{B}{H}}
 \vspace{0.5cm}
 
 Att$_{bf}$ : %att qui arrive avant un incr
 \inferrule
-    { Head(B) = t_{id} \\ J[j] = x \\ x \neq y}
-    {\reg{E[t_{id}] \owns \concat{att(j,y)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{{\majtab{W}{(j,y)}{id}}}{true}{F}{B}}
+    { Head(B) = (t_{id}, t_{pos}) \\ J[j] = x \\ x \neq y}
+    {\reg{E[t_{id}] \owns \concat{att(j,y)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{{\majtab{W}{(j,y)}{id}}}{true}{F}{B}{H}}
 \vspace{0.5cm}
 
 Att$_{af}$ : %att qui arrive après un incr
 \inferrule
-    { Head(B) = t_{id} \\ J[j] = x \\ handleTL(id, {\color{Red}pos, dir}, S) = F'}
-    {\reg{E[t_{id}] \owns \concat{att(j,x)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{W}{true}{F'}{B}}
+    { Head(B) = (t_{id}, t_{pos}) \\ J[j] = x \\ handleTL(id, t_{pos}, S) = F'}
+    {\reg{E[t_{id}] \owns \concat{att(j,x)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{W}{true}{F'}{B}{H}}
 \vspace{0.5cm}
 
 Turn : 
 \inferrule
-    { Head(B) = t_{id}}
-    {\reg{E[t_{id}] \owns \concat{turn(id_{s},state)}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{\majtab{S}{id_{s}}{state}}{W}{true}{F}{B}}
+    { Head(B) = (t_{id}, t_{pos})}
+    {\reg{E[t_{id}] \owns \concat{turn(id_{s},state)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{\majtab{S}{id_{s}}{state}}{W}{true}{F}{B}{H}}
 \vspace{0.5cm}
 
 Auth : 
 \inferrule
-    { Head(B) = t_{id} \\ handleTL(id, {\color{Red}pos, dir}, S) = F'}
-    {\reg{E[t_{id}] \owns \concat{auth}{P'}}{J}{S}{W}{true}{F}{B} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{W}{true}{F'}{B}}
+    { Head(B) = (t_{id}, t_{pos}) \\ handleTL(id, t_{pos}, S) = F'}
+    {\reg{E[t_{id}] \owns \concat{auth}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{W}{true}{F'}{B}{H}}
 \vspace{0.5cm}
 
 EndEvent :
 \inferrule
-    { Head(B) = t_{id} \\ E[t_{id}] = \varepsilon}
-    {\reg{E}{J}{S}{W}{true}{F}{\concat{m}{B'}} \\ \Rightarrow \\ \reg{E}{J}{S}{W}{false}{F}{B'}}
+    { Head(B) = (t_{id}, t_{pos}) \\ E[t_{id}] = \varepsilon}
+    {\reg{E}{J}{S}{W}{true}{F}{\concat{m}{B'}}{H} \\ \Rightarrow \\ \reg{E}{J}{S}{W}{false}{F}{B'}{H}}
 \vspace{0.5cm}
 
 
