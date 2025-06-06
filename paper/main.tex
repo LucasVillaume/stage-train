@@ -57,28 +57,28 @@ From an Information Technology (IT) point of view, our system is shaped as shown
     \end{minipage}
 \end{wrapfigure}
 
- The customer IT is deported from the infrastructure (thus the cloud).  It is itself composed of three machines: one for the station screens, one for the databases and a final orchestrator. On the orchestrator, there are two main services: we have a web-service (with front and backend, on the right) and the general route scheduler.  Our model is completely automatic, no manual intervention is needed apart from minor electrical/mechanical problems that come with our scale model.
+ The customer IT is deported from the infrastructure (thus the cloud).  It is itself composed of three machines: one for the station screens (on the right), one for the databases and a final orchestrator. On the orchestrator, there are two main services: we have a web-service (with front and backend) and the general route scheduler.  Our model is completely automatic, no manual intervention is needed apart from minor electrical/mechanical problems that come with our scale model.
  
 \begin{wrapfigure}[8]{r}{0.28\textwidth}
  \begin{minipage}{0.28\textwidth}
         \centering
-        \vspace{-10mm}
-\includegraphics[height=50mm]{maquette.png}
+        \vspace{-8mm}
+\includegraphics[height=30mm]{maquette.png}
     \end{minipage}
 \end{wrapfigure}
 
 Final words on the N-scale model. Our circuit has 8 blocks, 5 switches. Each block is bidirectional with a signal at each end.  We operate  three trains in parallel. Due to the size of the model, we reduced our signals  to "red" and "green" status, the train being too close one from the other. Furthermore, in case of a red signal, we make the hypothesis that the train will be able to stop before it reaches the end of the block. In practice, we stop the trains in the middle. 
 
 
-Routes are not computed in advance. The schedule is renewed every "day"\footnote{We use a time scale factor: one of our "day" corresponds to 20 minutes in real time.}  and we introduce some randomness in the process: some trains are inserted, some trains departure/destination may change, and so on. Finally, in our model, we distinguish freight and  passengers routes giving priority to the latter. Routes are recomputed each time a train as finished its duty. 
+Routes are not computed in advance. The schedule is renewed every "day"\footnote{We use a time scale factor: one of our "day" corresponds to 20 minutes in real time.}  and we introduce some randomness in the process: around some routine daily planning, some trains are inserted/deleted, some trains departure/destination may change, and so on. We simulate also delays. Finally, in our model, we distinguish freight and  passengers routes giving priority to the latter. Routes are recomputed each time a train as finished its duty. The general motivation of this paper is to propose a scheduling solution that takes into account the distributed nature of the system, that is reliable and does not suffer from interlocking.  
  
- Now, we can enter in more details about how the train regulation works. First, we have sensors on the rails at the two ends of each block. Accordingly,  we can catch train entrances within blocks. We make the hypothesis that this task is performed without errors. Second, the switches can be swapped from one position to the other, again, we suppose it is done without fault. Our method could cope such issues, but we leave that for future work. 
+We can now describe in more detail the working assumptions we are making about planning.  First, we have sensors on the rails at the two ends of each block. Accordingly,  we can catch train entrances within blocks. We make the hypothesis that this task is performed without errors. Second, the switches can be swapped from one position to the other, again, we suppose it is done without fault. Our method could cope such issues, but we leave that for future work. 
  
   Third, for trains, we have a simple policy.  According to its plan, a train may start in some direction (Forward/Backward) up to some final position. Then, once started, the train will run according to the signals: when green, it (re-)starts, when red, it stops.  We do not make hypotheses on the durations of travels, but once a train is running, it will reach in finite time the next block. Trains run in parallel. One train may enter a block, while an other is crossing some switch and the third one is breaking. There is no communications between the trains.
 
 Fourth,  the regulator is capable of reading train block entrance events, requiring some switch swap and finally locking (that is make sure a signal is red)/unlocking some signal. We consider that those latter operations can be carried out without delay. Finally, the regulator may append some new duty to a train. To sum up, to control the train mouvements, the regulator can only lock/unlock signals. Naturally, a signal intended to block train $T_1$ may block $T_2$ if not set at the right time.   
  
- All these operations are done by what we call  \emph{orders}. Roughly speaking, trains Orders have the shape "Start in direction Until position". Regulator orders are: XXX. 
+ Parler de la stratégie, du modèle générale. All these operations are done by what we call  \emph{orders}. Roughly speaking, trains Orders have the shape "Start in direction Until position". Regulator orders are: XXX. 
  
  
  To sum up, the regulation policy can be seen as an asynchronous distributed system. The N trains and the regulator are independent agents.
@@ -93,21 +93,14 @@ Our second research question is the related to the following need. Suppose we wa
 
 For our last research problem, we show that TLA+ may be used to refine a regulation policy. In our first attempts, we had typically some deadlocks issues. We have been able to detect them via TLA+ and then to provide some correction. 
 
- 
-\newpage
- 
- 
-
 
 % ############################# %
 % Espace réservé aux encadrants %
 % ############################# %
 
 
-
 \section{Modèle informel}
 \label{sec:informal-model}
-
 
 
 \section{Modèle formel}
