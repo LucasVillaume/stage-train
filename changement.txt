@@ -46,3 +46,11 @@ direction pour FindSection (l'event pouvait être exécuter avant le changement 
 
 - Turn ne donne plus d'autorisation, regroupé les deux règles en une seul
     - création de l'ordre d'event "auth", permettant de manipuler les feux pour atteindre le prochain point d'arrêt
+    
+----------
+
+- StartUntil ne contient plus que la destination mais tous le sillon. Permet d'obtenir plus de robustesse pour la futur composition
+
+----------
+
+- Changement de la forme des events pour retirer la position relative 
