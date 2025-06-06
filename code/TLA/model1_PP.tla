@@ -22,7 +22,7 @@ train2 == [
 ]
 
 events == <<
-        << <<1,<<>>>>, <<2,<<>>>>, <<3,<<<<"turn",1,"v",2>>,<<"incr",2>>>>>> >>,
+        << <<1,<<>>>>, <<2,<<>>>>, <<3,<<<<"turn",1,"v">>,<<"incr",2>>>>>> >>,
         << <<4,<<<<"att",2,1>>>>>>, <<2,<<>>>>, <<1,<<>>>> >>
      >>
 
@@ -124,13 +124,11 @@ Until(T) ==
         /\ order[2] = T.dir 
         /\ reg.F[T.pos,T.dir] = "V"
         /\ order[1] = "StartUntil" \*un peu inutile
-        /\ nextC /= -1 \*un peu inutile : compare, plus tard, nextC avec Head(order[3]) (jamais -1)
-        /\ Head(order[3]) = nextC
+        /\ nextC /= -1
         /\ Len(Tail(order[3])) /= 0 \*pas le dernier élément
         /\ gamma' = [gamma EXCEPT 
                             ![id].pos = nextC,
-                            ![id].prog[1][3] = Tail(order[3]),
-                            ![id].rel = T.rel+1]
+                            ![id].prog[1][3] = Tail(order[3])]
         /\ rule' = "until"
         /\ UNCHANGED reg
         /\ IF Len(reg.E[id]) > 0 THEN
@@ -152,12 +150,10 @@ Until_cons(T) ==
         /\ reg.F[T.pos,T.dir] = "V"
         /\ order[1] = "StartUntil" \*un peu inutile
         /\ nextC /= -1
-        /\ Head(order[3]) = nextC
         /\ Len(Tail(order[3])) = 0 \*dernier élément
         /\ gamma' = [gamma EXCEPT 
                             ![T.id].pos = nextC,
-                            ![T.id].prog = Tail(T.prog),
-                            ![id].rel = T.rel+1]
+                            ![T.id].prog = Tail(T.prog)]
         /\ rule' = "until_cons"
         /\ UNCHANGED <<reg,msg>>
 
@@ -178,11 +174,9 @@ StartEvent == \*Simuler une approche grands pas
         /\ UNCHANGED msg
 
 
-Turn == \* normalement ok pour lui
+Turn == 
     LET
         id == Head(msg[1])[1]
-        \*rel == Head(msg[1])[2]
-        \*event == reg.E[id][rel] \* Sequence d'ordre de l'event
         event == Head(reg.E[id])
         order == Head(event[2])
         numAig == order[2]
@@ -202,8 +196,6 @@ Turn == \* normalement ok pour lui
 Att_bf == 
     LET
         id == Head(msg[1])[1]
-        \*rel == Head(msg[1])[2]
-        \*event == reg.E[id][rel] \* Sequence d'ordre de l'event
         event == Head(reg.E[id])
         order == Head(event[2])
         jet == order[2]
@@ -220,11 +212,9 @@ Att_bf ==
                               !.E[id][1][2] = Tail(event[2])]
         /\ UNCHANGED msg
 
-Att_af == \* TODO: attention à findSection, NextAtt etc...
+Att_af == 
     LET
         id == Head(msg[1])[1]
-        \*rel == Head(msg[1])[2]
-        \*event == reg.E[id][rel] \* Sequence d'ordre de l'event
         event == Head(reg.E[id])
         order == Head(event[2])
         jet == order[2]
@@ -251,8 +241,6 @@ Att_af == \* TODO: attention à findSection, NextAtt etc...
 Incr_bf ==
     LET
         id == Head(msg[1])[1]
-        \*rel == Head(msg[1])[2]
-        \*event == reg.E[id][rel] \* Sequence d'ordre de l'event
         event == Head(reg.E[id])
         order == Head(event[2])
         jet == order[2]
@@ -271,11 +259,9 @@ Incr_bf ==
         /\ UNCHANGED msg
 
 
-Incr_af == \* TODO: attention à findSection, NextAtt etc...
+Incr_af ==
     LET
         id == Head(msg[1])[1]
-        \*rel == Head(msg[1])[2]
-        \*event == reg.E[id][rel] \* Sequence d'ordre de l'event
         event == Head(reg.E[id])
         order == Head(event[2])
         jet == order[2]
@@ -301,11 +287,9 @@ Incr_af == \* TODO: attention à findSection, NextAtt etc...
         /\ UNCHANGED msg
 
 
-Auth == \* TODO: attention à findSection, NextAtt etc...
+Auth ==
     LET
         id == Head(msg[1])[1]
-        \*rel == Head(msg[1])[2]
-        \*event == reg.E[id][rel] \* Sequence d'ordre de l'event
         event == Head(reg.E[id])
         order == Head(event[2])
         subseqEv == SubSeq(reg.E[id],2,Len(reg.E[id]))
@@ -330,8 +314,6 @@ Auth == \* TODO: attention à findSection, NextAtt etc...
 EndEvent ==
     LET
         id == Head(msg[1])[1]
-        \*rel == Head(msg[1])[2]
-        \*event == reg.E[id][rel] \* Sequence d'ordre de l'event
         event == Head(reg.E[id])
     IN
         /\ reg.G = TRUE
@@ -357,7 +339,7 @@ IDLE ==
 \* Propriétés
 
 Liveness == 
-    /\  <>[] /\ gamma[1].pos = 1
+    /\  <>[] /\ gamma[1].pos = 7
              /\ gamma[1].dir = "*"
     /\  <>[] /\ gamma[2].pos = 3
              /\ gamma[2].dir = "*"
@@ -391,5 +373,5 @@ Eval == SelectSeq(<< <<8,<<<<"">>, <<"">>, <<" ">>>>>>, <<2,<<<<"">>>>>> >>, IsA
 
 =============================================================================
 \* Modification History
-\* Last modified Wed May 28 11:04:24 CEST 2025 by lucas
+\* Last modified Fri Jun 06 14:41:31 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas
