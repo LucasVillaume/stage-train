@@ -7,6 +7,7 @@ import json
 import subprocess
 import re
 import time
+import random
 
 g_etats = dict()
 with open("etat_elem.json", "r") as file:
@@ -118,6 +119,89 @@ def analyse(data=None, dir=None, tab=None):
                 #exit(1)
 
 
+
+etats_simple = dict()
+with open("graph_simple.json", "r") as file:
+    etats_simple = json.load(file)
+
+
+
+def setup_v2(e1, e2, e3, dir="model"):
+    etats = etats_simple
+
+    p1 = etats[e1][e2].split("__")
+    p2 = etats[e2][e3].split("__")
+
+    o1 = createProgram(e1, e2, p1)
+    o2 = createProgram(e2, e3, p2)
+    o3 = compose(o1, o2)
+
+    model = trajet2model(o3)
+    with open(f"{dir}/composition.tla", "w") as file:
+        file.write(model)
+
+
+def check_v2(etat1, etat2, etat3):
+    pos = []
+    pos.append(re.findall(r"\d+[LR*]", etat1))
+    pos.append(re.findall(r"\d+[LR*]", etat2))
+    pos.append(re.findall(r"\d+[LR*]", etat3))
+
+    for i in range(len(pos[0])):
+        if pos[0][i] != pos[1][i] and pos[0][i] == pos[2][i]:
+            #non conforme pour l'analyse TLA
+            #A -> B -> C : A != B mais A == C
+            #ça implique X(RL) -> X* -> X(RL) ou X* -> X(RL) -> X*
+            return False    
+
+    for i in range(len(pos[1])):
+        if "*" in pos[1][i] and pos[1][i] != pos[2][i]:
+            #non conforme pour l'analyse TLA
+            return False
+    return True
+
+
+def analyse_v2(data=None, dir=None, tab=None):
+    etats = etats_simple
+    if data is None:
+        data = etats
+
+    cpt = 0
+    total_erreurs = 0
+
+    while len(data) > 0:
+        etat1 = random.choice(list(data.keys()))
+        for etat2 in data[etat1].keys():
+            for etat3 in data[etat2].keys():
+                try:
+                    if check_v2(etat1, etat2, etat3):
+                        t = time.time()
+                        if dir is None:
+                            setup_v2(etat1, etat2, etat3)
+                            execution()
+                        else:
+                            setup_v2(etat1, etat2, etat3, dir)
+                            execution(dir)
+                        cpt += 1
+                        if tab is None:
+                            print(f"Execution {cpt} : {etat1} -> {etat2} -> {etat3} en {time.time() - t:.2f} secondes")
+                        else:
+                            tab[1] += 1
+                        with open("model/succes.log", "a") as file:
+                            file.write(f"Execution {cpt} : {etat1} -> {etat2} -> {etat3} en {time.time() - t:.2f} secondes\n")
+                except Exception as e:
+                    total_erreurs += 1
+                    if tab is None:
+                        print(f"Erreur {etat1} -> {etat2} -> {etat3}: {e} / Nombre total d'erreurs: {total_erreurs}")
+                    else:
+                        tab[0] += 1
+                        print(f"Erreur entre {etat1}, {etat2} et {etat3}: {e} / Nombre total d'erreurs: {tab[1]}")
+                    with open("model/errors.log","a") as error_file:
+                        error_file.write(f"Erreur {etat1} -> {etat2} -> {etat3} : {e}\n")
+                    #exit(1)
+
+
+
 def affichage(array, term):
     while term != True:
         total = [0,0]
@@ -145,7 +229,7 @@ if __name__ == "__main__":
     p_aff.start() """
     
 
-    analyse()
+    analyse_v2()
 
 
     """ t = time.time()
