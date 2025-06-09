@@ -15,7 +15,7 @@
 % If the paper title is too long for the running head, you can set
 % an abbreviated paper title here
 %
-\author{Guillaume Bonfante \and Martin Vassor  \and Lucas Villaume}
+\author{Lucas Villaume \and Guillaume Bonfante \and Martin Vassor  }
 %
 \authorrunning{G. Bonfante et al.}
 % First names are abbreviated in the running head.
@@ -24,7 +24,6 @@
 \institute{Université de Lorraine -- CNRS -- INRIA -- LORIA}
 %
 \maketitle
-\todo{Je serai d'avis de mettre Lucas en 1er auteur, car (i) il est le contributeur principal, et (ii) Il y a un best paper award pour étudiants, mais il faut que l'étudiant soit 1er auteur}
 %
 \begin{abstract}
 	% Contexte
@@ -36,6 +35,7 @@
 	% Resultats
 	Our contributions are threefold: first, we provide a TLA+ specification which can be adapted to various train networks and schedules; second, we report tests we ran on the model on a non-trivial network, composed of 3 trains, 8 blocks and 5 switches; finally we show how to sequentially compose two schedules and to verify the result.
 
+\todo{Validé par GB}
 \keywords{First keyword  \and Second keyword \and Another keyword.}
 \end{abstract}
 
@@ -56,7 +56,7 @@ This contribution finds its origin in a cyber-warefare we are organising for stu
 From an Information Technology (IT) point of view, our system is shaped as shown on the right. Switches are controlled by a raspberry (TURNOUT) running an OpenPLC program, signals are controlled by an other raspberry, SIGNAL, with access to turnout positions via modbus. Then, the SIGNAL PLC reads mouvement sensors  (not all links shown in the figure) to update the status of signals. Next to that, we have a third machine, the regulator: it is in charge of updating train routes (as required by the customer IT),  of the regulation of turnouts and finally it may lock some signal (turn it to "red"). All the network connections are done via a single switch. Connections from REGULATOR to TURNOUT and SIGNAL are done via modbus while the customer IT and the regulator exchanges  are based on TCP/IP.  To be complete, to activate train mouvements, we use the DCC protocol via an Arduino, but this part is strictly related to the fact we have a train model. 
 
 
-\begin{wrapfigure}[6]{r}{0.3\textwidth}
+\begin{wrapfigure}[7]{r}{0.3\textwidth}
 \hspace{-10mm}
  \begin{minipage}{0.3\textwidth}
         \centering
