@@ -1,0 +1,32 @@
+
+
+
+%%%%% Macro %%%%%%%
+\newcommand\concat[2]{#1;#2}
+\newcommand\train[4]{(#1, #2, #3, #4)} % #1 id, #2 pos, #3 dir, #4 P
+\newcommand\trainfull[4]{\Gamma \cup \train{#1}{#2}{#3}{#4}} 
+\newcommand\reg[8]{(#1, #2, #3, #4, #5, #6, #7, #8)} % #1 Events, #2 Jetons, #3 Aiguillages, #4 File d'attente, #5 Garde, #6 Feux, #7 Buffer, #Historique
+
+\newcommand\maj[2]{#1 \gets #2} % #1 : dictionnaire, #2 : valeur
+\newcommand\majtab[3]{#1[#2] \gets #3}
+\newcommand\supprdict[2]{#1' \gets suppr(#1, #2)} % #1 : dictionnaire, #2 : clé
+
+
+%%%%% Rules %%%%%%%
+
+
+\newcommand\startRule{
+    Start :
+    \inferrule
+        { dir \neq D \\ R.G = false}
+        {\trainfull{id}{pos}{dir}{\concat{SU(D,[\concat{n}{N'}])}{P'}}, R \\ \xRightarrow{\text{!ev(id,pos)}} \\ \trainfull{id}{pos}{D}{\concat{SU(D,[\concat{n}{N'}])}{P'}},R}
+    \vspace{0.5cm}
+}
+
+\newcommand\stopRule{
+    Stop :
+    \inferrule
+        { P = \varepsilon \\ dir \neq * \\ R.G = false}
+        {\trainfull{id}{pos}{dir}{P},R \\ \xRightarrow{\text{!ev(id,pos)}} \\ \trainfull{id}{pos}{*}{P},R}
+    \vspace{0.5cm}
+}

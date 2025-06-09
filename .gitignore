@@ -34,4 +34,12 @@
 /code/composition/model/errors.log
 /code/composition/model/composition.tla
 
+/paper/main.aux
+/paper/main.bbl
+/paper/main.fls
+/paper/main.fdb_latexmk
+/paper/main.blg
+/paper/main.log
+/paper/main.synctex.gz
+/paper/main.pdf
 

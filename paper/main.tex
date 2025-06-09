@@ -7,6 +7,9 @@
 \usepackage{package/mathpartir}
 \usepackage{todonotes}
 
+\usepackage{package/regles}
+\usepackage{mathtools}
+
 \begin{document}
 %
 \title{A formal approach but practical approach in train regulation}
@@ -137,13 +140,20 @@ Si l'on note notre état de base $e$ alors une règle de transition $r$ nous emm
 Cependant, nous voulons ajouter des conditions, le train n'avance que si le feu est vert $r:$ \inferrule{feu = vert \\ cond2 \\ cond3 \\ \dots}{e \rightarrow e'}.
 \\Dans notre modèle, nous avons plusieurs sémantiques, une pour les trains, une pour le régulateur et une pour le système.
 Ainsi, le régulateur et les trains sont isolés, permettant une approche plus proche de la réalité.
-
+\vspace{0.5cm}\\
 %Montrer les déplacements d'un train
 \noindent
-\\Start : 
-\\Stop : 
-\\Until : 
-\\Until$_{cons}$ : 
+Nous avons donc nos politiques d'évolutions, une modélisation des trains et du régulateur, et enfin, la syntaxe des règles de transitions. 
+Il est temps de définir nos sémantiques. D'abord, on s'intéresse au démarrage d'un train, ce dernier ne doit s'effectuer 
+que si aucun event n'est en cours et que sa direction est différente de la direction de son programme. 
+Ainsi, on attribue la bonne direction au train et on envoie un message, comportant l'identifiant du train et sa position, au régulateur.
+$$\startRule$$
+
+\noindent
+Pour l'arrêt, on vérifie bien que le programme du train ne contient plus aucune instruction, que nous ne sommes pas déjà à l'arrêt et qu'aucun event n'est en cours.
+De ce fait, on change la direction du train à "*" et on envoie un message au régulateur.
+$$\stopRule$$
+
 
 %Quelques régles du régulateur
 \noindent
@@ -172,7 +182,7 @@ Ensuite, il nous faut décrire l'état initial de notre système, traditionnelle
 Le prochain point réside dans la définition des règles de transitions, c'est le moteur de notre système. 
 Toutes ces règles doivent être rassemblées, traditionnellement sous la fonction Next. 
 Enfin, cette étape s'achève par la définition de la spécification du système, globalement, la mise en commun de tout ce que nous avons créé.
-\\Ainsi, nous créons la fonction Spec comme ceci : \textit{$$Spec == Init /\backslash [][Next]\_variables$$} %Revoir la syntaxe au cas où
+\\Ainsi, nous créons la fonction Spec comme ceci : \textit{$$Spec == Init /\backslash [][Next]\_variables$$} %Revoir la syntaxe au cas où / remplacer par le jolie tla2latex
 Vous avez désormais une vue d'ensemble sur la construction d'une spécification TLA+.
 Rentrons désormais dans les détails de l'implémentation.
 
