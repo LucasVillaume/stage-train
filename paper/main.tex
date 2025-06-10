@@ -108,8 +108,10 @@ From an Information Technology (IT) point of view, our system is shaped as shown
     \end{minipage}
 \end{wrapfigure}
 
-Final words on the N-scale model. Our circuit has 8 blocks, 5 switches. Each block is bidirectional with a signal at each end. Blocks size goes from 25cm to 70cm.  We operate  three trains in parallel. Due to the size of the model, we reduced our signals  to "red" and "green" status, the trains being too close one from the other. Furthermore, in case of a red signal, we make the hypothesis that the train will be able to stop before it reaches the end of the block. In practice, we stop the trains in the middle. 
+\paragraph{Final words on the N-scale model.} Our circuit has 8 blocks, 5 switches. Each block is bidirectional with a signal at each end. Blocks size goes from 25cm to 70cm.  We operate  three trains in parallel. Due to the size of the model, we reduced our signals  to "red" and "green" status, the trains being too close one from the other. Furthermore, in case of a red signal, we make the hypothesis that the train will be able to stop before it reaches the end of the block. In practice, we stop the trains in the middle. 
 
+\paragraph{Routing trains.}
+\todo{Ajouter: tout est automatique}
 Routes are computed on the fly. The schedule is renewed every "day"\footnote{We use a time scale factor: one of our "day" corresponds to 20 minutes in real time.}  and we introduce some randomness in the process: beyond some routine daily planning, some trains are inserted/deleted, some trains departure/destination may change, and so on. We simulate also delays. Finally, in our model, we distinguish freight and  passengers routes giving priority to the latter. Routes are recomputed each time a train has finished its duty. The general motivation of this paper is to propose a lightweight scheduling solution that is adapted to the fully automatic control, that takes into account the distributed nature of the system, that is reliable and does not suffer from interlocking.  
  
 We can now describe in more detail the working assumptions we are making about planning.  First, we have sensors on the rails at the two ends of each block. Accordingly,  we can catch train entrances within blocks. We make the hypothesis that this task is performed without errors. Second, the switches can be swapped from one position to the other, again, we suppose it is done without fault. Our method could cope such issues, but we leave that for future work. 
@@ -123,8 +125,7 @@ Fourth,  the regulator is capable of reading train block entrance events, requir
  
  To sum up, the regulation policy can be seen as an asynchronous distributed system. The N trains and the regulator are independent agents. That led us to TLA+, a framework introduced by Leslie Lamport for these kind of problems~\cite{Lamport}.  
  
- 
-\todo{ Comparaison avec les travaux antérieurs }
+\todo{ Comparaison avec les travaux antérieurs / lit review}
  
  
 Due to the distributed nature of the regulation, building a safe policy can be very tricky. We want to show in this paper that tools from formal methods are very useful in this respect.  In this paper, we describe in  a first step the formalisation process. We go up to a TLA+ specification that will allow us checking two properties of route orchestration: safety and liveness. This is our first research question. 
@@ -314,6 +315,12 @@ Le premier problème représente notre propriété de Liveness, les trains arriv
 \label{sec:tla-formalisation}
 
 \subsection{Intro ?}
+
+\begin{itemize}
+	\item Présenter le logiciel global (TLA + Python + ..., entrées/sorties, etc...)
+	\item Schéma architectural
+	\item Ordre d'exécution des programmes.
+\end{itemize}
 
 \subsection{Fonctionnement de TLA+}
 Comme nous l'avons vu, TLA+ repose sur la logique temporelle et nous permet de modéliser des systèmes afin de vérifier leurs propriétés.
