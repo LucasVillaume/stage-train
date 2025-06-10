@@ -30,3 +30,101 @@
         {\trainfull{id}{pos}{dir}{P},R \\ \xRightarrow{\text{!ev(id,pos)}} \\ \trainfull{id}{pos}{*}{P},R}
     \vspace{0.5cm}
 }
+
+
+\newcommand\untilRule{
+    Until :
+    \inferrule
+        { suiv(pos, D, S) = s \\ s \neq \varepsilon \\ R.F[(pos,dir)] = V \\ R.G = false}
+        {\trainfull{id}{pos}{D}{\concat{SU(D,[\concat{n}{N'}])}{P'}},R \\ \xRightarrow{\text{!ev(id,s)}} \\ \trainfull{id}{s}{D}{\concat{SU(D,[N'])}{P'}},R}
+    \vspace{0.5cm}
+}
+
+\newcommand\untilConsRule{
+    Until_{cons} :
+    \inferrule
+        { suiv(pos, D, S) = s \\ s \neq \varepsilon \\ R.F[(pos,dir)] = V \\ R.G = false}
+        {\trainfull{id}{pos}{D}{\concat{SU(D,[\concat{n}{\varepsilon}])}{P'}},R \\ \Rightarrow \\ \trainfull{id}{s}{D}{P'},R}
+    \vspace{0.5cm}
+}
+
+\newcommand\systemRule{
+    \inferrule
+        {\alpha \xRightarrow{\text{!e}} \alpha' \\ \beta \xRightarrow{\text{?e}} \beta' }
+        {\alpha||\beta \Rightarrow \alpha' || \beta' } 
+    \vspace{0.1cm}
+}
+
+\newcommand\recvRule{
+    Recv :
+    \inferrule
+        { len(B) = x}
+        {\reg{E}{J}{S}{W}{G}{F}{B}{H} \\ \xRightarrow{\text{?ev(id,pos)}} \\ \reg{E}{J}{S}{W}{G}{F}{\majtab{B}{x+1}{id}}{H}}
+    \vspace{0.5cm}
+}
+
+\newcommand\SERule{
+    StarEvent :
+    \inferrule
+        { len(B) \neq 0 \\ Head(B) = (t_{id},t_{pos})}
+        {\reg{E}{J}{S}{W}{false}{F}{B}{H} \\ \Rightarrow \\ \reg{E}{J}{S}{W}{true}{F}{B}{\majtab{H}{t_{id}}{t_{pos}}}}
+    \vspace{0.5cm}
+}
+
+\newcommand\EERule{
+    EndEvent :
+    \inferrule
+        { Head(B) = (t_{id}, t_{pos}) \\ E[t_{id}] = \varepsilon}
+        {\reg{E}{J}{S}{W}{true}{F}{\concat{m}{B'}}{H} \\ \Rightarrow \\ \reg{E}{J}{S}{W}{false}{F}{B'}{H}}
+    \vspace{0.5cm}
+}
+
+
+
+
+\newcommand\incrBFRule{
+    Incr_{bf} : %incr qui arrive avant un att
+    \inferrule
+        { Head(B) = (t_{id}, t_{pos}) \\ J[j] = x \\ W[(j, x+1)] = \varepsilon }
+        {\reg{E[t_{id}] \owns \concat{incr(j)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{true}{F}{B}{H}}
+    \vspace{0.5cm}
+}
+
+\newcommand\incrAFRule{
+    Incr_{af} : %incr qui arrive après un att
+    \inferrule
+        { Head(B) = (t_{id}, t_{pos}) \\ J[j] = x \\ W[(j, x+1)] = w_{id} \\ H[w_{id}] = w_{pos} \\ handleTL(w_{id}, w_{pos}, S) = F'}
+        {\reg{E[t_{id}] \owns \concat{incr(j)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{true}{F'}{B}{H}}
+    \vspace{0.5cm}
+}
+
+\newcommand\attBFRule{
+    Att_{bf} : %att qui arrive avant un incr
+    \inferrule
+        { Head(B) = (t_{id}, t_{pos}) \\ J[j] = x \\ x \neq y}
+        {\reg{E[t_{id}] \owns \concat{att(j,y)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{{\majtab{W}{(j,y)}{id}}}{true}{F}{B}{H}}
+    \vspace{0.5cm}
+}
+
+\newcommand\attAFRule{
+    Att_{af} : %att qui arrive après un incr
+    \inferrule
+        { Head(B) = (t_{id}, t_{pos}) \\ J[j] = x \\ handleTL(id, t_{pos}, S) = F'}
+        {\reg{E[t_{id}] \owns \concat{att(j,x)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{W}{true}{F'}{B}{H}}
+    \vspace{0.5cm}
+}
+\newcommand\turnRule{
+    Turn : 
+    \inferrule
+        { Head(B) = (t_{id}, t_{pos})}
+        {\reg{E[t_{id}] \owns \concat{turn(id_{s},state)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{\majtab{S}{id_{s}}{state}}{W}{true}{F}{B}{H}}
+    \vspace{0.5cm}
+}
+
+\newcommand\authRule{
+    Auth : 
+    \inferrule
+        { Head(B) = (t_{id}, t_{pos}) \\ handleTL(id, t_{pos}, S) = F'}
+        {\reg{E[t_{id}] \owns \concat{auth}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{W}{true}{F'}{B}{H}}
+    \vspace{0.5cm}
+}
