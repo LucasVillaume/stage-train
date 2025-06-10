@@ -10,6 +10,15 @@
 \usepackage{package/regles}
 \usepackage{mathtools}
 
+\newcommand{\directions}{{\mathsf{D}}}
+\newcommand{\turnouts}{{\mathsf{T}}}
+\newcommand{\blocks}{{\mathsf{B}}}
+\newcommand{\internalState}{{\mathcal{I}}}
+\newcommand{\forward}{{\mathtt{f}}}
+\newcommand{\backward}{{\mathtt{b}}}
+\newcommand{\sucblock}{{\mathtt{suc}}}
+
+
 \begin{document}
 %
 \title{A formal approach but practical approach in train regulation}
@@ -34,11 +43,10 @@
 	% Problème
 	In this paper, our goal is to formally verify the correctness of train routes. More precisely, we verify the absence of deadlocks, the termination, and the absence of crashes.
 	% Approche
-	To address this question, we model train systems in TLA+. Our model include trains, as well as switches and traffic lights. Both switches and traffic lights are controlled by a regulator upon train events. We provide trains and the regulator lists of event, which characterise the train scheduling, which is then checked using TLA+'s model checker.
+	To address this question, we model train systems in TLA+. Our model includes trains, as well as switches, detection sensors and traffic lights. Both switches and traffic lights are controlled by a regulator upon train events. We provide trains and the regulator lists of event, which characterise the train scheduling, which is then checked using TLA+'s model checker.
 	% Resultats
 	Our contributions are threefold: first, we provide a TLA+ specification which can be adapted to various train networks and schedules; second, we report tests we ran on the model on a non-trivial network, composed of 3 trains, 8 blocks and 5 switches; finally we show how to sequentially compose two schedules and to verify the result.
 
-\todo{Validé par GB}
 \keywords{First keyword  \and Second keyword \and Another keyword.}
 \end{abstract}
 
@@ -68,7 +76,7 @@ From an Information Technology (IT) point of view, our system is shaped as shown
     \end{minipage}
 \end{wrapfigure}
 
- The customer IT is deported from the infrastructure (thus the cloud).  It is itself composed of three machines: one for the station screens (on the right), one for the databases and a final orchestrator. On the orchestrator, there are two main services: we have a web-service (with front and backend) and the general route scheduler.  Our model is completely automatic, no manual intervention is needed apart from minor electrical/mechanical problems that come with our scale model.
+ The customer IT is deported from the infrastructure IT (thus the cloud).  It is itself composed of three machines: one for the station screens (on the right, after an attack), one for the databases and a final orchestrator. On the orchestrator, there are two main services: we have a web-service (with front and backend) and the general route scheduler.  Our model is completely automatic, no manual intervention is needed apart from minor electrical/mechanical problems that come with our scale model.
  
 \begin{wrapfigure}[8]{r}{0.28\textwidth}
  \begin{minipage}{0.28\textwidth}
@@ -81,7 +89,7 @@ From an Information Technology (IT) point of view, our system is shaped as shown
 Final words on the N-scale model. Our circuit has 8 blocks, 5 switches. Each block is bidirectional with a signal at each end. Blocks size goes from 25cm to 70cm.  We operate  three trains in parallel. Due to the size of the model, we reduced our signals  to "red" and "green" status, the trains being too close one from the other. Furthermore, in case of a red signal, we make the hypothesis that the train will be able to stop before it reaches the end of the block. In practice, we stop the trains in the middle. 
 
 
-Routes are not computed in advance. The schedule is renewed every "day"\footnote{We use a time scale factor: one of our "day" corresponds to 20 minutes in real time.}  and we introduce some randomness in the process: beyond some routine daily planning, some trains are inserted/deleted, some trains departure/destination may change, and so on. We simulate also delays. Finally, in our model, we distinguish freight and  passengers routes giving priority to the latter. Routes are recomputed each time a train as finished its duty. The general motivation of this paper is to propose a scheduling solution that is adapted to the fully automatic control, that takes into account the distributed nature of the system, that is reliable and does not suffer from interlocking.  
+Routes are not computed in advance. The schedule is renewed every "day"\footnote{We use a time scale factor: one of our "day" corresponds to 20 minutes in real time.}  and we introduce some randomness in the process: beyond some routine daily planning, some trains are inserted/deleted, some trains departure/destination may change, and so on. We simulate also delays. Finally, in our model, we distinguish freight and  passengers routes giving priority to the latter. Routes are recomputed each time a train has finished its duty. The general motivation of this paper is to propose a lightweight scheduling solution that is adapted to the fully automatic control, that takes into account the distributed nature of the system, that is reliable and does not suffer from interlocking.  
  
 We can now describe in more detail the working assumptions we are making about planning.  First, we have sensors on the rails at the two ends of each block. Accordingly,  we can catch train entrances within blocks. We make the hypothesis that this task is performed without errors. Second, the switches can be swapped from one position to the other, again, we suppose it is done without fault. Our method could cope such issues, but we leave that for future work. 
  
@@ -110,9 +118,16 @@ For our last research problem, we show that TLA+ may be used to refine a regulat
 % ############################# %
 
 
-\section{Modèle informel}
+\section{A first step toward a formal model}
 \label{sec:informal-model}
 
+The general principle of our model is to have N agents corresponding to the N trains and one agent corresponding to the Regulator. But first, we have to describe the infrastructure, that is  the playing field. 
+
+We suppose that the train network can be described as follows. First, we consider given a set of blocks: $\blocks = \{ 1, 2, \ldots, n\}$. Blocks are oriented: there is a $\forward$ end and a $\backward$ one. Let $\directions = \{\forward, \backward\}$ be the two directions.  Next, we suppose given a set $\turnouts = \{ n+1, \ldots, m\}$  of trackworks (switches, crossings, double slip switches, and so on). Trackworks are characterized by an internal state: switches can be in direct or deviate position (next denoted 'd' and 'v'),  a crossing has only one internal position, a double slip switch can be straight through or crossing. Let $\internalState$ denotes the set of internal states. A \emph{network configuration} is given by a function $\sigma: \turnouts \to \internalState$. Let $\Sigma$ denotes the set of all network configurations. 
+
+We end with the function $\sucblock: \blocks \times \directions \times \Sigma \to \blocks$. The functions outputs the first block met according to the starting position, the direction and the network configuration.  From an abstract point of view, the topology of the network reduces to that data.  
+
+%First, we begin with the train driver model. The train driver has a list of duties giving him some 
 
 \section{Modèle formel}
 \label{sec:formal-model}
@@ -182,7 +197,10 @@ Ensuite, il nous faut décrire l'état initial de notre système, traditionnelle
 Le prochain point réside dans la définition des règles de transitions, c'est le moteur de notre système. 
 Toutes ces règles doivent être rassemblées, traditionnellement sous la fonction Next. 
 Enfin, cette étape s'achève par la définition de la spécification du système, globalement, la mise en commun de tout ce que nous avons créé.
-\\Ainsi, nous créons la fonction Spec comme ceci : \textit{$$Spec == Init /\backslash [][Next]\_variables$$} %Revoir la syntaxe au cas où / remplacer par le jolie tla2latex
+\\Ainsi, nous créons la fonction Spec comme ceci : 
+\begin{verbatim}
+    Spec == Init /\  [][Next]_variables
+\end{verbatim}%Revoir la syntaxe au cas où / remplacer par le jolie tla2latex
 Vous avez désormais une vue d'ensemble sur la construction d'une spécification TLA+.
 Rentrons désormais dans les détails de l'implémentation.
 
@@ -199,7 +217,7 @@ Le procédé est similaire pour les structures, on associe une chaîne de caract
 \section{Expériences}
 \label{sec:experiments}
 
-\newpage
+%\newpage
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -207,6 +225,7 @@ Le procédé est similaire pour les structures, on associe une chaîne de caract
 %temporaire, histoire d'avoir le sommaire en tête
 \includegraphics[scale=0.1]{img/sommaire_tableau.jpg}
 
+\paragraph{Acknowledgements} The authors would like to thank Sébastien Schmitt from CNRS who built the train model mentioned in the introduction. That gave us a concrete reason to think about routes, scheduling and proofs. 
 
 \bibliographystyle{splncs04}
 \bibliography{refs}
