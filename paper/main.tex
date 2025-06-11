@@ -169,9 +169,13 @@ Une règle de transition nous permet de définir de manière formelle une évolu
 Si l'on note notre état de base $e$ alors une règle de transition $r$ nous emmène dans un état différent $e'$. On a donc $r: e \rightarrow e'$.
 Cependant, nous voulons ajouter des conditions, le train n'avance que si le feu est vert $r:$ \inferrule{feu = vert \\ cond2 \\ cond3 \\ \dots}{e \rightarrow e'}.
 \\Dans notre modèle, nous avons plusieurs sémantiques, une pour les trains, une pour le régulateur et une pour le système.
-Ainsi, le régulateur et les trains sont isolés, permettant une approche plus proche de la réalité.
-\vspace{0.5cm}\\
+Ainsi, le régulateur et les trains sont isolés, permettant une approche plus proche de la réalité.\\
+
+
 %Montrer les déplacements d'un train
+\noindent
+\textbf{Les trains}
+
 \noindent
 Nous avons donc nos politiques d'évolutions, une modélisation des trains et du régulateur, et enfin, la syntaxe des règles de transitions. 
 Il est temps de définir nos sémantiques. D'abord, on s'intéresse au démarrage d'un train, ce dernier ne doit s'effectuer 
@@ -184,12 +188,65 @@ Pour l'arrêt, on vérifie bien que le programme du train ne contient plus aucun
 De ce fait, on change la direction du train à "*" et on envoie un message au régulateur.
 $$\stopRule$$
 
-
-%Quelques régles du régulateur
 \noindent
-\\Recv : 
-\\Incr$_{af}$ :
+Les deux dernières règles régissent les déplacements du train. Elles sont similaires, à ça près que la dernière permet de "dépiler" les ordres du trains. 
+Comme vous pouvez le constater, seul la règle \textit{Until} envoie un message au régulateur, en effet, cela dédoublait les
+events lors du demi-tour du train. (Garder ce cas comme exemple à traiter ? Se rendre compte avec TLA que ça marche pas)
+$$\untilRule$$
+$$\untilConsRule$$
 
+
+\noindent
+\textbf{Le système}
+
+\noindent
+Avant de passer aux règles du régulateur, attardons-nous sur un point passé sous silence, la communication entre nos deux sous-systèmes : les trains et le régulateur.
+Nous modélisons cela via une règle de transition étiquetée : "\textit{!ev(id,pos)}" permets d'envoyer le message "ev(id,pos)", et "\textit{?ev(id,pos)}" permet de le recevoir.
+$$\systemRule$$
+Ainsi, cette règle nous permet d'envoyer et de recevoir les messages en parallèle. Cependant, pour obtenir une modélisation plus
+proche de la réalité, ces messages sont envoyés dans un buffer unidirectionnel (train $\rightarrow$ régulateur).
+De cette manière, il est possible de tendre vers des conditions réseaux réels, sans perte de paquet.\\
+
+
+\noindent
+\textbf{Le régulateur}
+
+\noindent
+La règles de récéption permets de mettre en buffer un message envoyé par un train.
+$$\recvRule$$
+
+\noindent
+Dans notre modèle, nous avons des events atomiques, c'est-à-dire qu'ils ne peuvent pas être interrompus.
+Cependant, l'approche "grands pas" est bien plus difficile à mettre en place que l'approche "petits pas",
+car elle nécessite d'être exhaustif sur les entrelacements possibles.
+Pour des raisons de simplicité, nous avons choisi de simuler une approche "grands pas" avec une approche "petits pas".
+C'est la raison d'être de ces deux règles, elles permettent d'entraver les trains tant que l'event n'est pas terminé.
+$$\SERule$$
+$$\EERule$$
+
+\noindent
+TODO
+$$\incrBFRule$$
+
+\noindent
+TODO
+$$\incrAFRule$$
+
+\noindent
+TODO
+$$\attBFRule$$
+
+\noindent
+TODO
+$$\attAFRule$$
+
+\noindent
+TODO
+$$\turnRule$$
+
+\noindent
+TODO
+$$\authRule$$
 
 
 \subsection{Détecter les problèmes}
@@ -212,19 +269,34 @@ Ensuite, il nous faut décrire l'état initial de notre système, traditionnelle
 Le prochain point réside dans la définition des règles de transitions, c'est le moteur de notre système. 
 Toutes ces règles doivent être rassemblées, traditionnellement sous la fonction Next. 
 Enfin, cette étape s'achève par la définition de la spécification du système, globalement, la mise en commun de tout ce que nous avons créé.
-\\Ainsi, nous créons la fonction Spec comme ceci : 
+\\Ainsi, nous créons la fonction Spec comme ceci :
 \begin{verbatim}
     Spec == Init /\  [][Next]_variables
 \end{verbatim}%Revoir la syntaxe au cas où / remplacer par le jolie tla2latex
 Vous avez désormais une vue d'ensemble sur la construction d'une spécification TLA+.
 Rentrons désormais dans les détails de l'implémentation.
 
+
 \subsection{Implémentation du modèle}
-TLA+ n'étant pas un langage de programmation, nous devons utiliser les structures de données misent à disposition pour représenter les éléments de notre modèle.
+TLA+ n'étant pas un langage de programmation, nous devons utiliser les structures de données mises à disposition pour représenter les éléments de notre modèle.
 Or, ce dernier gère très bien les fonctions et les ensembles, ainsi ce qu'on apparente à un tableau ou une structure n'est qu'une fonction.
 Par exemple, pour la sequence $[8,7,6,5]$, on créer en TLA+ une fonction $s$ telle que $s(1) = 8$, $s(2) = 7$\dots
 Le procédé est similaire pour les structures, on associe une chaîne de caractères à une donnée.
 
+
+\subsection{Questionner TLA+}
+Maintenant que notre implémentation est terminée, il est temps de questionner TLA+ sur le comportement de notre spécification.
+Pour ça, nous allons définir des invariants qui devront être vrais dans tous les états du système, sans surprise, ces invariants 
+se rapportent à nos propriétés de Liveness et de Safety vue plus haut.
+$$Liveness : TODO$$
+$$Safety : TODO$$
+Désormais, il est possible d'utiliser le model checker de TLA+, TLC, pour vérifier que nos propriétés sont bien respectés
+peu importe l'entrelacement des règles de transitions.
+
+%Test notre scénario avec TLC :
+%crash (a cause de Until_cons et du message envoyé en double)
+%répare et deadlock (mise en place de IDLE et de Weak Fairness)
+%Pourquoi Weak Fairness et pas Strong Fairness ou Unfair ?
 
 \section{Composition}
 \label{sec:composition}
