@@ -6,6 +6,7 @@
 \usepackage{wrapfig}
 \usepackage{package/mathpartir}
 \usepackage{todonotes}
+\usepackage{xspace}
 
 \usepackage{package/regles}
 \usepackage{mathtools}
@@ -17,6 +18,12 @@
 \newcommand{\forward}{{\mathtt{f}}}
 \newcommand{\backward}{{\mathtt{b}}}
 \newcommand{\sucblock}{{\mathtt{suc}}}
+
+\newcommand{\sigred}{{\mbox{$\mathtt{r}$}}\xspace}
+\newcommand{\siggreen}{{\mbox{$\mathtt{g}$}}\xspace}
+
+\newcommand{\deviate}{{\mbox{$\mathtt{v}$}}\xspace}
+\newcommand{\direct}{{\mbox{$\mathtt{d}$}}\xspace}
 
 
 \begin{document}
@@ -123,9 +130,17 @@ For our last research problem, we show that TLA+ may be used to refine a regulat
 
 The general principle of our model is to have N agents corresponding to the N trains and one agent corresponding to the Regulator. But first, we have to describe the infrastructure, that is  the playing field. 
 
-We suppose that the train network can be described as follows. First, we consider given a set of blocks: $\blocks = \{ 1, 2, \ldots, n\}$. Blocks are oriented: there is a $\forward$ end and a $\backward$ one. Let $\directions = \{\forward, \backward\}$ be the two directions.  Next, we suppose given a set $\turnouts = \{ n+1, \ldots, m\}$  of trackworks (switches, crossings, double slip switches, and so on). Trackworks are characterized by an internal state: switches can be in direct or deviate position (next denoted 'd' and 'v'),  a crossing has only one internal position, a double slip switch can be straight through or crossing. Let $\internalState$ denotes the set of internal states. A \emph{network configuration} is given by a function $\sigma: \turnouts \to \internalState$. Let $\Sigma$ denotes the set of all network configurations. 
+We suppose that the train network can be described as follows. First, we consider given a set of blocks: $\blocks = \{ 1, 2, \ldots, n\}$. Blocks are oriented: there is a $\forward$ end and a $\backward$ one. Let $\directions = \{\forward, \backward\}$ be the two directions.  Next, we suppose given a set $\turnouts = \{ n+1, \ldots, m\}$, the identifiers  of trackworks (switches, crossings, double slip switches, and so on). Trackworks are characterized by an internal state: switches can be in direct or deviate position (next denoted '\direct' and '\deviate'),  a crossing has only one internal position, a double slip switch can be straight through or crossing. Let $\internalState$ denotes the set of internal states. A \emph{network configuration} is given by a function $S: \turnouts \to \internalState$. Let $\Sigma$ denotes the set of all network configurations. 
 
-We end with the function $\sucblock: \blocks \times \directions \times \Sigma \to \blocks$. The functions outputs the first block met according to the starting position, the direction and the network configuration.  From an abstract point of view, the topology of the network reduces to that data.  
+The network is then described as a triple $(\blocks, \turnouts, \sucblock)$ with $\sucblock: \blocks \times \directions \times \Sigma \to \blocks$. The successor function outputs the first block met according to the starting position, the direction and the network configuration.  From an abstract point of view, the topology of the network reduces to that data.  
+
+On the tracks, we suppose there are sensors to detect the presence of trains. More precisely, we suppose that---by means of the sensors---one is able to compute at any time the position of each train. A \emph{position event} is when a train move from one block to an other one. 
+
+Finally, aside of the tracks, at each end of the blocks, there is a signal whose state is \sigred (RED) or \siggreen (GREEN). In other words, the status of signals is described by a function $F: \blocks \times \directions \to \{ \sigred, \siggreen\}$. Given some signal status $F$, a block $pos$ and a direction $dir$, $F(pos,dir) = \sigred$ means a train in block $pos$ cannot leave it in direction $dir$. The signal status is entirely determined by the network configuration and the locking status due to the regulator. We will be back to it later.  Since we do not model train speed, we do not distinguish signals with speed limits from full-speed ones. 
+
+Now, we come to the train model. Each train has an identifier 
+
+
 
 %First, we begin with the train driver model. The train driver has a list of duties giving him some 
 
