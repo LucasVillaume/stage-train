@@ -147,9 +147,32 @@ Finally, aside of the tracks, at each end of the blocks, there is a signal whose
 
 Now, we come to the train model. Each train has an identifier. In other words, we have a set of trains $\trains = \{1, \ldots, k\}$. Each train has a position on the network. The position is the index of the block it stays in or the last block it was in. Next, a train has a direction in $\directions$. The direction does not mean the train is running---it can be blocked by some red signal---but that its next move will be in that direction. Finally, a train has duties. Duties are given as a sequence of orders following the grammar:
 $$  seq ::= \su(dir,pos) $$
+
+%Je pose ça ici, si ça peut vous aider
+\begin{grammar}[Trains' grammar][h][trains_grammar]
+    \firstcasesubtil{T}{\concat{seq}{T}}{}
+    \otherform{\varepsilon }{}
+    \firstcasesubtil{seq}{StartUntil(D,N)}{}
+    \firstcasesubtil{D}{f \gralt b}{}
+    \firstcasesubtil{N}{[ sections ]}{}
+    \firstcasesubtil{sections}{\concat{section}{sections} \gralt section \gralt \varepsilon}{} 
+    \firstcasesubtil{section}{0 \gralt 1 \gralt ... }{} 
+\end{grammar}
+
 with $dir \in \directions$ and $pos \in \blocks$. A duty $\su(dir, pos)$ states that the train direction is set to $dir$ and that the train runs until it reaches $pos$.  The sequence may be empty. 
-
-
+\\
+%idem pour le régulateur
+About the regulator, here is the grammar we use to describe its orders:
+\begin{grammar}[Regulator's grammar][h][regulateur]
+    \firstcasesubtil{R}{stmt || R}{}
+    \otherform{\varepsilon}{}
+    \firstcasesubtil{stmt}{ev(id_{train}, num_{event}) : atom}{}
+    \firstcasesubtil{atom}{incr(j)}{}
+    \otherform{att(j, value_{j})}{}
+    \otherform{turn(id_{switch}, state)}{}
+    \otherform{auth}{}
+    \otherform{atom \gralt \varepsilon}{}
+\end{grammar}
 
 %First, we begin with the train driver model. The train driver has a list of duties giving him some 
 
