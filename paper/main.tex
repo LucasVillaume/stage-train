@@ -145,10 +145,22 @@ On the tracks, we suppose there are sensors to detect the presence of trains. Mo
 
 Finally, aside of the tracks, at each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $F: \blocks \times \directions \to \{ \sigred, \siggreen\}$. Given some signal status $F$, a block $pos$ and a direction $dir$, $F(pos,dir) = \sigred$ means a train in block $pos$ cannot leave it in direction $dir$. The signal status is entirely determined by the network configuration and the locking status due to the regulator. We will be back to it later.  Since we do not model train speed, we do not distinguish signals with speed limits from full-speed ones. 
 
-Now, we come to the train model. Each train has an identifier. In other words, we have a set of trains $\trains = \{1, \ldots, k\}$. Each train has a position on the network. The position is the index of the block it stays in or the last block it was in. Next, a train has a direction in $\directions$. The direction does not mean the train is running---it can be blocked by some red signal---but that its next move will be in that direction. Finally, a train has duties. Duties are given as a sequence of orders following the grammar:
+Now, we come to the train model. Each train has an identifier. In other words, we have a set of trains $\trains = \{1, \ldots, k\}$. Each train has a position on the network. The position is the index of the block it stays in or the last block it was in. Next, a train has a direction in $\directions$. The direction does not mean the train is running---it can be blocked by some red signal---but that its next move will be in that direction. Finally, a train has orders. Orders are given as a sequence of orders following the grammar:
 $$  seq ::= \su(dir,pos) $$
-with $dir \in \directions$ and $pos \in \blocks$. A duty $\su(dir, pos)$ states that the train direction is set to $dir$ and that the train runs until it reaches $pos$.  The sequence may be empty. 
+with $dir \in \directions$ and $pos \in \blocks$. An order $\su(dir, pos)$ states that the train direction is set to $dir$ and that the train runs until it reaches $pos$.  The sequence may be empty. 
 
+To sum up, trains can be viewed as 4-tuples: $t = (id, pos, dir, P)$ with $id$ the train's identifier, $pos$ its position, $dir$ its direction and $P$ the sequence of orders. The description of all trains is then a sequence $\Gamma = (t_1, \ldots, t_k)$ with $t_1$ the 4-tuple corresponding to train 1, up to $t_k$ that is the 4-tuple corresponding to train $k$. 
+
+The regulator is characterized as follows. First, it has a general program, next mentioned as $E$. The program contains the plan of the regulator. The regulator will follow its rule. A program is given as a sequence of statements. Those follow the grammar:
+
+\begin{grammar}[Regulator's rules][h][regulateur]
+    \firstcasesubtil{stmt}{ev(id, n) : atoms}{}
+    \firstcasesubtil{atoms}{incr(j)}{}
+    \otherform{att(j, value_{j})}{}
+    \otherform{turn(id_{switch}, state)}{}
+    \otherform{auth}{}
+    \otherform{atoms \gralt \varepsilon}{}
+\end{grammar}
 
 
 %First, we begin with the train driver model. The train driver has a list of duties giving him some 
@@ -156,11 +168,10 @@ with $dir \in \directions$ and $pos \in \blocks$. A duty $\su(dir, pos)$ states 
 \section{Modèle formel}
 \label{sec:formal-model}
 
-
 \subsection{Modélisation d'une liste d'odre}
-La modélisation de notre liste d'ordre doit prendre en compte les besoins et contraintes évoqués plus haut.
-Pour cela, nous avons choisi de la représenter comme cela : $O = \{\Gamma, R\}$, avec $\Gamma$ l'ensemble des trains et $R$ notre régulateur.
-Chaque train peut être représenté par un identifiant unique, une position, une direction et son programme : $t = (id, pos, dir, P)$, avec $t \in \Gamma$.
+%La modélisation de notre liste d'ordre doit prendre en compte les besoins et contraintes évoqués plus haut.
+%Pour cela, nous avons choisi de la représenter comme cela : $O = \{\Gamma, R\}$, avec $\Gamma$ l'ensemble des trains et $R$ notre régulateur.
+%Chaque train peut être représenté par un identifiant unique, une position, une direction et son programme : $t = (id, pos, dir, P)$, avec $t \in \Gamma$.
 Le régulateur, portant une grande partie de la logique du modèle, se représente de manière plus complexe : $R = (E,T,S,W,G,H,TL,B)$.
 %##########
 %Définit ce qu'est un event à ce moment ou plus haut ?
