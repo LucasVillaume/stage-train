@@ -54,3 +54,8 @@ direction pour FindSection (l'event pouvait être exécuter avant le changement 
 ----------
 
 - Changement de la forme des events pour retirer la position relative 
+
+---------
+
+- Modèle n°2, on extrait la garde et les feux du régulateur pour les considérer comme "élément du modèle" à part entière.
+	- Permets d'avoir une sécurité de plus apportée par les feux (plus proche du réel)
