@@ -152,24 +152,24 @@ On the tracks, we suppose there are sensors to detect the presence of trains. Mo
 
 Finally, aside of the tracks, at each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $F: \blocks \times \directions \to \{ \sigred, \siggreen\}$. Given some signal status $F$, a block $pos$ and a direction $dir$, $F(pos,dir) = \sigred$ means a train in block $pos$ cannot leave it in direction $dir$. The signal status is entirely determined by the network configuration and the locking status due to the regulator. We will be back to it later.  Since we do not model train speed, we do not distinguish signals with speed limits from full-speed ones. 
 
-Now, we come to the train model. Each train has an identifier. In sidother words, we have a set of trains $\trains = \{1, \ldots, k\}$. Each train has a position on the network. The position is the index of the block it stays in or the last block it was in. Next, a train has a direction in $\directions$. The direction does not mean the train is running---it can be blocked by some red signal---but that its next move will be in that direction. Finally, a train has orders. Orders are given as a sequence of orders following the grammar:
+Now, we come to the train model. Each train has an identifier. Without loss of generality, the identifiers form a set  $\trains = \{1, \ldots, k\}$. Each train has a position on the network. The position is the index of the block it stays in or the last block it left. Next, a train has a direction in $\directions$. The direction does not mean the train is running---it can be blocked by some red signal---but that its next move will be in that direction. Finally, a train has orders. Orders are given as a sequence of orders following the grammar:
 $$  seq ::= \su(dir,pos) $$
-with $dir \in \directions$ and $pos \in \blocks$. An order $\su(dir, pos)$ states that the train direction is set to $dir$ and that the train runs until it reaches $pos$.  The sequence may be empty. 
+with $dir \in \directions$ and $pos \in \blocks$. An order $\su(d, pid)$ states that the train direction is set to $d$ and that the train runs until it reaches $pid$.  The sequence may be empty. 
 
 To sum up, trains can be viewed as 4-tuples: $t = (id, pos, dir, P)$ with $id$ the train's identifier, $pos$ its position, $dir$ its direction and $P$ the sequence of orders. The description of all trains is then a sequence $\Gamma = (t_1, \ldots, t_k)$ with $t_1$ the 4-tuple corresponding to train 1, up to $t_k$ that is the 4-tuple corresponding to train $k$. 
 
-The regulator is characterized by 6 fields. First, it has a general program, next mentioned as $E$. The program contains the plan of the regulator. The regulator will follow its rule. A program is given as a sequence of statements. Those follow the grammar:
+To help the reader, in the sequel, by convention, we use $pid$ for blocks, $sid$ for trackworks identifiers (switch id) and $tid$ for train identifiers.  
 
+
+The regulator is characterized by 5 fields. First, it has a general program, next mentioned as $E$. The program is the plan of the regulator. The regulator will follow its rules. A program is given as a sequence of statements. Those follow the grammar:
 \begin{grammar}[Regulator's rules][h][regulateur]
-    \firstcasesubtil{stmt}{ev(id, n) : atoms}{}
-    \firstcasesubtil{atoms}{\incr(j)}{}
-    \otherform{att(j, v)}{}
+    \firstcasesubtil{stmt}{ev(tid, n) : (atom)*}{}
+    \firstcasesubtil{atom}{\incr(pid)}{}
+    \otherform{att(pid, v)}{}
     \otherform{\turn(sid, s)}{}
     \otherform{auth}{}
-    \otherform{atoms ; atoms}{}
-    \otherform{\varepsilon}{}
-\end{grammar}
-with $id \in \trains$, $n \in  \Nat$, $j \in \blocks$, $sid \in \turnouts$, $s\in \internalState$.  All rules are guarded by a condition $ev(id,n)$ stating that train $id$ reached the $n$-th step of its route. The atoms update the regulator fields. Before we describe them and the other fields, a notation: given some function $f: X \to Y$, $x \in X$ and $y \in Y$, we denote by $f[x \leftarrow y]$, the function:
+ \end{grammar}
+with $tid \in \trains$, $n \in  \Nat$, $pid \in \blocks$, $sid \in \turnouts$, $s\in \internalState$.  All statements are guarded by a condition $ev(tid,n)$ stating that train $tid$ reached the $n$-th step of its route. The atoms update the regulator fields. Before we describe the intention of atoms and the other fields, a notation: given some function $f: X \to Y$, $x \in X$ and $y \in Y$, we denote by $f[x \leftarrow y]$, the function:
  $$f[x \leftarrow y] \triangleq \left\{  \begin{array}{ll} x &\mapsto y\\
 x' \neq x \in X &\mapsto f(x')
 \end{array}\right.$$
@@ -178,20 +178,21 @@ The token field of the regulator, denoted $T$, is a function  $T: \blocks \to \N
 
 The switch field is a function $S: \turnouts \to \internalState$ giving the network configuration. Again, the atom $\turn(sid,s)$ updates the internal state of $id$: $S \cdot \turn(sid,s) \triangleq S[sid \leftarrow s]$. 
 
-The waiting field is a function $W: \blocks \times \Nat \to \trains \times Bool$. XXX
+The waiting field is a function $W: \blocks \times \Nat \to \trains \times Bool$. It states that block must be protected. \todo{donner plus de précision sur les intentions ici.}
 
-The buffer field is the XXX
+The history field $H: \trains \to \blocks$ gives the last position of each train recorded  by the regulator. \todo{A quoi cela sert il en bref.}
 
-The history field $H: \trains \to \blocks$ gives the last position of each train recorded  by the regulator. 
+So, the regulator is described as a tuple $R = (E, T, S, W, H)$. Applying $\incr(j)$ to the regulator is applying it to the token field: $R \cdot \incr(j) = (E, T \cdot \incr(j), S, W, B, H)$. We use the same convention for the other atoms. 
 
-So, the regulator is described as a tuple $R = (E, T, W, B, H)$. Applying $\incr(j)$ to the regulator is applying it to the token field: $R \cdot \incr(j) = (E, T \cdot \incr(j), W, B, H)$. We use the same convention for the other atoms. 
-
+\todo{Je pense que le régulateur ne devrait pas contenir plus d'éléments. Les autres sont en fait des meta-données qui gèrent "le baton de parole" (les priorités sur les règles). Donc, G et B devraient être en dehors du tuple.}
 
 
 %First, we begin with the train driver model. The train driver has a list of duties giving him some 
 
 \section{Modèle formel}
 \label{sec:formal-model}
+
+Description par des règles. La gestion du temps est "discrétisée". On ne peut pas "choisir" quelle est la bonne règle. Gestion par des gardes, et des messages. Il y a des soucis grand pas, petit pas
 
 \subsection{Modélisation d'une liste d'odre}
 %La modélisation de notre liste d'ordre doit prendre en compte les besoins et contraintes évoqués plus haut.
