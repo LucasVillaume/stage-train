@@ -160,8 +160,12 @@ To sum up, trains can be viewed as 4-tuples: $t = (id, pos, dir, P)$ with $id$ t
 
 To help the reader, in the sequel, by convention, we use $pid$ for blocks, $sid$ for trackworks identifiers (switch id) and $tid$ for train identifiers.  
 
+The regulator is in charge of the execution of the planning. The regulator uses some tokens to ensure a reliable circulation. For each critical resource (either a block or a switch), we associate a token level with each train involved. 
 
-The regulator is characterized by 5 fields. First, it has a general program, next mentioned as $E$. The program is the plan of the regulator. The regulator will follow its rules. A program is given as a sequence of statements. Those follow the grammar:
+More technically, the regulator is characterized by 5 fields. First, it has a general program, next mentioned as $E$. The program is the plan of the regulator. The regulator will follow its rules. A program is a sequence of statements. Each statement is composed of a guard and some actions. The guard has the shape: $ev(tid, n)$ meaning that train $tid$ just entered in the $n$-th block of its route. In case such an event occurs, the associated actions are performed. Here is the grammar of the regulator program:
+%All statements are guarded by a condition $ev(tid,n)$ stating that train $tid$ reached the $n$-th step of its route. The atoms update the regulator fields. 
+%A program is given as a sequence of statements. Those follow the grammar:
+
 \begin{grammar}[Regulator's rules][h][regulateur]
     \firstcasesubtil{stmt}{ev(tid, n) : (atom)*}{}
     \firstcasesubtil{atom}{\incr(pid)}{}
@@ -169,22 +173,22 @@ The regulator is characterized by 5 fields. First, it has a general program, nex
     \otherform{\turn(sid, s)}{}
     \otherform{auth}{}
  \end{grammar}
-with $tid \in \trains$, $n \in  \Nat$, $pid \in \blocks$, $sid \in \turnouts$, $s\in \internalState$.  All statements are guarded by a condition $ev(tid,n)$ stating that train $tid$ reached the $n$-th step of its route. The atoms update the regulator fields. Before we describe the intention of atoms and the other fields, a notation: given some function $f: X \to Y$, $x \in X$ and $y \in Y$, we denote by $f[x \leftarrow y]$, the function:
+with $tid \in \trains$, $n \in  \Nat$, $pid \in \blocks$, $sid \in \turnouts$, $s\in \internalState$.  Before we describe the intention of atoms and the other fields, a notation: given some function $f: X \to Y$, $x \in X$ and $y \in Y$, we denote by $f[x \leftarrow y]$, the function:
  $$f[x \leftarrow y] \triangleq \left\{  \begin{array}{ll} x &\mapsto y\\
 x' \neq x \in X &\mapsto f(x')
 \end{array}\right.$$
 
-The token field of the regulator, denoted $T$, is a function  $T: \blocks \to \Nat$ associating a token level to each block.  The atom $\incr(j)$ updates the token $j$:  $T \cdot \incr(j)  \triangleq T[j \leftarrow T(j)+1]$.
+The token field of the regulator, denoted $T$, is a function  $T: \blocks \to \Nat$ associating a token level to each block.  The atom $\incr(pid)$ updates the token $pid$:  $T \cdot \incr(pid)  \triangleq T[pid \leftarrow T(pid)+1]$.
+
+The waiting field is a function $W: \blocks \times \Nat \to \trains \cup \{0\}$. It states that block must be protected. More precisely, suppose that for some block $pid$, some train $tid$ tries to enter the block. If $W(pid,n) = tid$, then, the train shall wait the token is released. The value $W(pid, n) = 0$ means the train did not reach the current position $pid$. 
+
+The history field $H: \trains \to \blocks$ gives the last position of each train recorded  by the regulator. \todo{A vérifier.}
 
 The switch field is a function $S: \turnouts \to \internalState$ giving the network configuration. Again, the atom $\turn(sid,s)$ updates the internal state of $id$: $S \cdot \turn(sid,s) \triangleq S[sid \leftarrow s]$. 
 
-The waiting field is a function $W: \blocks \times \Nat \to \trains \times Bool$. It states that block must be protected. \todo{donner plus de précision sur les intentions ici.}
-
-The history field $H: \trains \to \blocks$ gives the last position of each train recorded  by the regulator. \todo{A quoi cela sert il en bref.}
-
 So, the regulator is described as a tuple $R = (E, T, S, W, H)$. Applying $\incr(j)$ to the regulator is applying it to the token field: $R \cdot \incr(j) = (E, T \cdot \incr(j), S, W, B, H)$. We use the same convention for the other atoms. 
 
-\todo{Je pense que le régulateur ne devrait pas contenir plus d'éléments. Les autres sont en fait des meta-données qui gèrent "le baton de parole" (les priorités sur les règles). Donc, G et B devraient être en dehors du tuple.}
+%\todo{Je pense que le régulateur ne devrait pas contenir plus d'éléments. Les autres sont en fait des meta-données qui gèrent "le baton de parole" (les priorités sur les règles). Donc, G et B devraient être en dehors du tuple.}
 
 
 %First, we begin with the train driver model. The train driver has a list of duties giving him some 
@@ -192,7 +196,7 @@ So, the regulator is described as a tuple $R = (E, T, S, W, H)$. Applying $\incr
 \section{Modèle formel}
 \label{sec:formal-model}
 
-Description par des règles. La gestion du temps est "discrétisée". On ne peut pas "choisir" quelle est la bonne règle. Gestion par des gardes, et des messages. Il y a des soucis grand pas, petit pas
+Description par des règles. La gestion du temps est "discrétisée". On ne peut pas "choisir" quelle est la bonne règle. Gestion par des gardes, et des messages. Il y a des soucis grand pas, petit pas. Dire comment on gère les évt, comment on régule l'application des règles. 
 
 \subsection{Modélisation d'une liste d'odre}
 %La modélisation de notre liste d'ordre doit prendre en compte les besoins et contraintes évoqués plus haut.
