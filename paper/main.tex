@@ -24,6 +24,7 @@
 \newcommand{\internalState}{{\mathcal{I}}}
 \newcommand{\forward}{{\mathtt{f}}}
 \newcommand{\backward}{{\mathtt{b}}}
+\newcommand{\idle}{{\mathtt{*}}}
 \newcommand{\sucblock}{{\mathtt{suc}}}
 
 %% tt style
@@ -152,11 +153,11 @@ On the tracks, we suppose there are sensors to detect the presence of trains. Mo
 
 Finally, aside of the tracks, at each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $F: \blocks \times \directions \to \{ \sigred, \siggreen\}$. Given some signal status $F$, a block $pos$ and a direction $dir$, $F(pos,dir) = \sigred$ means a train in block $pos$ cannot leave it in direction $dir$. The signal status is entirely determined by the network configuration and the locking status due to the regulator. We will be back to it later.  Since we do not model train speed, we do not distinguish signals with speed limits from full-speed ones. 
 
-Now, we come to the train model. Each train has an identifier. Without loss of generality, the identifiers form a set  $\trains = \{1, \ldots, k\}$. Each train has a position on the network. The position is the index of the block it stays in or the last block it left. Next, a train has a direction in $\directions$. The direction does not mean the train is running---it can be blocked by some red signal---but that its next move will be in that direction. Finally, a train has orders. Orders are given as a sequence of orders following the grammar:
-$$  seq ::= \su(dir,pos) $$
-with $dir \in \directions$ and $pos \in \blocks$. An order $\su(d, pid)$ states that the train direction is set to $d$ and that the train runs until it reaches $pid$.  The sequence may be empty. 
+Now, we come to the train model. Each train has an identifier. Without loss of generality, the identifiers form a set  $\trains = \{1, \ldots, k\}$. Each train has a position on the network. The position is the index of the block it stays in or the last block it left. Next, a train has a direction in $\{\forward, \backward, \idle\}$ with $\idle$ meaning idle status.  The direction does not mean the train is running---it can be blocked by some red signal---but that its next move will be in that direction. Finally, a train has orders. Orders are given as a sequence of orders following the grammar:
+$$  seq ::= \su(d,pid) $$
+with $d \in \directions$ and $pid \in \blocks$. An order $\su(d, pid)$ states that the train direction must be set to $d$ and that the train runs until it reaches $pid$.  The sequence may be empty. 
 
-To sum up, trains can be viewed as 4-tuples: $t = (id, pos, dir, P)$ with $id$ the train's identifier, $pos$ its position, $dir$ its direction and $P$ the sequence of orders. The description of all trains is then a sequence $\Gamma = (t_1, \ldots, t_k)$ with $t_1$ the 4-tuple corresponding to train 1, up to $t_k$ that is the 4-tuple corresponding to train $k$. 
+To sum up, trains can be viewed as 4-tuples: $t = (tid, pid, d, P)$ with $tid$ the train's identifier, $pid$ its position, $d$ its direction and $P$ the sequence of orders. The description of all trains is then a sequence $\Gamma = (t_1, \ldots, t_k)$ with $t_1$ the 4-tuple corresponding to train 1, up to $t_k$ that is the 4-tuple corresponding to train $k$. 
 
 To help the reader, in the sequel, by convention, we use $pid$ for blocks, $sid$ for trackworks identifiers (switch id) and $tid$ for train identifiers.  
 
