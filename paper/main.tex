@@ -25,7 +25,7 @@
 
 % Je suis assez d'avis de distinguer la direction des blocks et des trains
 \newcommand{\forward}{\ensuremath{\mathtt{f}}}
-\newcommand{\backward}{\ensuremath{\mathtt{b}}}
+\newcommand{\backward}{\ensuremath{\mathtt{b}}\xspace}
 \newcommand{\sucblock}{{\mathtt{suc}}}
 \newcommand{\networkConf}{\ensuremath{\Sigma}}
 
@@ -41,13 +41,16 @@
 \newcommand{\posFmt}[1]{{\color{poscolor}{#1}}}
 
 %% Trains
-\newcommand{\trainTuple}[4]{\langle #1, \posFmt{#2}, \dirFmt{#3}, #4 \rangle}
-\newcommand{\trainSeq}{\Gamma}
+\definecolor{traincolor}{rgb}{0.2, 0.2, 0.6}
+\newcommand{\trainFmt}[1]{{\color{traincolor} #1}}
+\newcommand{\trainTuple}[4]{\langle \trainFmt{#1}, \posFmt{#2}, \dirFmt{#3}, #4 \rangle}
+\newcommand{\trainSeq}{\trainFmt{\Gamma}}
+\newcommand{\trains}{{\trainFmt{\mathsf{T}}}}
 
 %% Regulator's Program
-\newcommand{\evGuard}[2]{\ensuremath{\mathtt{ev}(#1, #2)}}
+\newcommand{\evGuard}[2]{\ensuremath{\mathtt{ev}(\trainFmt{#1}, #2)}}
 \newcommand{\ev}[3]{\evGuard{#1}{#2}: #3}
-\newcommand{\incr}[1]{{\mbox{\ensuremath{\mathtt{incr}(#1)}}}\xspace}
+\newcommand{\incr}[1]{{\mbox{\ensuremath{\mathtt{incr}(\posFmt{#1})}}}\xspace}
 \newcommand{\turn}[2]{{\mbox{\ensuremath{\mathtt{turn}(#1, #2)}}}\xspace}
 
 %% tt style
@@ -59,7 +62,7 @@
 
 \newcommand{\su}[2]{{\mbox{$\mathtt{startuntil}(\dirFmt{#1}, \posFmt{#2})$}}\xspace}
 
-\newcommand{\trains}{{\mathsf{T}}}
+
 
 
 \begin{document}
@@ -172,9 +175,9 @@ x' \neq x \in X &\mapsto f(x')
 \section{A first step toward a formal model}
 \label{sec:informal-model}
 
-In this section, we present the foundations of our formal model, explaining the basic building blocks that we need in order to specify and verify train routing, itself presented in the following section.
+In this section, we present the formal model of our network, explaining the basic building blocks that we need in order to specify and verify train routing. The dynamic rules are then presented in the following section.
 
-The general principle of our model is to have $N$ agents corresponding to the $N$ trains and one agent corresponding to the Regulator. But first, we have to describe the infrastructure, that is  the playing field. \todo{Déplacer ?}
+Our model is has $N+1$ agents corresponding to the $N$ trains and the Regulator. Those agents take place on an infrastructure consisting of a track network equipped with signals. We first present the infrastructure model, then the agents.
 
 \subsection{Infrastructure}
 
@@ -195,13 +198,13 @@ At each end of the blocks, there is a signal whose state is \sigred (red) or \si
 We now present the train model.
 Each train is characterised by an identifier, a position, a direction, and a list of orders.
 \begin{itemize}
-	\item Identifiers form a set  $\trains = \{1, \ldots, k\}$.
+	\item Train identifiers form a set  $\trains = \{1, \ldots, k\}$.
 	\item The position is the index of the block currently occupied by the train.
 	\item The direction direction in $\directions = \{\dirBackward, \dirForward, \dirStop\}$ --- where \dirBackward (resp.\ \dirForward) indicates the trains is ordered to go towards the \backward (resp.\ \forward) end of the block, while \dirStop indicates the train has no direction order at the moment. The direction represent the current move order, but does not mean the train is actually moving: it can be blocked at a signal.
 	\item Orders are given as a (possibly empty) sequence of orders $\su{dir}{pos}$ ($\dirFmt{dir} \in \directions$, $\posFmt{pos} \in \blocks$). Such order states that the train direction is set to $\dirFmt{dir}$ and that the train runs until it reaches $pos$.
 \end{itemize}
 
-Thus, each train is a quadruple $t = \trainTuple{id}{pos}{dir}{P}$ with $id$ the train's identifier, $\posFmt{pos}$ its position, $\dirFmt{dir}$ its direction and $P$ the sequence of orders. Trains are collected in a sequence $\trainSeq = (t_1, \ldots, t_k)$ where each $t_i$ being the tuple of train $i$. 
+Thus, each train is a quadruple $\trainFmt{t} = \trainTuple{id}{pos}{dir}{P}$ with $\trainFmt{id}$ the train's identifier, $\posFmt{pos}$ its position, $\dirFmt{dir}$ its direction and $P$ its sequence of orders. Trains are collected in a sequence $\trainSeq = (\trainFmt{t_1}, \ldots, \trainFmt{t_k})$ where each $\trainFmt{t_i}$ being the tuple of train $\trainFmt{i}$. 
 
 
 \paragraph{The Regulator.}
@@ -211,7 +214,7 @@ It is characterised by a routing program, a token list, and a waiting set.
 \begin{itemize}
 	\item The routing program specifies how the regulator should react to events (i.e. when a train enters a block). A program is a sequence of rules, which are described below.
 	\item The token list, denoted $T$, is a function  $T: \blocks \to \Nat$ associating a token level to each block. Those tokens are used to prevent multiple trains accessing the same block at the same time.
-	\item The waiting set is a set $W \subseteq \blocks \times \Nat \times \trains$. A triple $\tuple{pid, n, tid} \in W$ means block $pid$ must be protected against train $tid$ entering as long as $T(pid) < n$.
+	\item The waiting set is a set $W \subseteq \blocks \times \Nat \times \trains$. A triple $\tuple{pid, n, \trainFmt{tid}} \in W$ means block $pid$ must be protected against train $\trainFmt{tid}$ entering as long as $T(pid) < n$.
 \end{itemize}
 
 Overall, the regulator is a tuple $R = \tuple{E, T, W}$. By convention, applying $\incr{pid}$ to the regulator is applying it to the token field: $R \cdot \incr{pid} = (E, T \cdot \incr{pid}, W)$. We use the same convention for the other atoms. 
@@ -229,7 +232,7 @@ The program of the regulator is a set of rules, guarded by events. A rule $\ev{t
 
 Notice that all actions of a rule are executed atomically. Our semantics, presented below, details actions' behaviour.
 
-\begin{grammar}[Regulator's rules, with $tid \in \trains$, $n \in  \Nat$, $pid \in \blocks$, $sid \in \turnouts$, $s\in \internalState$.][h][gr:regulator_program]
+\begin{grammar}[Regulator's rules, with $tid \in \trains$, $n \in  \Nat$, $\posFmt{pid} \in \blocks$, $sid \in \turnouts$, $s\in \internalState$.][h][gr:regulator_program]
 	\firstcasesubtil{stmt}{\evGuard{tid}{n} : \nonterm{A}^\star}{}
 	\firstcase{A}{\incr{pid}}{}
 	\otherform{att(pid, v)}{}
