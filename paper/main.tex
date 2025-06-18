@@ -18,25 +18,45 @@
 \newcommand{\Nat}{{\mbox{$\mathbb{N}$}}}
 
 
-\newcommand{\directions}{{\mathsf{D}}}
+\newcommand{\directions}{\dirFmt{\mathsf{D}}}
 \newcommand{\turnouts}{{\mathsf{\theta}}}
-\newcommand{\blocks}{{\mathsf{B}}}
+\newcommand{\blocks}{{\posFmt{\mathsf{B}}}}
 \newcommand{\internalState}{{\mathcal{I}}}
-\newcommand{\forward}{{\mathtt{f}}}
-\newcommand{\backward}{{\mathtt{b}}}
-\newcommand{\idle}{{\mathtt{*}}}
+
+% Je suis assez d'avis de distinguer la direction des blocks et des trains
+\newcommand{\forward}{\ensuremath{\mathtt{f}}}
+\newcommand{\backward}{\ensuremath{\mathtt{b}}}
 \newcommand{\sucblock}{{\mathtt{suc}}}
+\newcommand{\networkConf}{\ensuremath{\Sigma}}
+
+%% Train directions
+\definecolor{dircolor}{rgb}{1.0, 0.13, 0.32}
+\newcommand{\dirFmt}[1]{{\color{dircolor}{#1}}}
+\newcommand{\dirForward}{\ensuremath{\dirFmt{\forward}}\xspace}
+\newcommand{\dirBackward}{\ensuremath{\dirFmt{\backward}}\xspace}
+\newcommand{\dirStop}{\ensuremath{\dirFmt{\star}}\xspace}
+
+%% Positions
+\definecolor{poscolor}{rgb}{0.6, 0.45, 0.32}
+\newcommand{\posFmt}[1]{{\color{poscolor}{#1}}}
+
+%% Trains
+\newcommand{\trainTuple}[4]{\langle #1, \posFmt{#2}, \dirFmt{#3}, #4 \rangle}
+\newcommand{\trainSeq}{\Gamma}
+
+%% Regulator's Program
+\newcommand{\evGuard}[2]{\ensuremath{\mathtt{ev}(#1, #2)}}
 
 %% tt style
-\newcommand{\sigred}{{\mbox{$\mathtt{r}$}}\xspace}
-\newcommand{\siggreen}{{\mbox{$\mathtt{g}$}}\xspace}
+\newcommand{\sigred}{{\mbox{${\color{red!50!black}\mathtt{r}}$}}\xspace}
+\newcommand{\siggreen}{{\mbox{${\color{green!50!black}\mathtt{g}}$}}\xspace}
 
 \newcommand{\deviate}{{\mbox{$\mathtt{v}$}}\xspace}
 \newcommand{\direct}{{\mbox{$\mathtt{d}$}}\xspace}
 \newcommand{\incr}{{\mbox{$\mathtt{incr}$}}\xspace}
 \newcommand{\turn}{{\mbox{$\mathtt{turn}$}}\xspace}
 
-\newcommand{\su}{{\mbox{$\mathtt{startuntil}$}}\xspace}
+\newcommand{\su}[2]{{\mbox{$\mathtt{startuntil}(\dirFmt{#1}, \posFmt{#2})$}}\xspace}
 
 \newcommand{\trains}{{\mathsf{T}}}
 
@@ -151,33 +171,55 @@ x' \neq x \in X &\mapsto f(x')
 \section{A first step toward a formal model}
 \label{sec:informal-model}
 
-The general principle of our model is to have N agents corresponding to the N trains and one agent corresponding to the Regulator. But first, we have to describe the infrastructure, that is  the playing field. 
+In this section, we present the foundations of our formal model, explaining the basic building blocks that we need in order to specify and verify train routing, itself presented in the following section.
 
-We suppose that the train network can be described as follows. First, we consider given a set of blocks: $\blocks = \{ 1, 2, \ldots, n\}$. Blocks are oriented: there is a $\forward$ (forward) end and a $\backward$ (backward) one. Let $\directions = \{\forward, \backward\}$ be the two directions.  Next, we suppose given a set $\turnouts = \{ n+1, \ldots, m\}$, the identifiers  of trackworks (switches, crossings, double slip switches, and so on). Trackworks are characterized by an internal state: switches can be in direct or deviate position (next denoted '\direct' and '\deviate'),  a crossing has only one internal position, a double slip switch can be straight through or crossing. In the examples, to simplify the presentation, we use only switches, but our model is not restricted to them.  Let $\internalState$ denotes the set of internal states. A \emph{network configuration} is given by a function $\sigma: \turnouts \to \internalState$. Let $\Sigma$ denotes the set of all network configurations. For two turnouts $\theta = \{9, 10\}$, the function $9 \mapsto \deviate, 10 \mapsto \direct$ states that $9$ is in deviate position while 10 is in direct one. The latter function is also described via an array  $[\deviate, \direct]$ giving states in trackwork order. 
+The general principle of our model is to have $N$ agents corresponding to the $N$ trains and one agent corresponding to the Regulator. But first, we have to describe the infrastructure, that is  the playing field. \todo{Déplacer ?}
 
-The network is then described as a triple $(\blocks, \turnouts, \sucblock)$ with $\sucblock: \blocks \times \directions \times \Sigma \to \blocks_\bot$. The successor function outputs the first block met according to the starting position, the direction and the network configuration.  The value $\sucblock(pid, d, \sigma) = \bot$ means that one reaches a dead-end. From an abstract point of view, the topology of the network reduces to that data.  
+\subsection{Infrastructure}
 
-On the tracks, we suppose there are sensors to detect the presence of trains. More precisely, we suppose that---by means of the sensors---one is able to compute at any time the position of each train. A \emph{position event} is when a train move from one block to an other one. 
+\paragraph{The network.} 
 
-Finally, aside of the tracks, at each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $F: \blocks \times \directions \to \{ \sigred, \siggreen\}$. Given some signal status $F$, a block $pid$ and a direction $d$, $F(pid,d) = \sigred$ means a train in block $pid$ cannot leave it in direction $d$. The signal status is entirely determined by the network configuration and the locking status due to the regulator. We will be back to it later.  Since we do not model train speed, we do not distinguish signals with speed limits from full-speed ones. 
+We suppose that the train network can be described as follows. First, we consider given a set of blocks: $\blocks = \{ 1, 2, \ldots, n\}$. Blocks are oriented: there is a $\forward$ end and a $\backward$ one. Let $\directions = \{\forward, \backward\}$ be the two directions.  Next, we suppose given a set $\turnouts = \{ n+1, \ldots, m\}$, the identifiers  of trackworks (switches, crossings, double slip switches, and so on\todo{Est-ce que ces élements sont dans le modèle de Lucas, en particulier les crossings et double slip switches ?}). Trackworks are characterized by an internal state: switches can be in direct or deviate position (next denoted '\direct' and '\deviate'), a crossing has only one internal position, a double slip switch can be straight through or crossing. In the examples, to simplify the presentation, we use only switches, but our model is not restricted to them.  Let $\internalState$ denotes the set of internal states. A \emph{network configuration} is given by a function $\sigma: \turnouts \to \internalState$. Let $\networkConf$ denotes the set of all network configurations. For two turnouts $\theta = \{9, 10\}$, the function $9 \mapsto \deviate, 10 \mapsto \direct$ states that $9$ is in deviate position while 10 is in direct one. The latter function is also described via an array  $[\deviate, \direct]$ giving states in trackwork order. 
 
-Now, we come to the train model. Each train has an identifier. Without loss of generality, the identifiers form a set  $\trains = \{1, \ldots, k\}$. Each train has a position on the network. The position is the index of the block it stays in or the last block it left. Next, a train has a direction in $\{\forward, \backward, \idle\}$ with $\idle$ meaning idle status.  The direction does not mean the train is running---it can be blocked by some red signal---but that its next move will be in that direction. Finally, a train has orders. Orders are given as a sequence of orders following the grammar:
-$$  seq ::= \su(d,pid) $$
-with $d \in \directions$ and $pid \in \blocks$. An order $\su(d, pid)$ states that the train direction must be set to $d$ and that the train runs until it reaches $pid$.  The sequence may be empty. 
+The network is then described as a triple $(\blocks, \turnouts, \sucblock)$ where $\sucblock$ is a partial function indicating the following block given a starting position, a direction and a network configuration: $\sucblock: \blocks\times \directions \times \networkConf \to \blocks$. We note $\sucblock(pid, d, \sigma) = \bot$ when it is undefined. From an abstract point of view, the topology of the network reduces to that data.  
 
-To sum up, trains can be viewed as 4-tuples: $t = (tid, pid, d, P)$ with $tid$ the train's identifier, $pid$ its position, $d$ its direction and $P$ the sequence of orders. The description of all trains is then a sequence $\Gamma = (t_1, \ldots, t_k)$ with $t_1$ the 4-tuple corresponding to train 1, up to $t_k$ that is the 4-tuple corresponding to train $k$. 
 
-To help the reader, by convention, we use $pid$ for blocks, $sid$ for trackworks identifiers (switch id) and $tid$ for train identifiers.  
+\paragraph{Signals.}
 
-The regulator is in charge of the execution of the planning. For that sake, we use tokens. For each critical resource (either a block or a switch), we associate a token level with each train involved. 
+At each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $F: \blocks \times \directions \to \{ \sigred, \siggreen\}$. Given some signal status $F$, a block $\posFmt{pos}$ and a direction $dir$, $F(pos,dir) = \sigred$ means the signal guarding the exit of block $\posFmt{pos}$ in direction $\dirFmt{dir}$ is red, and we expect trains not leaving that block going in this direction\footnote{Our semantics, presented below, ensure such behaviour.}\todo{ref}. The signal status is entirely determined by the network configuration and the locking status due to the regulator\todo{Le régulateur n'est pas encore introduit, je propose de déplacer ça plus bas.}.
 
+
+\subsection{Agents}
+\paragraph{Trains.}
+We now present the train model.
+Each train is characterised by an identifier, a position, a direction, and a list of orders.
+\begin{itemize}
+	\item Identifiers form a set  $\trains = \{1, \ldots, k\}$.
+	\item The position is the index of the block currently occupied by the train.
+	\item The direction direction in $\directions = \{\dirBackward, \dirForward, \dirStop\}$ --- where \dirBackward (resp.\ \dirForward) indicates the trains is ordered to go towards the \backward (resp.\ \forward) end of the block, while \dirStop indicates the train has no direction order at the moment. The direction represent the current move order, but does not mean the train is actually moving: it can be blocked at a signal.
+	\item Orders are given as a (possibly empty) sequence of orders $\su{dir}{pos}$ ($\dirFmt{dir} \in \directions$, $\posFmt{pos} \in \blocks$). Such order states that the train direction is set to $\dirFmt{dir}$ and that the train runs until it reaches $pos$.
+\end{itemize}
+
+Then, each train is a quadruple $t = \trainTuple{id}{pos}{dir}{P}$ with $id$ the train's identifier, $\posFmt{pos}$ its position, $\dirFmt{dir}$ its direction and $P$ the sequence of orders. Trains are collected in a sequence $\trainSeq = (t_1, \ldots, t_k)$ where each $t_i$ being the tuple of train $i$. 
+
+
+\paragraph{The Regulator.}
+The regulator is in charge of the execution of the routing.
+It is characterised by a routing program, a token list, a waiting list, an history, and a switch control list.
+
+\begin{itemize}
+	\item The routing program specifies how the regulator should react to events (i.e. when a train enters a block). A program is a sequence of rules\todo{Je pense qu'il est plus clair d'appeler ça des règles que des statements}. Each rule begins by a guard \evGuard{tid}{n}, specifying that the content of the rule is triggered when the train $tid$ enters its $n$-th block.
+\end{itemize}
+
+
+\paragraph{The Regulator\todo{Version Guillaume}. }
 More technically, the regulator is characterized by 3 fields. First, it has a general program, next mentioned as $E$. The program is the plan of the regulator. The regulator will follow its rules. A program is a sequence of statements, each statement being composed of a guard and some actions. The guard has the shape: $ev(tid, n)$ meaning that train $tid$ just entered in the $n$-th block of its route. In case such an event occurs, the associated actions are performed. Here is the grammar of the regulator program:
 %All statements are guarded by a condition $ev(tid,n)$ stating that train $tid$ reached the $n$-th step of its route. The atoms update the regulator fields. 
 %A program is given as a sequence of statements. Those follow the grammar:
 
 \begin{grammar}[Regulator's rules][h][regulateur]
-    \firstcasesubtil{stmt}{ev(tid, n) : (atom)*}{}
-    \firstcasesubtil{atom}{\incr(pid)}{}
+    \firstcasesubtil{stmt}{\evGuard{tid}{n} : \nonterm{A}^\star}{}
+    \firstcase{A}{\incr(pid)}{}
     \otherform{att(pid, v)}{}
     \otherform{\turn(sid, s)}{}
     \otherform{auth}{}
@@ -197,6 +239,16 @@ Finally, the network configuration is given as  $\sigma: \turnouts \to \internal
 
 
 %First, we begin with the train driver model. The train driver has a list of duties giving him some 
+
+
+
+\paragraph{Network hypothesis, events, and conventions.}
+On the tracks, we suppose there are sensors to detect the presence of trains. More precisely, we suppose that ---by means of the sensors--- the position of every train is known at any time. A \emph{position event} is when a train move from one block to an other one. 
+
+Train speed are not modeled, and we consider trains can always stop within their current block if they have to (e.g. if there outgoing signal of a block is \sigred, we assume the train can stop in time).
+
+
+To help the reader, in the sequel, by convention, we use $pid$ for blocks, $sid$ for trackworks identifiers (switch id) and $tid$ for train identifiers.  
 
 \section{Modèle formel}
 \label{sec:formal-model}
