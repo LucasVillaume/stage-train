@@ -16,7 +16,7 @@
 \usepackage{package/mathpartir}
 
 \newcommand{\Nat}{{\mbox{$\mathbb{N}$}}}
-
+\newcommand{\tuple}[1]{\ensuremath{\langle #1\rangle}}
 
 \newcommand{\directions}{\dirFmt{\mathsf{D}}}
 \newcommand{\turnouts}{{\mathsf{\theta}}}
@@ -46,6 +46,9 @@
 
 %% Regulator's Program
 \newcommand{\evGuard}[2]{\ensuremath{\mathtt{ev}(#1, #2)}}
+\newcommand{\ev}[3]{\evGuard{#1}{#2}: #3}
+\newcommand{\incr}[1]{{\mbox{\ensuremath{\mathtt{incr}(#1)}}}\xspace}
+\newcommand{\turn}[2]{{\mbox{\ensuremath{\mathtt{turn}(#1, #2)}}}\xspace}
 
 %% tt style
 \newcommand{\sigred}{{\mbox{${\color{red!50!black}\mathtt{r}}$}}\xspace}
@@ -53,8 +56,6 @@
 
 \newcommand{\deviate}{{\mbox{$\mathtt{v}$}}\xspace}
 \newcommand{\direct}{{\mbox{$\mathtt{d}$}}\xspace}
-\newcommand{\incr}{{\mbox{$\mathtt{incr}$}}\xspace}
-\newcommand{\turn}{{\mbox{$\mathtt{turn}$}}\xspace}
 
 \newcommand{\su}[2]{{\mbox{$\mathtt{startuntil}(\dirFmt{#1}, \posFmt{#2})$}}\xspace}
 
@@ -200,47 +201,42 @@ Each train is characterised by an identifier, a position, a direction, and a lis
 	\item Orders are given as a (possibly empty) sequence of orders $\su{dir}{pos}$ ($\dirFmt{dir} \in \directions$, $\posFmt{pos} \in \blocks$). Such order states that the train direction is set to $\dirFmt{dir}$ and that the train runs until it reaches $pos$.
 \end{itemize}
 
-Then, each train is a quadruple $t = \trainTuple{id}{pos}{dir}{P}$ with $id$ the train's identifier, $\posFmt{pos}$ its position, $\dirFmt{dir}$ its direction and $P$ the sequence of orders. Trains are collected in a sequence $\trainSeq = (t_1, \ldots, t_k)$ where each $t_i$ being the tuple of train $i$. 
+Thus, each train is a quadruple $t = \trainTuple{id}{pos}{dir}{P}$ with $id$ the train's identifier, $\posFmt{pos}$ its position, $\dirFmt{dir}$ its direction and $P$ the sequence of orders. Trains are collected in a sequence $\trainSeq = (t_1, \ldots, t_k)$ where each $t_i$ being the tuple of train $i$. 
 
 
 \paragraph{The Regulator.}
 The regulator is in charge of the execution of the routing.
-It is characterised by a routing program, a token list, a waiting list, an history, and a switch control list.
+It is characterised by a routing program, a token list, and a waiting set.
 
 \begin{itemize}
-	\item The routing program specifies how the regulator should react to events (i.e. when a train enters a block). A program is a sequence of rules\todo{Je pense qu'il est plus clair d'appeler ça des règles que des statements}. Each rule begins by a guard \evGuard{tid}{n}, specifying that the content of the rule is triggered when the train $tid$ enters its $n$-th block.
+	\item The routing program specifies how the regulator should react to events (i.e. when a train enters a block). A program is a sequence of rules, which are described below.
+	\item The token list, denoted $T$, is a function  $T: \blocks \to \Nat$ associating a token level to each block. Those tokens are used to prevent multiple trains accessing the same block at the same time.
+	\item The waiting set is a set $W \subseteq \blocks \times \Nat \times \trains$. A triple $\tuple{pid, n, tid} \in W$ means block $pid$ must be protected against train $tid$ entering as long as $T(pid) < n$.
 \end{itemize}
 
+Overall, the regulator is a tuple $R = \tuple{E, T, W}$. By convention, applying $\incr{pid}$ to the regulator is applying it to the token field: $R \cdot \incr{pid} = (E, T \cdot \incr{pid}, W)$. We use the same convention for the other atoms. 
 
-\paragraph{The Regulator\todo{Version Guillaume}. }
-More technically, the regulator is characterized by 3 fields. First, it has a general program, next mentioned as $E$. The program is the plan of the regulator. The regulator will follow its rules. A program is a sequence of statements, each statement being composed of a guard and some actions. The guard has the shape: $ev(tid, n)$ meaning that train $tid$ just entered in the $n$-th block of its route. In case such an event occurs, the associated actions are performed. Here is the grammar of the regulator program:
-%All statements are guarded by a condition $ev(tid,n)$ stating that train $tid$ reached the $n$-th step of its route. The atoms update the regulator fields. 
-%A program is given as a sequence of statements. Those follow the grammar:
+\paragraph{Regulator's rules.}
 
-\begin{grammar}[Regulator's rules][h][regulateur]
-    \firstcasesubtil{stmt}{\evGuard{tid}{n} : \nonterm{A}^\star}{}
-    \firstcase{A}{\incr(pid)}{}
-    \otherform{att(pid, v)}{}
-    \otherform{\turn(sid, s)}{}
-    \otherform{auth}{}
- \end{grammar}
-with $tid \in \trains$, $n \in  \Nat$, $pid \in \blocks$, $sid \in \turnouts$, $s\in \internalState$.  
-The token field of the regulator, denoted $T$, is a function  $T: \blocks \to \Nat$ associating a token level to each block.  The atom $\incr(pid)$ updates the token $pid$:  $T \cdot \incr(pid)  \triangleq T[pid \leftarrow T(pid)+1]$.
+The syntax of regulator programs is given by the terminal stmt in Grammar~\ref{gr:regulator_program}.
+The program of the regulator is a set of rules, guarded by events. A rule $\ev{tid}{n}{A}$ denotes that upon entering the $n$-th block of its route, train $tid$ will trigger actions $A$. There are four kinds of actions: 
+\begin{description}
+	\item[\incr{pid}:] this updates the token $pid$ in $T$:  $T \cdot \incr{pid}  \triangleq T[pid \leftarrow T(pid)+1]$
+	\item [att(pid, v):] ...\todo{}
+	\item [\turn{sid}{s}:] this instructs the regulator to turn the switch $sid$ into the $s$ direction: $\sigma\cdot\turn{sid}{s} = \sigma[sid \leftarrow s]$
+	\item [auth:] ...\todo{}
+\end{description}
 
-The waiting field is a set $W \subseteq \blocks \times \Nat \times \trains$. A triple $(pid, n, tid) \in W$  meaning intention is that block $pid$ must be protected against train $tid$ entrance as long as $T(pid) < n$. 
- 
+Notice that all actions of a rule are executed atomically. Our semantics, presented below, details actions' behaviour.
 
-So, the regulator is described as a tuple $R = (E, T, W)$. Applying $\incr(pid)$ to the regulator is applying it to the token field: $R \cdot \incr(pid) = (E, T \cdot \incr(pid), W)$. We use the same convention for the other atoms. 
-
-Finally, the network configuration is given as  $\sigma: \turnouts \to \internalState$. Again, the atom $\turn(sid,s)$ updates the internal state of $sid$: $\sigma \cdot \turn(sid,s) \triangleq \sigma[sid \leftarrow s]$. 
-
-
-%\todo{Je pense que le régulateur ne devrait pas contenir plus d'éléments. Les autres sont en fait des meta-données qui gèrent "le baton de parole" (les priorités sur les règles). Donc, G et B devraient être en dehors du tuple.}
-
-
-%First, we begin with the train driver model. The train driver has a list of duties giving him some 
-
-
+\begin{grammar}[Regulator's rules, with $tid \in \trains$, $n \in  \Nat$, $pid \in \blocks$, $sid \in \turnouts$, $s\in \internalState$.][h][gr:regulator_program]
+	\firstcasesubtil{stmt}{\evGuard{tid}{n} : \nonterm{A}^\star}{}
+	\firstcase{A}{\incr{pid}}{}
+	\otherform{att(pid, v)}{}
+	\otherform{\turn{sid}{s}}{}
+	\otherform{auth}{}
+\end{grammar}
+  
 
 \paragraph{Network hypothesis, events, and conventions.}
 On the tracks, we suppose there are sensors to detect the presence of trains. More precisely, we suppose that ---by means of the sensors--- the position of every train is known at any time. A \emph{position event} is when a train move from one block to an other one. 
