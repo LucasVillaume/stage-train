@@ -110,8 +110,7 @@ From an Information Technology (IT) point of view, our system is shaped as shown
 
 Final words on the N-scale model. Our circuit has 8 blocks, 5 switches. Each block is bidirectional with a signal at each end. Blocks size goes from 25cm to 70cm.  We operate  three trains in parallel. Due to the size of the model, we reduced our signals  to "red" and "green" status, the trains being too close one from the other. Furthermore, in case of a red signal, we make the hypothesis that the train will be able to stop before it reaches the end of the block. In practice, we stop the trains in the middle. 
 
-
-Routes are not computed in advance. The schedule is renewed every "day"\footnote{We use a time scale factor: one of our "day" corresponds to 20 minutes in real time.}  and we introduce some randomness in the process: beyond some routine daily planning, some trains are inserted/deleted, some trains departure/destination may change, and so on. We simulate also delays. Finally, in our model, we distinguish freight and  passengers routes giving priority to the latter. Routes are recomputed each time a train has finished its duty. The general motivation of this paper is to propose a lightweight scheduling solution that is adapted to the fully automatic control, that takes into account the distributed nature of the system, that is reliable and does not suffer from interlocking.  
+Routes are computed on the fly. The schedule is renewed every "day"\footnote{We use a time scale factor: one of our "day" corresponds to 20 minutes in real time.}  and we introduce some randomness in the process: beyond some routine daily planning, some trains are inserted/deleted, some trains departure/destination may change, and so on. We simulate also delays. Finally, in our model, we distinguish freight and  passengers routes giving priority to the latter. Routes are recomputed each time a train has finished its duty. The general motivation of this paper is to propose a lightweight scheduling solution that is adapted to the fully automatic control, that takes into account the distributed nature of the system, that is reliable and does not suffer from interlocking.  
  
 We can now describe in more detail the working assumptions we are making about planning.  First, we have sensors on the rails at the two ends of each block. Accordingly,  we can catch train entrances within blocks. We make the hypothesis that this task is performed without errors. Second, the switches can be swapped from one position to the other, again, we suppose it is done without fault. Our method could cope such issues, but we leave that for future work. 
  
@@ -119,7 +118,7 @@ We can now describe in more detail the working assumptions we are making about p
 
 Fourth,  the regulator is capable of reading train block entrance events, requiring some switch swap and finally locking (that is make sure a signal is red)/unlocking some signal. We consider that those latter operations can be carried out without delay. Finally, the regulator may append some new duty to a train. To sum up, to control the train mouvements, the regulator can only lock/unlock signals. Naturally, a signal intended to block train $T_1$ may block $T_2$ if not set at the right time.   
  
- Parler de la stratégie, du modèle générale. All these operations are done by what we call  \emph{orders}. Roughly speaking, trains Orders have the shape "Start in direction Until position". Regulator orders are: XXX. 
+ Parler de la stratégie, du modèle générale. All these operations are done by what we call  \emph{orders}. Roughly speaking, trains Orders have the shape "Start in direction Until position". Regulator orders are: \todo{en parler}. 
  
  
  To sum up, the regulation policy can be seen as an asynchronous distributed system. The N trains and the regulator are independent agents. That led us to TLA+, a framework introduced by Leslie Lamport for these kind of problems~\cite{Lamport}.  
@@ -169,9 +168,9 @@ To sum up, trains can be viewed as 4-tuples: $t = (tid, pid, d, P)$ with $tid$ t
 
 To help the reader, by convention, we use $pid$ for blocks, $sid$ for trackworks identifiers (switch id) and $tid$ for train identifiers.  
 
-The regulator is in charge of the execution of the planning. The regulator uses some tokens to ensure a reliable circulation. For each critical resource (either a block or a switch), we associate a token level with each train involved. 
+The regulator is in charge of the execution of the planning. For that sake, we use tokens. For each critical resource (either a block or a switch), we associate a token level with each train involved. 
 
-More technically, the regulator is characterized by 5 fields. First, it has a general program, next mentioned as $E$. The program is the plan of the regulator. The regulator will follow its rules. A program is a sequence of statements. Each statement is composed of a guard and some actions. The guard has the shape: $ev(tid, n)$ meaning that train $tid$ just entered in the $n$-th block of its route. In case such an event occurs, the associated actions are performed. Here is the grammar of the regulator program:
+More technically, the regulator is characterized by 3 fields. First, it has a general program, next mentioned as $E$. The program is the plan of the regulator. The regulator will follow its rules. A program is a sequence of statements, each statement being composed of a guard and some actions. The guard has the shape: $ev(tid, n)$ meaning that train $tid$ just entered in the $n$-th block of its route. In case such an event occurs, the associated actions are performed. Here is the grammar of the regulator program:
 %All statements are guarded by a condition $ev(tid,n)$ stating that train $tid$ reached the $n$-th step of its route. The atoms update the regulator fields. 
 %A program is given as a sequence of statements. Those follow the grammar:
 
@@ -185,13 +184,13 @@ More technically, the regulator is characterized by 5 fields. First, it has a ge
 with $tid \in \trains$, $n \in  \Nat$, $pid \in \blocks$, $sid \in \turnouts$, $s\in \internalState$.  
 The token field of the regulator, denoted $T$, is a function  $T: \blocks \to \Nat$ associating a token level to each block.  The atom $\incr(pid)$ updates the token $pid$:  $T \cdot \incr(pid)  \triangleq T[pid \leftarrow T(pid)+1]$.
 
-The waiting field is a function $W: \blocks \times \Nat \to \trains_0$. It states that block must be protected. More precisely, suppose that for some block $pid$, some train $tid$ tries to enter the block. If $W(pid,T(pid)) = tid$, then, the train shall wait the token is released. The value $W(pid, n) = 0$ means the train did not reach the current position $pid$. 
+The waiting field is a set $W \subseteq \blocks \times \Nat \times \trains$. A triple $(pid, n, tid) \in W$  meaning intention is that block $pid$ must be protected against train $tid$ entrance as long as $T(pid) < n$. 
+ 
 
-The history field $H: \trains \to \blocks$ gives the last position of each train recorded  by the regulator. \todo{A vérifier.}
+So, the regulator is described as a tuple $R = (E, T, W)$. Applying $\incr(pid)$ to the regulator is applying it to the token field: $R \cdot \incr(pid) = (E, T \cdot \incr(pid), W)$. We use the same convention for the other atoms. 
 
-The switch field is a function $S: \turnouts \to \internalState$ giving the network configuration. Again, the atom $\turn(sid,s)$ updates the internal state of $id$: $S \cdot \turn(sid,s) \triangleq S[sid \leftarrow s]$. 
+Finally, the network configuration is given as  $\sigma: \turnouts \to \internalState$. Again, the atom $\turn(sid,s)$ updates the internal state of $sid$: $\sigma \cdot \turn(sid,s) \triangleq \sigma[sid \leftarrow s]$. 
 
-So, the regulator is described as a tuple $R = (E, T, S, W, H)$. Applying $\incr(j)$ to the regulator is applying it to the token field: $R \cdot \incr(j) = (E, T \cdot \incr(j), S, W, B, H)$. We use the same convention for the other atoms. 
 
 %\todo{Je pense que le régulateur ne devrait pas contenir plus d'éléments. Les autres sont en fait des meta-données qui gèrent "le baton de parole" (les priorités sur les règles). Donc, G et B devraient être en dehors du tuple.}
 
