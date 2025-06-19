@@ -26,7 +26,7 @@ def eventTraitement(event, troncons):
 def trajet2model(trajet):
     model = "----------------------------- MODULE composition -----------------------------\n\n"+\
              "EXTENDS Integers, TLC, Sequences\n"+\
-             "VARIABLE gamma, reg, rule, msg\n\n"
+             "VARIABLE gamma, reg, sigma, feux, meta, rule\n\n"
     gamma = ""
     mtrains = ""
     tl = ""
@@ -41,8 +41,7 @@ def trajet2model(trajet):
                  f"\tid |-> {i+1},\n"+\
                  f"\tpos |-> {trajet.trains[i].dep[0]},\n"+\
                  f"\tdir |-> \"*\",\n"+\
-                 f"\tprog |-> {progTraitement(trajet.trains[i].prog)},\n"+\
-                 f"\trel |-> 1\n]\n"
+                 f"\tprog |-> {progTraitement(trajet.trains[i].prog)}\n]\n"
         
         mevents += f"    {eventTraitement(trajet.events[i], trajet.trains[i].troncons)}"
         mevents += ",\n" if i < len(trajet.trains) - 1 else "\n"
@@ -56,7 +55,6 @@ def trajet2model(trajet):
     #initialisation
     model += mtrains + "\n\n" + mevents
     model += f"token == [x \\in 1..8 |-> 0]\nwait == [x \\in (1..8) \\X (0..{maxVal}) |-> -1]\n"
-    model += f"historique == [x \\in 1..3 |-> -1]\n"
     model += 'traffic_lights == [x \\in (1..8) \\X {"L","R"} |-> "V"]'
 
     
@@ -77,14 +75,13 @@ def trajet2model(trajet):
             f"    /\\ reg = [\n"+\
             "\t\tE |-> events,\n"+\
             "\t\tJ |-> token,\n"+\
-            "\t\tS |-> switch,\n"+\
-            "\t\tW |-> wait,\n"+\
-            "\t\tG |-> FALSE,\n"+\
-            "\t\tH |-> historique,\n"+\
-            f"\t\tF |-> [traffic_lights EXCEPT \n{tl}]\n"+\
-            "    \t]\n" + \
-            f"    /\\ rule = \"\"\n" +\
-            f"    /\\ msg = << <<>>, <<>> >>\n\n"
+            "\t\tW |-> {}\n    \t]\n"+\
+            f"    /\\ sigma = switch\n"+\
+            f"    /\\ feux = [traffic_lights EXCEPT \n{tl}]\n"+\
+            f"    /\\ meta = [\n" + \
+            "\t\tmsg   |-> << <<>>, <<>> >>,\n" + \
+            "\t\tgarde |-> [state |-> \"none\", requests |-> <<>>]\n    \t]\n" + \
+            f"    /\\ rule = \"\"\n\n"
             
     property = "Liveness ==\n" + \
                f"    /\\ <>[] /\\ gamma[1].pos = {trajet.trains[0].arr[0]}\n" + \

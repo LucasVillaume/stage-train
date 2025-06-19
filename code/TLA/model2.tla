@@ -1,8 +1,8 @@
 ----------------------------- MODULE model2 -----------------------------
 
 
-EXTENDS Integers, TLC, Sequences, scenario_m2 (*
-VARIABLE gamma, reg, rule, msg, feux, garde
+EXTENDS Integers, TLC, Sequences\*, scenario_m2 (*
+VARIABLE gamma, reg, sigma, feux, meta, rule 
 
 
 nbCanton == 4 \* Nombre de canton du circuit
@@ -32,7 +32,7 @@ events == <<
 
 token == [x \in 1..nbCanton |-> 0]
 
-wait == [x \in (1..nbCanton) \X (0..maxVal) |-> -1] 
+wait == [x \in (1..nbCanton) \X (0..maxVal) |-> -1]
 
 switch == <<"d">>
 
@@ -47,41 +47,41 @@ Suiv(pos, dir, S) == IF pos = 1 /\ dir = "R"               THEN 2
                 ELSE IF pos = 3 /\ dir = "L" /\ S[1] = "d" THEN 2
                 ELSE IF pos = 4 /\ dir = "L" /\ S[1] = "v" THEN 2
                 ELSE -1
-                
 
 Init == 
     /\ gamma = <<train1,train2>>
     /\ reg = [
             E |-> events,
             J |-> token,
-            S |-> switch,
-            W |-> wait,
-            F |-> "none", \* modification des feux dans l'event
-            H |-> historique
+            W |-> {}
        ]
+    /\ sigma = switch
     /\ feux = [traffic_lights EXCEPT ![3,"L"] = "R",
                                      ![3,"R"] = "R",
                                      ![4,"L"] = "R",
                                      ![4,"R"] = "R"]
-    /\ garde = [
-            state |-> "none",
-            requests |-> <<>>
+    /\ meta = [
+            msg   |-> << <<>>, <<>> >>,
+            garde |-> [state |-> "none", requests |-> <<>>]
        ]
     /\ rule = "" \* Mesure de débug, pas présent dans le modèle
-    /\ msg = << <<>>, <<>> >>
 
 \* *)
-Init == Init_S4
-Suiv(pos, dir, S) == Suiv_S4(pos, dir, S)
+\*Init == Init_S4
+\*Suiv(pos, dir, S) == Suiv_S4(pos, dir, S)
 
 
 \* Utilitaire
 
 Min(S) == CHOOSE x \in S : \A y \in S : x =< y
 
-IsAttTurnInSeq(S) == 
+Max(S) == CHOOSE x \in S : \A y \in S : x >= y
+
+IsInSeq(elem, seq) == \E i \in DOMAIN seq : seq[i] = elem
+
+IsAttTurnInSeq(S) ==
     \E x \in DOMAIN S[2] : 
-        S[2][x][1] = "att" \/ S[2][x][1] = "turn" \* True si le tableau comporte une chaîne "att" ou "turn"
+        S[2][x][1] = "att" \/ S[2][x][1] = "auth" \* True si le tableau comporte une chaîne "att" ou "auth"
 
 NextAttTurn(id, evs) == \*evs : séquence d'events pour un train / evCourante : numéro de l'event courant
     LET 
@@ -90,21 +90,40 @@ NextAttTurn(id, evs) == \*evs : séquence d'events pour un train / evCourante : 
         IF Len(res) /= 0 THEN res[1][1] \*Il existe un prochain attendre
         ELSE evs[Len(evs)][1] \*Il n'existe pas de prochain attendre (aller à la fin)
 
-Failsafe(f) == IF Suiv(f[1],f[2],reg.S) = -1 THEN "R" ELSE feux[f[1],f[2]]
+IsWaiting(W, block, tvalue) == \E seq \in W : seq[3] = block /\ seq[4] = tvalue
 
-UpdateF(F) == [f \in DOMAIN F |-> Failsafe(f)]
+getWaiting(W, block, tvalue) == CHOOSE seq \in W : seq[3] = block /\ seq[4] = tvalue        
+        
+RequestUpdate(req,F) == [ f \in DOMAIN F |-> IF f[1] = req[1] THEN req[2] ELSE F[f] ]
 
-RequestFocus(req,F) == \* uniquement pour règles Until
+FindLock(W,E) ==
+    [x \in 1..Len(gamma) |->
+        IF \E seq \in W : seq[1] = x THEN \* Attend
+            gamma[x].pos
+        ELSE IF Len(E[x]) = 0 THEN \* Arrivé
+            gamma[x].pos
+        ELSE \* se déplace
+            NextAttTurn(x,E[x])
+    ]        
+
+        
+UpdateS(S,W,E) == \*S pour Signals
     LET
-        pos == req[1]
-        prec == req[2]
-        dir == req[3]
-        dir_op == IF dir = "R" THEN "L" ELSE "R"
-        next == Suiv(pos,dir,reg.S)
+        locked == FindLock(W,E)
+        positions == [ x \in 1..Len(gamma) |-> gamma[x].pos ]
+        sigSuiv == [ sig \in DOMAIN S |-> Suiv(sig[1],sig[2],sigma) ] \*reg.S à changer en sigma plus tard
     IN
-        [f \in DOMAIN F |-> IF f = <<prec,dir>> \/ f = <<next,dir_op>> THEN "R" ELSE F[f] ]
-
-RequestUpdate(req,F) == [f \in DOMAIN F |-> IF f[1] = req[1] THEN req[2] ELSE F[f] ]
+        [ sig \in DOMAIN S |-> 
+            IF IsInSeq(sig[1],locked) THEN \* cas lock
+                S[sig]
+            ELSE
+                IF sigSuiv[sig[1],sig[2]] = -1 THEN \* pas de suivant
+                    "R"
+                ELSE IF IsInSeq(sigSuiv[sig[1],sig[2]], positions) THEN \* suivant occupé
+                    "R"
+                ELSE \*suivant non occupé
+                    "V"
+        ]
 
 \* règles
         \* Train
@@ -114,40 +133,40 @@ Start(T) ==
         event == Head(reg.E[T.id])
     IN
         /\ Len(T.prog) > 0
-        /\ garde.state = "none"
+        /\ meta.garde.state = "none"
         /\ T.prog[1][1] = "StartUntil"
         /\ T.prog[1][2] /= T.dir
         /\ gamma' = [gamma EXCEPT ![T.id].dir = T.prog[1][2]]
         /\ rule ' = "start"
         /\ UNCHANGED reg
+        /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ UNCHANGED garde
-        /\ msg' = [msg EXCEPT ![1] = Append(msg[1],<<T.id,T.pos>>)]
+        /\ meta' = [meta EXCEPT !.msg[1] = Append(meta.msg[1],<<T.id,T.pos>>)]  
 
 Stop (T) ==
     LET
         event == Head(reg.E[T.id])
     IN
         /\ Len(T.prog) = 0
-        /\ garde.state = "none"
+        /\ meta.garde.state = "none"
         /\ T.dir /= "*"
         /\ gamma' = [gamma EXCEPT ![T.id].dir = "*"]
         /\ rule' = "stop"
         /\ UNCHANGED reg
+        /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ UNCHANGED garde
-        /\ msg' = [msg EXCEPT ![1] = Append(msg[1],<<T.id,T.pos>>)]
+        /\ meta' = [meta EXCEPT !.msg[1] = Append(meta.msg[1],<<T.id,T.pos>>)]
 
 
 Until(T) == 
     LET
         id == T.id
         order == Head(T.prog)
-        nextC == Suiv(T.pos,T.dir,reg.S)
+        nextC == Suiv(T.pos,T.dir,sigma)
         event == Head(reg.E[id])
     IN
         /\ Len(T.prog) > 0
-        /\ garde.state = "none"
+        /\ meta.garde.state = "none"
         /\ order[2] = T.dir 
         /\ feux[T.pos,T.dir] = "V"
         /\ order[1] = "StartUntil"
@@ -158,24 +177,20 @@ Until(T) ==
                             ![id].prog[1][3] = Tail(order[3])]
         /\ rule' = "until"
         /\ UNCHANGED reg
+        /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ garde' = [garde EXCEPT !.state = "focus",
-                                  !.requests = Append(garde.requests, <<nextC, T.pos, T.dir>>)]
-        /\ IF Len(reg.E[id]) > 0 THEN
-                msg' = [msg EXCEPT ![1] = Append(msg[1],<<id,nextC>>)]
-           ELSE
-            UNCHANGED msg
-
+        /\ meta' = [meta EXCEPT !.garde.state = "update", \*"focus",
+                                !.msg[1] = Append(meta.msg[1],<<id,nextC>>)]
 
 
 Until_cons(T) == 
     LET
         id == T.id
         order == Head(T.prog)
-        nextC == Suiv(T.pos,T.dir, reg.S)
+        nextC == Suiv(T.pos,T.dir, sigma)
     IN
         /\ Len(T.prog) > 0
-        /\ garde.state = "none"
+        /\ meta.garde.state = "none"
         /\ order[2] = T.dir
         /\ feux[T.pos,T.dir] = "V"
         /\ order[1] = "StartUntil"
@@ -185,227 +200,213 @@ Until_cons(T) ==
                             ![T.id].pos = nextC,
                             ![T.id].prog = Tail(T.prog)]
         /\ UNCHANGED feux
-        /\ garde' = [garde EXCEPT !.state = "focus",
-                                  !.requests = Append(garde.requests, <<nextC, T.pos, T.dir>>)]
+        /\ UNCHANGED sigma
+        /\ meta' = [meta EXCEPT !.garde.state = "update"] \*"focus"]
         /\ rule' = "until_cons"
-        /\ UNCHANGED <<reg,msg>>
+        /\ UNCHANGED reg
 
 
         \* Regulateur
 
 StartEvent == \*Simuler une approche grands pas
     LET
-        id == Head(msg[1])[1]
-        pos == Head(msg[1])[2]
+        id == Head(meta.msg[1])[1]
+        pos == Head(meta.msg[1])[2]
     IN
-        /\ garde.state = "none"
-        /\ Len(msg[1]) /= 0
+        /\ meta.garde.state = "none"
+        /\ Len(meta.msg[1]) /= 0
         /\ UNCHANGED gamma
-        /\ reg' = [reg EXCEPT !.H[id] = pos] \* actualise la position du train dans l'historique
+        /\ UNCHANGED reg
+        /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ garde' = [garde EXCEPT !.state = "event"]
+        /\ meta' = [meta EXCEPT !.garde.state = "event"]
         /\ rule' = "StartEvent"
-        /\ UNCHANGED msg
 
 
 Turn == 
     LET
-        id == Head(msg[1])[1]
+        id == Head(meta.msg[1])[1]
         event == Head(reg.E[id])
         order == Head(event[2])
         numAig == order[2]
     IN
-        /\ garde.state = "event"
-        /\ Len(msg[1]) /= 0
+        /\ meta.garde.state = "event"
+        /\ Len(meta.msg[1]) /= 0
         /\ Len(event[2]) > 0
         /\ order[1] = "turn"
-        /\ numAig <= Len(reg.S)
+        /\ numAig <= Len(sigma)
         /\ numAig >= 0
         /\ UNCHANGED gamma
         /\ rule' = "turn" 
-        /\ reg' = [reg EXCEPT !.S[numAig] = order[3],
-                              !.F = "update",
-                              !.E[id][1][2] = Tail(event[2])]
+        /\ reg' = [reg EXCEPT !.E[id][1][2] = Tail(event[2])]
+        /\ sigma' = [sigma EXCEPT ![numAig] = order[3]]
         /\ UNCHANGED feux
-        /\ UNCHANGED garde
-        /\ UNCHANGED msg
+        /\ UNCHANGED meta \*' = [meta EXCEPT !.nextG = "update"]
 
 Att_bf == 
     LET
-        id == Head(msg[1])[1]
+        id == Head(meta.msg[1])[1]
         event == Head(reg.E[id])
+        pos == event[1]
         order == Head(event[2])
         jet == order[2]
         val == order[3]
     IN 
-        /\ garde.state = "event"
-        /\ Len(msg[1]) /= 0
+        /\ meta.garde.state = "event"
+        /\ Len(meta.msg[1]) /= 0
         /\ Len(event[2]) > 0
         /\ order[1] = "att"
         /\ reg.J[jet] /= val
         /\ UNCHANGED gamma
         /\ rule' = "att_bf"
-        /\ reg' = [reg EXCEPT !.W[jet,val] = id,
+        /\ reg' = [reg EXCEPT !.W = reg.W \union {<<id,pos,jet,val>>},
                               !.E[id][1][2] = Tail(event[2])]
+        /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ UNCHANGED garde
-        /\ UNCHANGED msg
-
+        /\ UNCHANGED meta
+        
+        
 Att_af == 
     LET
-        id == Head(msg[1])[1]
+        id == Head(meta.msg[1])[1]
         event == Head(reg.E[id])
+        pos == event[1]
         order == Head(event[2])
         jet == order[2]
         val == order[3]
         subseqEv == SubSeq(reg.E[id],2,Len(reg.E[id]))
         target == NextAttTurn(id,subseqEv)
-        pos == reg.H[id]
     IN
-        /\ garde.state = "event"
-        /\ Len(msg[1]) /= 0
+        /\ meta.garde.state = "event"
+        /\ Len(meta.msg[1]) /= 0
         /\ Len(event[2]) > 0
         /\ order[1] = "att"
         /\ reg.J[jet] = val
         /\ UNCHANGED gamma
-        /\ rule' = "att_af" \o ToString(pos) \o ToString(target)
-        /\ reg' = [reg EXCEPT !.W[jet,val] = id,
-                              !.F = "update",
-                              !.E[id][1][2] = Tail(event[2])]
+        /\ rule' = "att_af"
+        /\ reg' = [reg EXCEPT !.E[id][1][2] = Tail(event[2])]
+        /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ garde' = [garde EXCEPT !.requests = garde.requests \o << <<target,"R">>, <<pos,"V">> >>]
-        /\ UNCHANGED msg
+        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">>, <<pos,"V">> >>]
 
 Incr_bf ==
     LET
-        id == Head(msg[1])[1]
+        id == Head(meta.msg[1])[1]
         event == Head(reg.E[id])
         order == Head(event[2])
         jet == order[2]
         val == reg.J[jet]
-        id_wait == reg.W[jet,val+1]
     IN
-        /\ garde.state = "event"
-        /\ Len(msg[1]) /= 0
+        /\ meta.garde.state = "event"
+        /\ Len(meta.msg[1]) /= 0
         /\ Len(event[2]) > 0
         /\ order[1] = "incr"
-        /\ id_wait = -1
+        /\ ~IsWaiting(reg.W,jet,val+1) \*Personne n'attend encore
         /\ UNCHANGED gamma
         /\ rule' = "incr_bf"
         /\ reg' = [reg EXCEPT !.J[jet] = reg.J[jet]+1,
                               !.E[id][1][2] = Tail(event[2])]
+        /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ UNCHANGED garde
-        /\ UNCHANGED msg
+        /\ UNCHANGED meta
 
 
 Incr_af ==
     LET
-        id == Head(msg[1])[1]
+        id == Head(meta.msg[1])[1]
         event == Head(reg.E[id])
         order == Head(event[2])
         jet == order[2]
         val == reg.J[jet]
-        id_wait == reg.W[jet,val+1]
+        
+        info_wait == getWaiting(reg.W,jet,val+1)
+        id_wait == info_wait[1] \*possiblement inutile
         subseqEv == SubSeq(reg.E[id_wait],1,Len(reg.E[id_wait]))
         target == NextAttTurn(id_wait,subseqEv)
-        pos == reg.H[id_wait]
+        pos == info_wait[2]
     IN
-        /\ garde.state = "event"
-        /\ Len(msg[1]) /= 0
+        /\ meta.garde.state = "event"
+        /\ Len(meta.msg[1]) /= 0
         /\ Len(event[2]) > 0
         /\ order[1] = "incr"
-        /\ id_wait /= -1
+        /\ IsWaiting(reg.W,jet,val+1)
         /\ UNCHANGED gamma
         /\ rule' = "incr_af "
         /\ reg' = [reg EXCEPT !.J[jet] = reg.J[jet]+1,
-                              !.F = "update",
+                              !.W = {seq \in reg.W : seq /= info_wait}, \*test
                               !.E[id][1][2] = Tail(event[2])]
+        /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ garde' = [garde EXCEPT !.requests = garde.requests \o << <<target,"R">>, <<pos,"V">> >>]
-        /\ UNCHANGED msg
+        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">>, <<pos,"V">> >>] \*si tous marche bien, inutile plus tard
+               \*                 !.nextG = "update"]
 
 
 Auth ==
     LET
-        id == Head(msg[1])[1]
+        id == Head(meta.msg[1])[1]
         event == Head(reg.E[id])
+        pos == event[1]
         order == Head(event[2])
         subseqEv == SubSeq(reg.E[id],2,Len(reg.E[id]))
         target == NextAttTurn(id,subseqEv)
-        pos == reg.H[id]
     IN
-        /\ garde.state = "event"
-        /\ Len(msg[1]) /= 0
+        /\ meta.garde.state = "event"
+        /\ Len(meta.msg[1]) /= 0
         /\ Len(event[2]) > 0
         /\ order[1] = "auth"
         /\ UNCHANGED gamma
         /\ rule' = "auth"
-        /\ reg' = [reg EXCEPT !.E[id][1][2] = Tail(event[2]),
-                              !.F = "update"]
+        /\ reg' = [reg EXCEPT !.E[id][1][2] = Tail(event[2])]
+        /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ garde' = [garde EXCEPT !.requests = garde.requests \o << <<target,"R">>, <<pos,"V">> >>]
-        /\ UNCHANGED msg
+        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">>, <<pos,"V">> >>] \*si tous marche bien, inutile plus tard
+               \*                 !.nextG = "update"]
 
 
 
 EndEvent ==
     LET
-        id == Head(msg[1])[1]
+        id == Head(meta.msg[1])[1]
         event == Head(reg.E[id])
     IN
-        /\ garde.state = "event"
-        /\ Len(msg[1]) /= 0
+        /\ meta.garde.state = "event"
+        /\ Len(meta.msg[1]) /= 0
         /\ Len(event[2]) = 0
         /\ UNCHANGED gamma
         /\ rule' = "EndEvent"
-        /\ reg' = [reg EXCEPT !.E[id] = Tail(reg.E[id]),
-                              !.F = "none"]
+        /\ reg' = [reg EXCEPT !.E[id] = Tail(reg.E[id])]
+        /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ garde' = [garde EXCEPT !.state = reg.F]
-        /\ msg' = [msg EXCEPT ![1] = Tail(msg[1])]
+        /\ meta' = [meta EXCEPT !.garde.state = "update", \*meta.nextG,
+                                \*!.nextG = "none",
+                                !.msg[1] = Tail(meta.msg[1])]
 
 
-        \* Feux
-
-ReqFocus ==
-    LET
-        req == Head(garde.requests)
-    IN
-        /\ garde.state = "focus"
-        /\ Len(garde.requests) > 0
-        /\ UNCHANGED gamma
-        /\ UNCHANGED reg
-        /\ rule' = "ReqFocus"
-        /\ feux' = RequestFocus(req,feux)
-        /\ garde' = [garde EXCEPT !.state = "none",
-                                  !.requests = Tail(garde.requests)]
-        /\ UNCHANGED msg
-
+        \* Feu
 
 ReqUpdate ==
     LET
-        req == Head(garde.requests)
+        req == Head(meta.garde.requests)
     IN
-        /\ garde.state = "update"
-        /\ Len(garde.requests) > 0
+        /\ meta.garde.state = "update"
+        /\ Len(meta.garde.requests) > 0
         /\ UNCHANGED gamma
         /\ UNCHANGED reg
+        /\ UNCHANGED sigma
         /\ rule' = "ReqUpdate"
         /\ feux' = RequestUpdate(req,feux)
-        /\ garde' = [garde EXCEPT !.requests = Tail(garde.requests)]
-        /\ UNCHANGED msg
+        /\ meta' = [meta EXCEPT !.garde.requests = Tail(meta.garde.requests)]
 
 
 UpdateTL ==
-    /\ garde.state = "update"
-    /\ Len(garde.requests) = 0
+    /\ meta.garde.state = "update"
+    /\ Len(meta.garde.requests) = 0
     /\ UNCHANGED gamma
     /\ UNCHANGED reg
+    /\ UNCHANGED sigma
     /\ rule' = "UpdateTL"
-    /\ feux' = UpdateF(feux)
-    /\ garde' = [garde EXCEPT !.state = "none"]
-    /\ UNCHANGED msg
+    /\ feux' = UpdateS(feux,reg.W,reg.E)
+    /\ meta' = [meta EXCEPT !.garde.state = "none"]
         
         
 
@@ -414,13 +415,14 @@ IDLE ==
     \A t \in 1..Len(gamma):
         /\ Len(gamma[t].prog) = 0
         /\ gamma[t].dir = "*"
-    /\ Len(msg[1]) = 0
+    /\ Len(meta.msg[1]) = 0
     /\ UNCHANGED gamma
     /\ rule' = "IDLE"
     /\ UNCHANGED feux
-    /\ UNCHANGED garde
+    /\ UNCHANGED meta
     /\ UNCHANGED reg
-    /\ UNCHANGED msg
+    /\ UNCHANGED sigma
+    
 
 \* Propriétés
 
@@ -448,19 +450,21 @@ Next ==
         \/ Att_af
         \/ Auth
         \/ EndEvent
-        \/ ReqFocus
+        \*\/ ReqFocus
+        \*\/ FocusTL
         \/ ReqUpdate
         \/ UpdateTL
         \/ IDLE
         
 
-Spec == Init /\ [][Next]_<<gamma,reg,rule,msg,feux,garde>> /\ WF_<<gamma,reg,rule,msg,feux,garde>>(Next)
+Spec == Init /\ [][Next]_<<gamma,reg,sigma,feux,meta,rule>> /\ WF_<<gamma,reg,sigma,feux,meta,rule>>(Next)
 \* WF_ : Weak Fairness, "si une règle peut être appliquée, je l'applique"
 
+set == {<<1,4,5,7>>,<<2,6,5,8>>}
 
-Eval ==  SelectSeq(<< <<8,<<<<"">>, <<"">>, <<" ">>>>>>, <<2,<<<<"">>>>>> >>, IsAttTurnInSeq)[1][1] \*"Hello" \o " World !"
+Eval ==  \E seq \in set : seq[1] = 2 \*SelectSeq(<< <<8,<<<<"">>, <<"">>, <<" ">>>>>>, <<2,<<<<"att">>>>>> >>, IsAttTurnInSeq)[1][1] \*"Hello" \o " World !"
 
 =============================================================================
 \* Modification History
-\* Last modified Fri Jun 13 11:56:59 CEST 2025 by lucas
+\* Last modified Thu Jun 19 09:40:14 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas

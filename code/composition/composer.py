@@ -411,7 +411,7 @@ if __name__ == "__main__":
     print(f"o3\n{o3}")
     print(f"o3 switch_init : {o3.switch_init}") """
 
-    s1 = etats["N2L7L6L -> N2*5L3L"].split("__")
+    """ s1 = etats["N2L7L6L -> N2*5L3L"].split("__")
     o1 = createProgram("N2L7L6L", "N2*5L3L", s1)
     s2 = etats["N2*5L3L -> N2*4L8L"].split("__")
     o2 = createProgram("N2*5L3L", "N2*4L8L", s2)
@@ -419,5 +419,19 @@ if __name__ == "__main__":
     print(f"o2\n{o2}")
     o3 = compose(o1, o2)
     print(f"o3\n{o3}")
+    print(f"o3 switch_init : {o3.switch_init}") """
+
+    s1 = etats["N2L7L6L -> N8L5L4L"].split("__")
+    o1 = createProgram("N2L7L6L", "N8L5L4L", s1)
+    s2 = etats["N8L5L4L -> N8*5*7L"].split("__")
+    o2 = createProgram("N8L5L4L", "N8*5*7L", s2)
+    print(f"o1\n{o1}")
+    print(f"o2\n{o2}")
+    o3 = compose(o1, o2)
+    print(f"o3\n{o3}")
     print(f"o3 switch_init : {o3.switch_init}")
+
+    sillon = trajet2model(o3)
+    with open("model/composition.tla", "w") as file:
+        file.write(sillon)
 

@@ -1,7 +1,7 @@
 ------------------------------- MODULE scenario_m2 -------------------------------
 
 EXTENDS Integers, TLC, Sequences
-VARIABLES gamma, reg, rule, msg, feux, garde
+VARIABLES gamma, reg, rule, sigma, feux, meta
 
 
 (********************** Collision ***********************)
@@ -47,7 +47,7 @@ Init_S3 ==
                                               ![5,"R"] = "R"]
             ]
         /\ rule = ""
-        /\ msg = << <<>>, <<>> >>
+        \*/\ msg = << <<>>, <<>> >>
     
 Suiv_S3(pos, dir, S) ==
     IF      pos = 9 /\ dir = "R"               THEN 1
@@ -97,21 +97,19 @@ Init_S4 ==
         /\ reg = [
                 E  |-> events,
                 J  |-> token,
-                S  |-> switch,
-                W  |-> wait,
-                F  |-> "none",
-                H  |-> historique
+                W  |-> {}
            ]
-        /\ garde = [
-            state |-> "none",
-            requests |-> <<>>
+        /\ sigma = switch
+        /\ meta = [
+                msg   |-> << <<>>, <<>> >>,
+                garde |-> [state |-> "none", requests |-> <<>>],
+                nextG |-> "none"
            ]
         /\ feux = [traffic_lights EXCEPT ![7,"L"] = "R",
                                       ![7,"R"] = "R",
                                       ![8,"R"] = "R",
                                       ![8,"L"] = "R"]
         /\ rule = ""
-        /\ msg = << <<>>, <<>> >>
 
 
 Suiv_S4(pos, dir, S) ==   IF pos = 1 /\ dir = "L" /\ S[1] = "d" /\ S[2] = "v" THEN 3
@@ -179,7 +177,7 @@ Init_D1 ==
                                               ![3,"L"] = "R"]
             ]
         /\ rule = ""
-        /\ msg = << <<>>, <<>> >>
+        \*/\ msg = << <<>>, <<>> >>
 
 Suiv_D1(pos, dir, S) ==   IF pos = 1 /\ dir = "R" /\ S[1] = "d" THEN 2
                      ELSE IF pos = 1 /\ dir = "R" /\ S[1] = "v" THEN 3
@@ -236,7 +234,7 @@ Init_D2 ==
                                               ![3,"L"] = "R"]
             ]
         /\ rule = ""
-        /\ msg = << <<>>, <<>> >>
+        \*/\ msg = << <<>>, <<>> >>
 
 Suiv_D2(pos, dir, S) ==   IF pos = 1 /\ dir = "R" /\ S[1] = "-" THEN 3
                      ELSE IF pos = 1 /\ dir = "R" /\ S[1] = "d" THEN 2
@@ -307,7 +305,7 @@ Init_S8 ==
                                               ![5,"R"] = "R"]
             ]
         /\ rule = ""
-        /\ msg = << <<>>, <<>> >>
+        \*/\ msg = << <<>>, <<>> >>
     
 Suiv_S8(pos, dir, S) ==
     IF      pos = 1 /\ dir = "R" /\ S[1] = "d" THEN 3
@@ -363,7 +361,7 @@ Init_S4_1 ==
                                               ![8,"L"] = "R"]
             ]
         /\ rule = ""
-        /\ msg = << <<>>, <<>> >>
+        \*/\ msg = << <<>>, <<>> >>
 
 
 Init_S4_2 == 
@@ -405,7 +403,7 @@ Init_S4_2 ==
                                               ![8,"L"] = "R"]
             ]
         /\ rule = ""
-        /\ msg = << <<>>, <<>> >>
+        \*/\ msg = << <<>>, <<>> >>
 
 
 
