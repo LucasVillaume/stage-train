@@ -184,7 +184,7 @@ More technically, the regulator is characterized by 3 fields. First, it has a ge
 with $tid \in \trains$, $n \in  \Nat$, $pid \in \blocks$, $sid \in \turnouts$, $s\in \internalState$.  
 The token field of the regulator, denoted $T$, is a function  $T: \blocks \to \Nat$ associating a token level to each block.  The atom $\incr(pid)$ updates the token $pid$:  $T \cdot \incr(pid)  \triangleq T[pid \leftarrow T(pid)+1]$.
 
-The waiting field is a set $W \subseteq \blocks \times \Nat \times \trains$. A triple $(pid, n, tid) \in W$  meaning intention is that block $pid$ must be protected against train $tid$ entrance as long as $T(pid) < n$. 
+The waiting field is a set $W \subseteq \blocks \times \Nat \times \trains$. The intention of $(pid, n, tid) \in W$  is that block $pid$ must be protected against train $tid$ entrance as long as $T(pid) < n$. 
  
 
 So, the regulator is described as a tuple $R = (E, T, W)$. Applying $\incr(pid)$ to the regulator is applying it to the token field: $R \cdot \incr(pid) = (E, T \cdot \incr(pid), W)$. We use the same convention for the other atoms. 
