@@ -55,10 +55,14 @@
 \newcommand{\tid}[1]{\ensuremath{\trainFmt{t_{#1}}}}
 
 %% Regulator's Program
+\newcommand{\regTuple}[3]{\tuple{#1, #2, #3}}
 \newcommand{\evGuard}[2]{\ensuremath{\mathtt{ev}(\trainFmt{#1}, #2)}}
 \newcommand{\ev}[3]{\evGuard{#1}{#2}: #3}
 \newcommand{\incr}[1]{{\mbox{\ensuremath{\mathtt{incr}(\posFmt{#1})}}}\xspace}
 \newcommand{\turn}[2]{{\mbox{\ensuremath{\mathtt{turn}(#1, #2)}}}\xspace}
+\newcommand{\tokens}{\ensuremath{T}}
+\newcommand{\tokenOf}[1]{\ensuremath{T(\posFmt{#1})}}
+
 
 %% Signals
 \newcommand{\sigred}{{\mbox{${\color{red!50!black}\mathtt{r}}$}}\xspace}
@@ -224,16 +228,16 @@ The regulator is in charge of the execution of the routing.
 It is characterised by a routing program, a token list, and a waiting set.
 
 \begin{itemize}
-	\item The routing program specifies how the regulator should react to events (i.e. when a train enters a block). A program is a sequence of rules, which are described below.
-	\item The token list, denoted $T$, is a function  $T: \blocks \to \Nat$ associating a token level to each block. Those tokens are used to prevent multiple trains accessing the same block at the same time.
-	\item The waiting set is a set $W \subseteq \blocks \times \Nat \times \trains$. A triple $\tuple{\bid{id}, n, \tid{id}} \in W$ means block $\bid{id}$ must be protected against train $\tid{id}$ entering as long as $T(\bid{id}) < n$.
+	\item The routing program $E$ specifies how the regulator should react to events (i.e. when a train enters a block). A program is a sequence of rules, which are described below.
+	\item The token list, denoted $\tokens$, is a function  $\tokens: \blocks \to \Nat$ associating a token level to each block. Those tokens are used to prevent multiple trains accessing the same block at the same time.
+	\item The waiting set is a set $W \subseteq \blocks \times \Nat \times \trains$. A triple $\tuple{\bid{id}, n, \tid{id}} \in W$ means block $\bid{id}$ must be protected against train $\tid{id}$ entering as long as $\tokenOf{\bid{id}} < n$.
 \end{itemize}
 
-Overall, the regulator is a tuple $R = \tuple{E, T, W}$. By convention, applying $\incr{pid}$ to the regulator is applying it to the token field: $R \cdot \incr{pid} = (E, T \cdot \incr{pid}, W)$. We use the same convention for the other atoms. \todo{move below}
+Overall, the regulator is a tuple $R = \regTuple{E}{\tokens}{W}$. By convention, applying $\incr{pid}$ to the regulator is applying it to the token field: $R \cdot \incr{pid} = (E, T \cdot \incr{pid}, W)$. We use the same convention for the other atoms. \todo{move below}
 
 \paragraph{Regulator's rules.}
 
-The syntax of regulator programs is given by the terminal stmt in Grammar~\ref{gr:regulator_program}.
+The syntax of regulator programs is given by the non-terminal {\ttfamily stmt} in Grammar~\ref{gr:regulator_program}.
 The program of the regulator is a set of rules, guarded by events. A rule $\ev{\tid{id}}{n}{A}$ denotes that upon entering the $n$-th block of its route, train $\tid{id}$ will trigger actions $A$. There are four kinds of actions: 
 \begin{description}
 	\item[\incr{\bid{id}}:] this updates the token $\bid{id}$ in $T$:  $T \cdot \incr{\bid{id}}  \triangleq T[\bid{id} \leftarrow T(\bid{id})+1]$
@@ -244,8 +248,8 @@ The program of the regulator is a set of rules, guarded by events. A rule $\ev{\
 
 Notice that all actions of a rule are executed atomically. Our semantics, presented below, details actions' behaviour.
 
-\begin{grammar}[Regulator's rules, with $tid \in \trains$, $n \in  \Nat$, $\posFmt{pid} \in \blocks$, $sid \in \turnouts$, $s\in \internalState$.][h][gr:regulator_program]
-	\firstcasesubtil{stmt}{\evGuard{\tid{id}}{n} : \nonterm{A}^\star}{}
+\begin{grammar}[Regulator's rules, with $\tid{id} \in \trains$, $n \in  \Nat$, $\bid{id} \in \blocks$, $\sid{id} \in \turnouts$, $s\in \internalState$.][h][gr:regulator_program]
+	\firstcasesubtil{\ttfamily stmt}{\evGuard{\tid{id}}{n} : \nonterm{A}^\star}{}
 	\firstcase{A}{\incr{\bid{id}}}{}
 	\otherform{att(\bid{id}, v)}{}
 	\otherform{\turn{\sid{id}}{s}}{}
