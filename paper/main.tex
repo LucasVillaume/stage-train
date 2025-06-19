@@ -53,12 +53,17 @@
 \newcommand{\incr}[1]{{\mbox{\ensuremath{\mathtt{incr}(\posFmt{#1})}}}\xspace}
 \newcommand{\turn}[2]{{\mbox{\ensuremath{\mathtt{turn}(#1, #2)}}}\xspace}
 
-%% tt style
+%% Signals
 \newcommand{\sigred}{{\mbox{${\color{red!50!black}\mathtt{r}}$}}\xspace}
 \newcommand{\siggreen}{{\mbox{${\color{green!50!black}\mathtt{g}}$}}\xspace}
-
 \newcommand{\deviate}{{\mbox{$\mathtt{v}$}}\xspace}
 \newcommand{\direct}{{\mbox{$\mathtt{d}$}}\xspace}
+\newcommand{\signalF}[2]{\ensuremath{F(\posFmt{#1}, \dirFmt{#2})}}
+
+%% Reduction relation
+\newcommand{\reduces}{\ensuremath{\rightarrow}}
+
+%% tt style
 
 \newcommand{\su}[2]{{\mbox{$\mathtt{startuntil}(\dirFmt{#1}, \posFmt{#2})$}}\xspace}
 
@@ -190,7 +195,7 @@ The network is then described as a triple $(\blocks, \turnouts, \sucblock)$ wher
 
 \paragraph{Signals.}
 
-At each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $F: \blocks \times \directions \to \{ \sigred, \siggreen\}$. Given some signal status $F$, a block $\posFmt{pos}$ and a direction $dir$, $F(pos,dir) = \sigred$ means the signal guarding the exit of block $\posFmt{pos}$ in direction $\dirFmt{dir}$ is red, and we expect trains not leaving that block going in this direction\footnote{Our semantics, presented below, ensure such behaviour.}\todo{ref}. The signal status is entirely determined by the network configuration and the locking status due to the regulator\todo{Le régulateur n'est pas encore introduit, je propose de déplacer ça plus bas.}.
+At each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $F: \blocks \times \directions \to \{ \sigred, \siggreen\}$. Given some signal status $F$, a block $\posFmt{pos}$ and a direction $\dirFmt{dir}$, $\signalF{pos}{dir} = \sigred$ means the signal guarding the exit of block $\posFmt{pos}$ in direction $\dirFmt{dir}$ is red, and we expect trains not leaving that block going in this direction\footnote{Our semantics, presented in Section~\ref{sec:formal-model}, ensure such behaviour.}. The signal status is entirely determined by the network configuration and the locking status due to the regulator\todo{Le régulateur n'est pas encore introduit, je propose de déplacer ça plus bas.}.
 
 
 \subsection{Agents}
@@ -249,10 +254,13 @@ Train speed are not modeled, and we consider trains can always stop within their
 
 To help the reader, in the sequel, by convention, we use $pid$ for blocks, $sid$ for trackworks identifiers (switch id) and $tid$ for train identifiers.  
 
-\section{Modèle formel}
+\section{Model Semantics/Model dynamics}
 \label{sec:formal-model}
 
-Description par des règles. La gestion du temps est "discrétisée". On ne peut pas "choisir" quelle est la bonne règle. Gestion par des gardes, et des messages. Il y a des soucis grand pas, petit pas. Dire comment on gère les évt, comment on régule l'application des règles. 
+In the previous section, we introduced our model. In this section, we present the dynamics of our model, that is the rules that govern how our model can switch from one state to the other. The dynamics is described by means of a reduction relation, characterising the successive states of our model. We define this reduction relation using inference rules, described hereafter.
+
+\todo{Expliquer le temps discret et le mix grand pas/petit pas.}
+
 
 \subsection{Modélisation d'une liste d'odre}
 %La modélisation de notre liste d'ordre doit prendre en compte les besoins et contraintes évoqués plus haut.
