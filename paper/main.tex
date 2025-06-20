@@ -76,6 +76,9 @@
 \newcommand{\tokenOf}[1]{\ensuremath{T(\posFmt{#1})}}
 \newcommand{\regulator}{\ensuremath{R}}
 
+%% Sequences
+\newcommand{\push}[2]{\ensuremath{\mathtt{push}(#1, #2)}}
+\newcommand{\pop}[1]{\ensuremath{\mathtt{pop}(#1)}}
 
 %% Signals
 \newcommand{\sigred}{{\mbox{${\color{red!50!black}\mathtt{r}}$}}\xspace}
@@ -245,7 +248,7 @@ Each train is characterised by an identifier, a position, a direction, and a lis
 	\item Train identifiers form a set  $\trains = \{\tid{1}, \ldots, \tid{k}\}$, each train having its own identifier.
 	\item The position is the index of the block currently occupied by the train.
 	\item The direction (taken from $\directions_\dirStop = \{\dirBackward, \dirForward, \dirStop\}$) indicates the direction the train is ordered to go towards, where \dirStop indicates the train has no direction order at the moment. The direction represent the current move order, but does not mean the train is actually moving: it can be blocked at a signal.
-	\item Orders are given as a (possibly empty) sequence of orders $\su{dir}{\bid{id}}$ ($\dirFmt{dir} \in \directions$, $\bid{id} \in \blocks$). Such order states that the train direction is set to $\dirFmt{dir}$ and that the train runs until it reaches $\bid{id}$.
+	\item Orders are given as a (possibly empty) sequence of orders $\su{dir}{\bid{id}}$ ($\dirFmt{dir} \in \directions$, $\bid{id} \in \blocks$). Such order states that the train direction is set to $\dirFmt{dir}$ and that the train runs until it reaches $\bid{id}$.\todo{Le 2nd argument est une liste de positions à venir}
 \end{itemize}
 
 Thus, each train is a quadruple $\trainFmt{t} = \trainTuple{\tid{id}}{\bid{id}}{dir}{P}$ with $\tid{id}$ the train's identifier, $\bid{id}$ its position, $\dirFmt{dir}$ its direction and $P$ its sequence of orders. Trains are collected in a sequence $\trainSeq = (\trainFmt{t_1}, \ldots, \trainFmt{t_k})$ where each $\trainFmt{t_i}$ being the tuple of train $\trainFmt{i}$. 
@@ -285,7 +288,7 @@ Notice that all actions of a rule are executed atomically. Our semantics, presen
 \end{grammar}
   
 \paragraph{Model.}
-Overall, states of our model are tuples $\tuple{\trainSeq, \regulator, \switches, \signals}$ where $\trainSeq$ is a sequence of train tuples, $\regulator$ a regulator tuple, $\switches$ a network configuration (indicating trackworks states) and $\signals$ a signals state function.
+Overall, states of our model are tuples $\tuple{\trainSeq, \regulator, \switches, \signals}$ where $\trainSeq$ is a set of train tuples, $\regulator$ a regulator tuple, $\switches$ a network configuration (indicating trackworks states) and $\signals$ a signals state function. We suppose all train tuples in $\trainSeq$ have a different identifier. Notice that $\sucblock$ is not part of the state. Instead, the dynamics of the model (see below) is parameterised by $\sucblock$.
 
 \paragraph{Network hypothesis, events, and conventions.}
 On the tracks, we suppose there are sensors to detect the presence of trains. More precisely, we suppose that ---by means of the sensors--- the position of every train is known at any time. A \emph{position event} is when a train move from one block to an other one. 
@@ -335,7 +338,7 @@ We first focus on rules that affect trains. The first rule is \ruleRef{Start}, w
 
 
 \begin{mathpar}
-	\inferrule*[Left=\ruleDef{Start}]{
+	\inferrule*[left=\ruleDef{Start}]{
 		\dirFmt{d} \neq \dirFmt{d^\prime}
 	}{
 		\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\trainConcat{\su{d^\prime}{\posFmt{N}}}{P^\prime}}\}}{\regulator}{\switches}{\signals}} \\
@@ -346,7 +349,7 @@ We first focus on rules that affect trains. The first rule is \ruleRef{Start}, w
 
 Conversely, if the train program is empty (i.e. upon termination), the train stops using rule \ruleRef{Stop}.
 \begin{mathpar}
-	\inferrule*[Left=\ruleDef{Stop}]{
+	\inferrule*[left=\ruleDef{Stop}]{
 		\dirFmt{d} \neq \dirStop
 	}{
 	\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}} \\
@@ -355,10 +358,10 @@ Conversely, if the train program is empty (i.e. upon termination), the train sto
 	}
 \end{mathpar}
 
-The last two rules for trains describe what happens when a train actually moves, i.e. when its position changes. Two cases can occur, depending on the current order of the train: in \su{d}{N}, the $\posFmt{N}$ parameter is a list of blocks the train is about to encounter (including the current block), while going in direction \dirFmt{d}. Two cases occur, depending on whether \posFmt{N} contains future blocks or not. If \posFmt{N} contains only the upcoming block, then upon leaving the block, the order is removed (rule \ruleRef{UntilNext}); otherwise the upcoming block is simply popped from \posFmt{N} (rule \ruleRef{Until}). Notice that in both cases, the state of the guard changes to \guardS, meaning that signals will be updated immediately after that rule.\todo{Introduire/formaliser N}
+The last two rules for trains describe what happens when a train actually moves, i.e. when its position changes. Two cases can occur, depending on the current order of the train: in \su{d}{N}, the $\posFmt{N}$ parameter is a list of blocks the train is about to encounter (including the current block), while going in direction \dirFmt{d}. Two cases occur, depending on whether \posFmt{N} contains future blocks or not. If \posFmt{N} contains only the upcoming block, then upon leaving the block, the order is removed (rule \ruleRef{UntilNext}); otherwise the upcoming block is simply popped from \posFmt{N} (rule \ruleRef{Until}). Notice that in both cases, the state of the guard changes to \guardS, meaning that signals will be updated immediately after that rule.\todo{Introduire/formaliser N} Also, both rules create an event, pushed in the buffer, informing the regulator that the train has changed block.
 
 \begin{mathpar}
-	\inferrule*[Left=\ruleDef{Until}] {
+	\inferrule*[left=\ruleDef{Until}] {
 		\suc{\bid{id}}{d}{\switches} = \bid{id^\prime} \neq \nosuc
 		\and
 		\signalF{\bid{id}}{d} = \siggreen
@@ -367,19 +370,19 @@ The last two rules for trains describe what happens when a train actually moves,
 	}{
 		\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\trainConcat{\su{d}{[\bid{id^\prime}; \posFmt{N}]}}{P}}\}}{\regulator}{\switches}{\signals}} \\
 		\reduces		
-		\redTuple{\guardS}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id^\prime}}{d}{\trainConcat{\su{d}{[\posFmt{N}]}}{P}}\}}{\regulator}{\switches}{\signals}}
+		\redTuple{\guardS}{\push{\bufferFmt{B}}{\tuple{\tid{id}, \bid{id^\prime}}}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id^\prime}}{d}{\trainConcat{\su{d}{[\posFmt{N}]}}{P}}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
 
 \begin{mathpar}
-	\inferrule*[Left=\ruleDef{UntilNext}] {
+	\inferrule*[left=\ruleDef{UntilNext}] {
 		\suc{\bid{id}}{d}{\switches} = \bid{id^\prime} \neq \nosuc
 		\and
 		\signalF{\bid{id}}{d} = \siggreen
 	}{
 		\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\trainConcat{\su{d}{[\bid{id^\prime}]}}{P}}\}}{\regulator}{\switches}{\signals}} \\
 		\reduces		
-		\redTuple{\guardS}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id^\prime}}{d}{P}\}}{\regulator}{\switches}{\signals}}
+		\redTuple{\guardS}{\push{\bufferFmt{B}}{\tuple{\tid{id}, \bid{id^\prime}}}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id^\prime}}{d}{P}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
 
