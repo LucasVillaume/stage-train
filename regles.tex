@@ -1,5 +1,5 @@
 \documentclass[12pt]{article}
-\usepackage{package/formal-grammar}
+\usepackage{paper/package/formal-grammar}
 \usepackage{package/mathpartir}
 \usepackage{package/algorithm}
 \usepackage{package/algpseudocode}
@@ -10,7 +10,7 @@
 
 
 
-\title{Modèle 1}
+\title{Modèle 2}
 \author{}
 
 \begin{document}
@@ -19,7 +19,7 @@
 \newcommand\concat[2]{#1;#2}
 \newcommand\train[4]{(#1, #2, #3, #4)} % #1 id, #2 pos, #3 dir, #4 P
 \newcommand\trainfull[4]{\Gamma \cup \train{#1}{#2}{#3}{#4}} 
-\newcommand\reg[8]{(#1, #2, #3, #4, #5, #6, #7, #8)} % #1 Events, #2 Jetons, #3 Aiguillages, #4 File d'attente, #5 Garde, #6 Feux, #7 Buffer, #Historique
+\newcommand\reg[3]{(#1, #2, #3)} % #1 Events, #2 Jetons, #3 File d'attente
 
 \newcommand\maj[2]{#1 \gets #2} % #1 : dictionnaire, #2 : valeur
 \newcommand\majtab[3]{#1[#2] \gets #3}
@@ -51,16 +51,25 @@ Dans notre modèle, un train est représenté par un quadruplet $(id, pos, dir, 
 \end{itemize}
 
 \subsection{Représentation du régulateur}
-Le régulateur est représenté par un octuplet $(E, J, S, W, G, F, B, H)$ où :
+Le régulateur est représenté par un octuplet $(E, T, W)$ où :
 \begin{itemize}
     \item $E$ : événements du régulateur
-    \item $J$ : tableau de jetons
-    \item $S$ : tableau des aiguillages
+    \item $T$ : tableau de jetons (tokens)
     \item $W$ : file d'attente
-    \item $G$ : garde (pour la simulation grands pas)
-    \item $F$ : feux de signalisation
-    \item $B$ : buffer (unidirectionnel) de messages
-    \item $H$ : tableau des dernières positions connue des trains
+\end{itemize}
+
+\subsection{Représentation des aiguillages}
+$\Sigma$ / $\theta$ TODO
+
+\subsection{Représentation des feux de signalisation}
+Les feux de signalisation sont représentés par un dictionnaire $S$ où chaque clé
+est un couple $(numBlock, direction)$ et la valeur associée est l'état du feu de signalisation ("R", "V").
+
+\subsection{Représentation des valeurs "méta"}
+M = (B,G) où :
+\begin{itemize}
+    \item $B$ : buffer, liste des événements en attente
+    \item $G$ : garde
 \end{itemize}
 
 \subsection{Définition des prédicats et fonctions}
@@ -109,7 +118,7 @@ Le régulateur est représenté par un octuplet $(E, J, S, W, G, F, B, H)$ où :
 
 \inferrule
     {\alpha \xRightarrow{\text{!e}} \alpha' \\ \beta \xRightarrow{\text{?e}} \beta' }
-    {\alpha||\beta \Rightarrow \alpha' || \beta' } 
+    {\alpha||\beta \Rightarrow \alpha' || \beta' }
 \vspace{0.5cm}
 
 \subsection{Actions sur le train}
@@ -118,15 +127,15 @@ Le régulateur est représenté par un octuplet $(E, J, S, W, G, F, B, H)$ où :
 
 Start : 
 \inferrule
-    { dir \neq D \\ R.G = false}
-    {\trainfull{id}{pos}{dir}{\concat{SU(D,[\concat{n}{N'}])}{P'}}, R \\ \xRightarrow{\text{!ev(id,pos)}} \\ \trainfull{id}{pos}{D}{\concat{SU(D,[\concat{n}{N'}])}{P'}},R}
+    { dir \neq D \\ M.G.S = "none"}
+    {\trainfull{tid}{pid}{dir}{\concat{SU(D,[\concat{n}{N'}])}{P'}}, M \\ \xRightarrow{\text{!ev(tid,pid)}} \\ \trainfull{tid}{pid}{D}{\concat{SU(D,[\concat{n}{N'}])}{P'}}, M}
 \vspace{0.5cm}
 
 
 Stop :
 \inferrule
-    { P = \varepsilon \\ dir \neq * \\ R.G = false}
-    {\trainfull{id}{pos}{dir}{P},R \\ \xRightarrow{\text{!ev(id,pos)}} \\ \trainfull{id}{pos}{*}{P},R}
+    { P = \varepsilon \\ dir \neq * \\ M.G.S = "none"}
+    {\trainfull{tid}{pid}{dir}{P},M \\ \xRightarrow{\text{!ev(tid,pid)}} \\ \trainfull{tid}{pid}{*}{P},M}
 \vspace{0.5cm}
 
 \noindent
@@ -135,14 +144,14 @@ Pour les deux prochaines règles, on espère que les valeurs de $n$ et de $s$ so
 
 Until :
     \inferrule
-    { suiv(pos, D, S) = s \\ s \neq \varepsilon \\ {\color{PineGreen} R.F[(pos,dir)] = V} \\ {\color{PineGreen}R.G = false}}
-    {\trainfull{id}{pos}{D}{\concat{SU(D,[\concat{n}{N'}])}{P'}},R \\ \xRightarrow{\text{!ev(id,s)}} \\ \trainfull{id}{s}{D}{\concat{SU(D,[N'])}{P'}},R}
+    { suiv(pid, D, \Sigma) = s \\ s \neq \varepsilon \\  S[(pid,dir)] = V \\ M.G.S = "none"}
+    {\trainfull{tid}{pid}{D}{\concat{SU(D,[\concat{n}{N'}])}{P'}},S,\Sigma,(B,G) \\ \xRightarrow{\text{!ev(tid,s)}} \\ \trainfull{tid}{s}{D}{\concat{SU(D,[N'])}{P'}},S,\Sigma,(B,\maj{G.S}{"update"})}
 \vspace{0.5cm}
 
 Until$_{cons}$ :
     \inferrule
-        { suiv(pos, D, S) = s \\ s \neq \varepsilon \\ {\color{PineGreen} R.F[(pos,dir)] = V} \\ {\color{PineGreen} R.G = false}}
-        {\trainfull{id}{pos}{D}{\concat{SU(D,[\concat{n}{\varepsilon}])}{P'}},R \\ \Rightarrow \\ \trainfull{id}{s}{D}{P'},R}
+        { suiv(pid, D, \Sigma) = s \\ s \neq \varepsilon \\  S[(pid,dir)] = V \\ G.S = "none"}
+        {\trainfull{tid}{pid}{D}{\concat{SU(D,[\concat{n}{\varepsilon}])}{P'}},S,\Sigma,(B,G) \\ \Rightarrow \\ \trainfull{tid}{s}{D}{P'},S,\Sigma,(B,\maj{G.S}{"update"})}
 \vspace{0.5cm}
 
 \subsection{Actions sur le régulateur : simulation grands pas avec une approche petits pas}
@@ -152,56 +161,69 @@ Until$_{cons}$ :
 Recv :
 \inferrule
     { len(B) = x}
-    {\reg{E}{J}{S}{W}{G}{F}{B}{H} \\ \xRightarrow{\text{?ev(id,pos)}} \\ \reg{E}{J}{S}{W}{G}{F}{\majtab{B}{x+1}{id}}{H}}
+    {(B,G) \\ \xRightarrow{\text{?ev(tid,pid)}} \\ (\majtab{B}{x+1}{(tid,pid)},G)}
 \vspace{0.5cm}
 
 StarEvent :
 \inferrule
-    { len(B) \neq 0 \\ Head(B) = (t_{id},t_{pos})}
-    {\reg{E}{J}{S}{W}{false}{F}{B}{H} \\ \Rightarrow \\ \reg{E}{J}{S}{W}{true}{F}{B}{\majtab{H}{t_{id}}{t_{pos}}}}
+    { len(B) \neq 0 \\ G.S = "none" }
+    {(B,G) \\ \Rightarrow \\ (B,\maj{G.S}{"event"})}
 \vspace{0.5cm}
 
 Incr$_{bf}$ : %incr qui arrive avant un att
 \inferrule
-    { Head(B) = (t_{id}, t_{pos}) \\ J[j] = x \\ W[(j, x+1)] = \varepsilon }
-    {\reg{E[t_{id}] \owns \concat{incr(j)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{true}{F}{B}{H}}
+    { Head(B) = (tid, pid) \\ T[j] = x \\ W[(j, x+1)] = \varepsilon \\ G.S = "event" }
+    {\reg{E[tid] \owns \concat{incr(j)}{P'}}{T}{W},(B,G) \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{\majtab{T}{j}{x+1}}{W},(B,G)}
 \vspace{0.5cm}
 
 Incr$_{af}$ : %incr qui arrive après un att
 \inferrule
-    { Head(B) = (t_{id}, t_{pos}) \\ J[j] = x \\ W[(j, x+1)] = w_{id} \\ H[w_{id}] = w_{pos} \\ handleTL(w_{id}, w_{pos}, S) = F'}
-    {\reg{E[t_{id}] \owns \concat{incr(j)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{\majtab{J}{j}{x+1}}{S}{W}{true}{F'}{B}{H}}
+    { Head(B) = (tid, pid) \\ T[j] = x \\ getId(W, j, x+1) = wid \\ getPos(W,wid) = wpod \\ RequestS(wid,wpos,E) = req \\ G.S = "event"}
+    {\reg{E[tid] \owns \concat{incr(j)}{P'}}{T}{W}, (B,G) \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{\majtab{T}{j}{x+1}}{Remove(W,(wid,wpos,j,x))},(B,\maj{G.R}{req})}
 \vspace{0.5cm}
 
 Att$_{bf}$ : %att qui arrive avant un incr
 \inferrule
-    { Head(B) = (t_{id}, t_{pos}) \\ J[j] = x \\ x \neq y}
-    {\reg{E[t_{id}] \owns \concat{att(j,y)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{{\majtab{W}{(j,y)}{id}}}{true}{F}{B}{H}}
+    { Head(B) = (tid, pid) \\ T[j] = x \\ x \neq y \\ G.S = "event" }
+    {\reg{E[tid] \owns \concat{att(j,y)}{P'}}{T}{W}, (B,G) \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{T}{{Append(W,(tid,pid,j,y))}},(B,G)}
 \vspace{0.5cm}
 
 Att$_{af}$ : %att qui arrive après un incr
 \inferrule
-    { Head(B) = (t_{id}, t_{pos}) \\ J[j] = x \\ handleTL(id, t_{pos}, S) = F'}
-    {\reg{E[t_{id}] \owns \concat{att(j,x)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{W}{true}{F'}{B}{H}}
+    { Head(B) = (tid, pid) \\ T[j] = x \\ RequestS(tid,pid,E) = req \\ G.S = "event" }
+    {\reg{E[tid] \owns \concat{att(j,x)}{P'}}{T}{W},(B,G) \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{T}{Remove(W,(tid,pid,j,x))},(B,\maj{G.R}{req})}
 \vspace{0.5cm}
 
 Turn : 
 \inferrule
-    { Head(B) = (t_{id}, t_{pos})}
-    {\reg{E[t_{id}] \owns \concat{turn(id_{s},state)}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{\majtab{S}{id_{s}}{state}}{W}{true}{F}{B}{H}}
+    { Head(B) = (tid, pid) \\ G.S = "event"}
+    {\reg{E[tid] \owns \concat{turn(sid,state)}{P'}}{T}{W},(B,G),\Sigma \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{T}{W},(B,G),\majtab{\Sigma}{sid}{state}}
 \vspace{0.5cm}
 
 Auth : 
 \inferrule
-    { Head(B) = (t_{id}, t_{pos}) \\ handleTL(id, t_{pos}, S) = F'}
-    {\reg{E[t_{id}] \owns \concat{auth}{P'}}{J}{S}{W}{true}{F}{B}{H} \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{J}{S}{W}{true}{F'}{B}{H}}
+    { Head(B) = (tid, pid) \\ RequestS(tid,pid,E) = req \\ G.S = "event"}
+    {\reg{E[tid] \owns \concat{auth}{P'}}{T}{W},(B,G) \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{T},(B,\maj{G.R}{req})}
 \vspace{0.5cm}
 
 EndEvent :
 \inferrule
-    { Head(B) = (t_{id}, t_{pos}) \\ E[t_{id}] = \varepsilon}
-    {\reg{E}{J}{S}{W}{true}{F}{\concat{m}{B'}}{H} \\ \Rightarrow \\ \reg{E}{J}{S}{W}{false}{F}{B'}{H}}
+    { Head(B) = (tid, pid) \\ E[t_{id}] = \varepsilon \\ G.S = "event" }
+    {\reg{E}{T}{W},({\concat{m}{B'}},G) \\ \Rightarrow \\ \reg{E}{T}{W},({B'},\maj{G.S}{"update"})}
 \vspace{0.5cm}
 
+\subsection{Actions sur les feux de signalisation}
+
+ReqUpdate :
+\inferrule
+    { G.S = "update" }
+    {(B,G.R = \concat{req}{Rq'}),S \\ \Rightarrow \\ (B,G.R = Rq'),S}
+\vspace{0.5cm}
+
+Update :
+\inferrule
+    { G.S = "update" \\ G.R = \varepsilon \\ S' = UpdateAllS(S,R.W,R.E) }
+    {R,(B,G),S \\ \Rightarrow \\ R,(B,G.S = "none"),S'}
+\vspace{0.5cm}
 
 \end{document}
