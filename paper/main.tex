@@ -1,6 +1,7 @@
 \documentclass[runningheads]{llncs}
 %
 \usepackage[T1]{fontenc}
+\usepackage{hyperref}
 \usepackage{graphicx}
 \usepackage{tikz}
 \usepackage{wrapfig}
@@ -13,7 +14,10 @@
 \usepackage{ amssymb }
 
 \usepackage{package/formal-grammar}
-\usepackage{package/mathpartir}
+
+\newcommand{\ruleFmt}[1]{\textsc{(#1)}}
+\newcommand{\ruleDef}[1]{\hypertarget{#1}{\ruleFmt{#1}}}
+\newcommand{\ruleRef}[1]{\hyperlink{#1}{\ruleFmt{#1}}}
 
 \newcommand{\Nat}{{\mbox{$\mathbb{N}$}}}
 \newcommand{\tuple}[1]{\ensuremath{\langle #1\rangle}}
@@ -25,11 +29,10 @@
 \newcommand{\forward}{\ensuremath{\mathtt{f}}}
 \newcommand{\backward}{\ensuremath{\mathtt{b}}\xspace}
 \newcommand{\sucblock}{{\mathtt{suc}}}
-\newcommand{\networkConf}{\ensuremath{\Sigma}}
 
 %% Train directions
 \definecolor{dircolor}{rgb}{1.0, 0.13, 0.32}
-\newcommand{\dirFmt}[1]{{\color{dircolor}{#1}}}
+\newcommand{\dirFmt}[1]{{\color{dircolor} #1}}
 \newcommand{\dirForward}{\ensuremath{\dirFmt{\forward}}\xspace}
 \newcommand{\dirBackward}{\ensuremath{\dirFmt{\backward}}\xspace}
 \newcommand{\dirStop}{\ensuremath{\dirFmt{\star}}\xspace}
@@ -39,6 +42,7 @@
 \newcommand{\posFmt}[1]{{\color{poscolor}{#1}}}
 \newcommand{\blocks}{{\posFmt{\mathsf{B}}}}
 \newcommand{\bid}[1]{\ensuremath{\posFmt{b_{#1}}}}
+\newcommand{\suc}[3]{\ensuremath{\sucblock(\posFmt{#1}, \dirFmt{#2}, \swFmt{#3})}}
 
 %% Switches
 \definecolor{swcolor}{rgb}{0.4, 0.23, 0.56}
@@ -46,14 +50,21 @@
 \newcommand{\sid}[1]{\ensuremath{\swFmt{s_{#1}}}}
 \newcommand{\turnouts}{\swFmt{\mathsf{\theta}}}
 \newcommand{\switches}{\ensuremath{\swFmt{\sigma}}}
+\newcommand{\networkConf}{\ensuremath{\swFmt{\Sigma}}}
+\newcommand{\nosuc}{\ensuremath{\swFmt{\bot}}}
 
 %% Trains
 \definecolor{traincolor}{rgb}{0.2, 0.2, 0.6}
 \newcommand{\trainFmt}[1]{{\color{traincolor} #1}}
 \newcommand{\trainTuple}[4]{\langle \trainFmt{#1}, \posFmt{#2}, \dirFmt{#3}, #4 \rangle}
-\newcommand{\trainSeq}{\trainFmt{\Gamma}}
+\newcommand{\trainSeq}{\trainFmt{\Gamma\xspace}}
 \newcommand{\trains}{{\trainFmt{\mathsf{T}}}}
 \newcommand{\tid}[1]{\ensuremath{\trainFmt{t_{#1}}}}
+
+%% Train program
+\newcommand{\su}[2]{{\mbox{$\mathtt{startuntil}(\dirFmt{#1}, \posFmt{#2})$}}\xspace}
+\newcommand{\trainConcat}[2]{#1 \cdot #2}
+\newcommand{\emptyTrainProg}{\varepsilon}
 
 %% Regulator's Program
 \newcommand{\regTuple}[3]{\tuple{#1, #2, #3}}
@@ -74,12 +85,14 @@
 \newcommand{\signalF}[2]{\ensuremath{\signals(\posFmt{#1}, \dirFmt{#2})}}
 \newcommand{\signals}{\ensuremath{F}}
 
+%% State
+\newcommand{\stateTuple}[4]{\tuple{#1, #2, #3, #4}}
+
 %% Guard
 \definecolor{guardcolor}{rgb}{0.53, 0.66, 0.42}
 \newcommand{\guardFmt}[1]{{\color{guardcolor} \ensuremath{\mathtt{#1}}}}
 \newcommand{\guardT}{\guardFmt{T}}
-\newcommand{\guardS}{\guardFmt{S1}}
-\newcommand{\guardSS}{\guardFmt{S2}}
+\newcommand{\guardS}{\guardFmt{S}}
 \newcommand{\guardR}{\guardFmt{R}}
 
 %% Buffer
@@ -87,10 +100,11 @@
 
 %% Reduction relation
 \newcommand{\reduces}{\ensuremath{\rightarrow}}
+\newcommand{\redTuple}[3]{\ensuremath{\tuple{#1, #2, #3}}}
 
 %% tt style
 
-\newcommand{\su}[2]{{\mbox{$\mathtt{startuntil}(\dirFmt{#1}, \posFmt{#2})$}}\xspace}
+
 
 
 
@@ -215,7 +229,7 @@ Our model is has $k+1$ agents corresponding to the $k$ trains and the Regulator.
 
 We suppose that the train network can be described as follows. First, we consider a set of $n$ blocks: $\blocks = \{ \bid{1}, \bid{2}, \ldots, \bid{n}\}$. Blocks are oriented: there is a $\dirForward$ (forward) end and a $\dirBackward$ (backward) one. Let $\directions = \{\dirForward, \dirBackward\}$ be the set of directions.  Second, we consider a set of $m$ trackworks\footnote{For the sake of simplicity, in this paper, we only consider switches. Our work can easily be extended to crossings and double slip switches (e.g. crossings have only one internal state and double slip switches have four states).}: $\turnouts = \{\sid{1}, \ldots, \sid{m}\}$. Trackworks are characterized by an internal state: switches can be in direct or deviate position (next denoted '\direct' and '\deviate'). Let $\internalState$ denotes the set of internal states. A \emph{network configuration} is given by a function $\sigma: \turnouts \to \internalState$. Let $\networkConf$ denotes the set of all network configurations. For instance, for two turnouts $\theta = \{\sid{1}, \sid{2}\}$, the function $\sid{1} \mapsto \deviate, \sid{2} \mapsto \direct$ states that switch $\sid{1}$ is in deviate position while \sid{2} is in direct one. The latter function is also described via an array  $[\deviate, \direct]$ giving states in trackwork order. 
 
-The network is then described as a triple $(\blocks, \turnouts, \sucblock)$ where $\sucblock$ is a partial function indicating the following block given a starting position, a direction and a network configuration: $\sucblock: \blocks\times \directions \times \networkConf \to \blocks$. We note $\sucblock(pid, d, \sigma) = \bot$ when it is undefined. From an abstract point of view, the topology of the network reduces to that data.  
+The network is then described as a triple $(\blocks, \turnouts, \sucblock)$ where $\sucblock$ is a partial function indicating the following block given a starting position, a direction and a network configuration: $\sucblock: \blocks\times \directions \times \networkConf \to \blocks$. We note $\suc{\bid{id}}{d}{\switches} = \nosuc$ when it is undefined. From an abstract point of view, the topology of the network reduces to that data.  
 
 
 \paragraph{Signals.}
@@ -290,21 +304,19 @@ In the previous section, we introduced our model. In this section, we present th
 
 In our dynamic rules, we distinguish three kinds of rules: one kind for trains, one kind for the regulator, and one kind for updating signals. We intend the signals' and regulator's reactions to be executed atomically. On the other hand, trains evolve much slower. To reflect this behaviour in our rules, we introduce a \emph{guard}. While, in our rules, the reaction of the regulator can take several steps, to implement atomic reaction, the guard blocks the rest of the system. Similarly, upon any train movement or regulator reaction, signals can be updated. In practice, such update happens instantly. To mimick this reaction of signal w.r.t. other events, the guard is in charge of blocking the system until signals are up-to-date.
 
-Essentially, this guard is the state machine shown in Figure~\ref{fig:state_machine_guard}. The four states of the guard are \guardR, \guardS, \guardSS, and \guardT.
+Essentially, this guard is the state machine shown in Figure~\ref{fig:state_machine_guard}. The three states of the guard are \guardR, \guardS, and \guardT.
 
 \begin{figure}
 	\centering
 	\begin{tikzpicture}
 		\node[draw] (trains) {Train movements (\guardT)};
 		\node[draw, above right=of trains] (signals1) {Signals update (\guardS)};
-		\node[draw, below right=of trains] (regulator) {Regulator reaction (\guardT)};
-		\node[draw, right=of regulator] (signals2) {Signals update (\guardSS)};
+		\node[draw, below right=of trains] (regulator) {Regulator reaction (\guardR)};
 		
 		\draw[-stealth] (trains) to[bend right=20] (signals1);
 		\draw[-stealth] (signals1.west) to[bend right=20] (trains.north);
 		\draw[-stealth] (trains.south) to[bend right] (regulator.west);
-		\draw[-stealth] (regulator) to (signals2);
-		\draw[-stealth] (signals2) to[bend right=10] (trains);
+		\draw[-stealth] (regulator) to[bend right] (signals1);
 	\end{tikzpicture}
 	\caption{State machine of the guard.}
 	\label{fig:state_machine_guard}
@@ -315,6 +327,63 @@ Train events are not dealt with instantly by the regulator (e.g. two train event
 \subsection{Reduction rules}
 
 \todo{relation: (guard, buffer, état) -> (guard, buffer, etat)}
+
+
+
+\paragraph{Train rules.}
+We first focus on rules that affect trains. The first rule is \ruleRef{Start}, which is used to change the direction of a train (e.g. to go from a stop to a given direction, or to change direction if the train has to backtrack). This rule can be triggered when the program of the train begins by \su{d^\prime}{N}. This order says that the train should got in direction $\dirFmt{d^\prime}$, and on that direction, it is expected to meet the sequence of block which ids are in $\posFmt{N}$.
+
+
+\begin{mathpar}
+	\inferrule*[Left=\ruleDef{Start}]{
+		\dirFmt{d} \neq \dirFmt{d^\prime}
+	}{
+		\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\trainConcat{\su{d^\prime}{\posFmt{N}}}{P^\prime}}\}}{\regulator}{\switches}{\signals}} \\
+		\reduces
+		\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d^\prime}{\trainConcat{\su{d^\prime}{\posFmt{N}}}{P^\prime}}\}}{\regulator}{\switches}{\signals}}
+	}
+\end{mathpar}
+
+Conversely, if the train program is empty (i.e. upon termination), the train stops using rule \ruleRef{Stop}.
+\begin{mathpar}
+	\inferrule*[Left=\ruleDef{Stop}]{
+		\dirFmt{d} \neq \dirStop
+	}{
+	\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}} \\
+	\reduces
+	\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{\dirStop}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}}
+	}
+\end{mathpar}
+
+The last two rules for trains describe what happens when a train actually moves, i.e. when its position changes. Two cases can occur, depending on the current order of the train: in \su{d}{N}, the $\posFmt{N}$ parameter is a list of blocks the train is about to encounter (including the current block), while going in direction \dirFmt{d}. Two cases occur, depending on whether \posFmt{N} contains future blocks or not. If \posFmt{N} contains only the upcoming block, then upon leaving the block, the order is removed (rule \ruleRef{UntilNext}); otherwise the upcoming block is simply popped from \posFmt{N} (rule \ruleRef{Until}). Notice that in both cases, the state of the guard changes to \guardS, meaning that signals will be updated immediately after that rule.\todo{Introduire/formaliser N}
+
+\begin{mathpar}
+	\inferrule*[Left=\ruleDef{Until}] {
+		\suc{\bid{id}}{d}{\switches} = \bid{id^\prime} \neq \nosuc
+		\and
+		\signalF{\bid{id}}{d} = \siggreen
+		\and
+		\posFmt{N}\neq \varepsilon
+	}{
+		\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\trainConcat{\su{d}{[\bid{id^\prime}; \posFmt{N}]}}{P}}\}}{\regulator}{\switches}{\signals}} \\
+		\reduces		
+		\redTuple{\guardS}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id^\prime}}{d}{\trainConcat{\su{d}{[\posFmt{N}]}}{P}}\}}{\regulator}{\switches}{\signals}}
+	}
+\end{mathpar}
+
+\begin{mathpar}
+	\inferrule*[Left=\ruleDef{UntilNext}] {
+		\suc{\bid{id}}{d}{\switches} = \bid{id^\prime} \neq \nosuc
+		\and
+		\signalF{\bid{id}}{d} = \siggreen
+	}{
+		\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\trainConcat{\su{d}{[\bid{id^\prime}]}}{P}}\}}{\regulator}{\switches}{\signals}} \\
+		\reduces		
+		\redTuple{\guardS}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id^\prime}}{d}{P}\}}{\regulator}{\switches}{\signals}}
+	}
+\end{mathpar}
+
+\paragraph{Regulator rules.}
 
 \subsection{Modélisation d'une liste d'odre}
 %La modélisation de notre liste d'ordre doit prendre en compte les besoins et contraintes évoqués plus haut.
