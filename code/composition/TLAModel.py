@@ -85,11 +85,11 @@ def trajet2model(trajet):
             
     property = "Liveness ==\n" + \
                f"    /\\ <>[] /\\ gamma[1].pos = {trajet.trains[0].arr[0]}\n" + \
-                "             /\\ gamma[1].dir = \"*\"\n" + \
+                "            /\\ gamma[1].dir = \"*\"\n" + \
                f"    /\\ <>[] /\\ gamma[2].pos = {trajet.trains[1].arr[0]}\n" + \
-                "             /\\ gamma[2].dir = \"*\"\n" + \
+                "            /\\ gamma[2].dir = \"*\"\n" + \
                f"    /\\ <>[] /\\ gamma[3].pos = {trajet.trains[2].arr[0]}\n" + \
-                "             /\\ gamma[1].dir = \"*\"\n"
+                "            /\\ gamma[1].dir = \"*\"\n"
     
     property += "\nSafety ==\n" + \
                 "    /\\ [] (gamma[1].pos /= gamma[2].pos /\\ gamma[1].pos /= gamma[3].pos /\\ gamma[2].pos /= gamma[3].pos)\n"

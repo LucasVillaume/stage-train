@@ -5,24 +5,24 @@ EXTENDS Integers, TLC, Sequences, composition
 
 \* Circuit
 Suiv(pos, dir, S) ==   IF pos = 1 /\ dir = "L" /\ S[1] = "d" /\ S[2] = "v" THEN 3
-                     ELSE IF pos = 2 /\ dir = "L" /\ S[1] = "v" /\ S[2] = "v" THEN 3
-                     ELSE IF pos = 3 /\ dir = "L" /\ S[3] = "d"               THEN 7
-                     ELSE IF pos = 3 /\ dir = "L" /\ S[3] = "v"               THEN 8
-                     ELSE IF pos = 3 /\ dir = "R" /\ S[2] = "d"               THEN 4
-                     ELSE IF pos = 3 /\ dir = "R" /\ S[1] = "d" /\ S[2] = "v" THEN 1
-                     ELSE IF pos = 3 /\ dir = "R" /\ S[1] = "v" /\ S[2] = "v" THEN 2
-                     ELSE IF pos = 4 /\ dir = "L" /\ S[2] = "d"               THEN 3
-                     ELSE IF pos = 4 /\ dir = "R" /\ S[5] = "d"               THEN 5
-                     ELSE IF pos = 4 /\ dir = "R" /\ S[5] = "v"               THEN 6
-                     ELSE IF pos = 5 /\ dir = "L" /\ S[5] = "d"               THEN 4
-                     ELSE IF pos = 5 /\ dir = "R" /\ S[4] = "d"               THEN 7
-                     ELSE IF pos = 6 /\ dir = "L" /\ S[5] = "v"               THEN 4
-                     ELSE IF pos = 6 /\ dir = "R" /\ S[4] = "v"               THEN 7
-                     ELSE IF pos = 7 /\ dir = "L" /\ S[4] = "d"               THEN 5
-                     ELSE IF pos = 7 /\ dir = "L" /\ S[4] = "v"               THEN 6
-                     ELSE IF pos = 7 /\ dir = "R" /\ S[3] = "d"               THEN 3
-                     ELSE IF pos = 8 /\ dir = "R" /\ S[3] = "v"               THEN 3
-                     ELSE -1
+                ELSE IF pos = 2 /\ dir = "L" /\ S[1] = "v" /\ S[2] = "v" THEN 3
+                ELSE IF pos = 3 /\ dir = "L" /\ S[3] = "d"               THEN 7
+                ELSE IF pos = 3 /\ dir = "L" /\ S[3] = "v"               THEN 8
+                ELSE IF pos = 3 /\ dir = "R" /\ S[2] = "d"               THEN 4
+                ELSE IF pos = 3 /\ dir = "R" /\ S[1] = "d" /\ S[2] = "v" THEN 1
+                ELSE IF pos = 3 /\ dir = "R" /\ S[1] = "v" /\ S[2] = "v" THEN 2
+                ELSE IF pos = 4 /\ dir = "L" /\ S[2] = "d"               THEN 3
+                ELSE IF pos = 4 /\ dir = "R" /\ S[5] = "d"               THEN 5
+                ELSE IF pos = 4 /\ dir = "R" /\ S[5] = "v"               THEN 6
+                ELSE IF pos = 5 /\ dir = "L" /\ S[5] = "d"               THEN 4
+                ELSE IF pos = 5 /\ dir = "R" /\ S[4] = "d"               THEN 7
+                ELSE IF pos = 6 /\ dir = "L" /\ S[5] = "v"               THEN 4
+                ELSE IF pos = 6 /\ dir = "R" /\ S[4] = "v"               THEN 7
+                ELSE IF pos = 7 /\ dir = "L" /\ S[4] = "d"               THEN 5
+                ELSE IF pos = 7 /\ dir = "L" /\ S[4] = "v"               THEN 6
+                ELSE IF pos = 7 /\ dir = "R" /\ S[3] = "d"               THEN 3
+                ELSE IF pos = 8 /\ dir = "R" /\ S[3] = "v"               THEN 3
+                ELSE -1
 
 
 \* Utilitaire
@@ -37,8 +37,8 @@ NextAttTurn(id, evs) == \*evs : séquence d'events pour un train / evCourante : 
     LET 
         res == SelectSeq(evs,IsAttTurnInSeq)
     IN
-        IF Len(res) /= 0 THEN res[1][1]\*Il existe un prochain attendre
-        ELSE evs[Len(evs)][1]\*Il n'existe pas de prochain attendre (aller à la fin)
+        IF Len(res) /= 0 THEN res[1][1]   \*Il existe un prochain attendre
+        ELSE evs[Len(evs)][1]    \*Il n'existe pas de prochain attendre (aller à la fin)
 
 \* règles
         \* Train
@@ -133,11 +133,9 @@ StartEvent == \*Simuler une approche grands pas
         /\ UNCHANGED msg
 
 
-Turn == \* normalement ok pour lui
+Turn ==
     LET
         id == Head(msg[1])[1]
-        \*rel == Head(msg[1])[2]
-        \*event == reg.E[id][rel] \* Sequence d'ordre de l'event
         event == Head(reg.E[id])
         order == Head(event[2])
         numAig == order[2]
@@ -157,8 +155,6 @@ Turn == \* normalement ok pour lui
 Att_bf == 
     LET
         id == Head(msg[1])[1]
-        \*rel == Head(msg[1])[2]
-        \*event == reg.E[id][rel] \* Sequence d'ordre de l'event
         event == Head(reg.E[id])
         order == Head(event[2])
         jet == order[2]
@@ -175,11 +171,9 @@ Att_bf ==
                               !.E[id][1][2] = Tail(event[2])]
         /\ UNCHANGED msg
 
-Att_af == \* TODO: attention à findSection, NextAtt etc...
+Att_af ==
     LET
         id == Head(msg[1])[1]
-        \*rel == Head(msg[1])[2]
-        \*event == reg.E[id][rel] \* Sequence d'ordre de l'event
         event == Head(reg.E[id])
         order == Head(event[2])
         jet == order[2]
@@ -206,8 +200,6 @@ Att_af == \* TODO: attention à findSection, NextAtt etc...
 Incr_bf ==
     LET
         id == Head(msg[1])[1]
-        \*rel == Head(msg[1])[2]
-        \*event == reg.E[id][rel] \* Sequence d'ordre de l'event
         event == Head(reg.E[id])
         order == Head(event[2])
         jet == order[2]
@@ -226,11 +218,9 @@ Incr_bf ==
         /\ UNCHANGED msg
 
 
-Incr_af == \* TODO: attention à findSection, NextAtt etc...
+Incr_af == 
     LET
         id == Head(msg[1])[1]
-        \*rel == Head(msg[1])[2]
-        \*event == reg.E[id][rel] \* Sequence d'ordre de l'event
         event == Head(reg.E[id])
         order == Head(event[2])
         jet == order[2]
@@ -256,11 +246,9 @@ Incr_af == \* TODO: attention à findSection, NextAtt etc...
         /\ UNCHANGED msg
 
 
-Auth == \* TODO: attention à findSection, NextAtt etc...
+Auth ==
     LET
         id == Head(msg[1])[1]
-        \*rel == Head(msg[1])[2]
-        \*event == reg.E[id][rel] \* Sequence d'ordre de l'event
         event == Head(reg.E[id])
         order == Head(event[2])
         subseqEv == SubSeq(reg.E[id],2,Len(reg.E[id]))
@@ -285,8 +273,6 @@ Auth == \* TODO: attention à findSection, NextAtt etc...
 EndEvent ==
     LET
         id == Head(msg[1])[1]
-        \*rel == Head(msg[1])[2]
-        \*event == reg.E[id][rel] \* Sequence d'ordre de l'event
         event == Head(reg.E[id])
     IN
         /\ reg.G = TRUE
@@ -333,5 +319,5 @@ Spec == Init /\ [][Next]_<<gamma,reg,rule,msg>> /\ WF_<<gamma,reg,rule,msg>>(Nex
 
 =============================================================================
 \* Modification History
-\* Last modified Fri Jun 06 10:28:23 CEST 2025 by lucas
+\* Last modified Tue Jun 10 13:49:57 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas
