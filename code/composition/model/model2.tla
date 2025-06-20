@@ -1,77 +1,32 @@
 ----------------------------- MODULE model2 -----------------------------
 
 
-EXTENDS Integers, TLC, Sequences\*, scenario_m2 (*
-VARIABLE gamma, reg, sigma, feux, meta, rule 
+EXTENDS Integers, TLC, Sequences, composition
 
-
-nbCanton == 4 \* Nombre de canton du circuit
-maxVal == 3 \* Valeur max que peut prendre un jeton
-nbTrain == 2
-
-\*Trains
-train1 == [
-    id |-> 1,
-    pos |-> 1,
-    dir |-> "*",
-    prog |-> << <<"StartUntil", "R", <<2,3>> >> >>
-]
-
-train2 == [
-    id |-> 2,
-    pos |-> 4,
-    dir |-> "*",
-    prog |-> << <<"StartUntil", "L", <<2,1>> >> >>
-]
-
-\* Régulateur
-events == <<
-        << <<1,<<>>>>, <<2,<<>>>>, <<3,<<<<"turn",1,"v">>,<<"incr",2>>>>>> >>,
-        << <<4,<<<<"att",2,1>>>>>>, <<2,<<>>>>, <<1,<<>>>> >>
-     >>
-
-token == [x \in 1..nbCanton |-> 0]
-
-wait == [x \in (1..nbCanton) \X (0..maxVal) |-> -1]
-
-switch == <<"d">>
-
-historique == [x \in (1..nbTrain) |-> -1]
-
-traffic_lights == [x \in (1..nbCanton) \X {"L","R"} |-> "V"]
-
-Suiv(pos, dir, S) == IF pos = 1 /\ dir = "R"               THEN 2
-                ELSE IF pos = 2 /\ dir = "R" /\ S[1] = "d" THEN 3
-                ELSE IF pos = 2 /\ dir = "R" /\ S[1] = "v" THEN 4
-                ELSE IF pos = 2 /\ dir = "L"               THEN 1
-                ELSE IF pos = 3 /\ dir = "L" /\ S[1] = "d" THEN 2
-                ELSE IF pos = 4 /\ dir = "L" /\ S[1] = "v" THEN 2
-                ELSE -1
-
-Init == 
-    /\ gamma = <<train1,train2>>
-    /\ reg = [
-            E |-> events,
-            J |-> token,
-            W |-> {}
-       ]
-    /\ sigma = switch
-    /\ feux = [traffic_lights EXCEPT ![3,"L"] = "R",
-                                     ![3,"R"] = "R",
-                                     ![4,"L"] = "R",
-                                     ![4,"R"] = "R"]
-    /\ meta = [
-            msg   |-> << <<>>, <<>> >>,
-            garde |-> [state |-> "none", requests |-> <<>>]
-       ]
-    /\ rule = "" \* Mesure de débug, pas présent dans le modèle
-
-\* *)
-\*Init == Init_S4
-\*Suiv(pos, dir, S) == Suiv_S4(pos, dir, S)
+\* Circuit
+Suiv(pos, dir, S) ==   IF pos = 1 /\ dir = "L" /\ S[1] = "d" /\ S[2] = "v" THEN 3
+                     ELSE IF pos = 2 /\ dir = "L" /\ S[1] = "v" /\ S[2] = "v" THEN 3
+                     ELSE IF pos = 3 /\ dir = "L" /\ S[3] = "d"               THEN 7
+                     ELSE IF pos = 3 /\ dir = "L" /\ S[3] = "v"               THEN 8
+                     ELSE IF pos = 3 /\ dir = "R" /\ S[2] = "d"               THEN 4
+                     ELSE IF pos = 3 /\ dir = "R" /\ S[1] = "d" /\ S[2] = "v" THEN 1
+                     ELSE IF pos = 3 /\ dir = "R" /\ S[1] = "v" /\ S[2] = "v" THEN 2
+                     ELSE IF pos = 4 /\ dir = "L" /\ S[2] = "d"               THEN 3
+                     ELSE IF pos = 4 /\ dir = "R" /\ S[5] = "d"               THEN 5
+                     ELSE IF pos = 4 /\ dir = "R" /\ S[5] = "v"               THEN 6
+                     ELSE IF pos = 5 /\ dir = "L" /\ S[5] = "d"               THEN 4
+                     ELSE IF pos = 5 /\ dir = "R" /\ S[4] = "d"               THEN 7
+                     ELSE IF pos = 6 /\ dir = "L" /\ S[5] = "v"               THEN 4
+                     ELSE IF pos = 6 /\ dir = "R" /\ S[4] = "v"               THEN 7
+                     ELSE IF pos = 7 /\ dir = "L" /\ S[4] = "d"               THEN 5
+                     ELSE IF pos = 7 /\ dir = "L" /\ S[4] = "v"               THEN 6
+                     ELSE IF pos = 7 /\ dir = "R" /\ S[3] = "d"               THEN 3
+                     ELSE IF pos = 8 /\ dir = "R" /\ S[3] = "v"               THEN 3
+                     ELSE -1
 
 
 \* Utilitaire
+
 
 Min(S) == CHOOSE x \in S : \A y \in S : x =< y
 
@@ -92,10 +47,10 @@ NextAttTurn(id, evs) == \*evs : séquence d'events pour un train / evCourante : 
 
 IsWaiting(W, block, tvalue) == \E seq \in W : seq[3] = block /\ seq[4] = tvalue
 
-getWaiting(W, block, tvalue) == CHOOSE seq \in W : seq[3] = block /\ seq[4] = tvalue  
-
-reversedGetWaiting(W, tid) == CHOOSE seq \in W : seq[1] = tid      
+getWaiting(W, block, tvalue) == CHOOSE seq \in W : seq[3] = block /\ seq[4] = tvalue        
         
+reversedGetWaiting(W, tid) == CHOOSE seq \in W : seq[1] = tid    
+
 RequestUpdate(req,F) == [ f \in DOMAIN F |-> IF f[1] = req[1] THEN req[2] ELSE F[f] ]
 
 FindLock(W,E) ==
@@ -110,6 +65,7 @@ FindLock(W,E) ==
         ELSE \* se déplace
             NextAttTurn(x,E[x])
     ]        
+    
 
         
 UpdateS(S,W,E) == \*S pour Signals
@@ -427,17 +383,6 @@ IDLE ==
     /\ UNCHANGED meta
     /\ UNCHANGED reg
     /\ UNCHANGED sigma
-    
-
-\* Propriétés
-
-Liveness == 
-    /\  <>[] /\ gamma[1].pos = 3
-             /\ gamma[1].dir = "*"
-    /\  <>[] /\ gamma[2].pos = 1
-             /\ gamma[2].dir = "*"
-
-Safety == [] (gamma[1].pos /= gamma[2].pos)
 
 \* Spec
 
@@ -461,13 +406,4 @@ Next ==
         
 
 Spec == Init /\ [][Next]_<<gamma,reg,sigma,feux,meta,rule>> /\ WF_<<gamma,reg,sigma,feux,meta,rule>>(Next)
-\* WF_ : Weak Fairness, "si une règle peut être appliquée, je l'applique"
-
-set == {<<1,4,5,7>>,<<2,6,5,8>>}
-
-Eval ==  \E seq \in set : seq[1] = 2 \*SelectSeq(<< <<8,<<<<"">>, <<"">>, <<" ">>>>>>, <<2,<<<<"att">>>>>> >>, IsAttTurnInSeq)[1][1] \*"Hello" \o " World !"
-
 =============================================================================
-\* Modification History
-\* Last modified Thu Jun 19 10:36:17 CEST 2025 by lucas
-\* Created Fri May 09 16:46:37 CEST 2025 by lucas

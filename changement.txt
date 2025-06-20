@@ -59,3 +59,14 @@ direction pour FindSection (l'event pouvait être exécuter avant le changement 
 
 - Modèle n°2, on extrait la garde et les feux du régulateur pour les considérer comme "élément du modèle" à part entière.
 	- Permets d'avoir une sécurité de plus apportée par les feux (plus proche du réel)
+
+---------
+
+- supprime H à la faveur d'une réecrire de W qui devient un set de quadruplet (tid,pid,canton,token-value)
+    - simplifie l'écriture du régulateur et retrouve les "lock" plus simplement 
+- extrait les aiguillages du régulateurs pour les considérer comme une variables à part entière
+    - pas d'influence sur les règles
+- mise à jour des feux après chaque mouvement de train ou fin d'event (même si pas nécessaire)
+    - simule au mieux le vrai comportement
+
+---------
