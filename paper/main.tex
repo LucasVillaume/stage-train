@@ -38,13 +38,14 @@
 \definecolor{poscolor}{rgb}{0.6, 0.45, 0.32}
 \newcommand{\posFmt}[1]{{\color{poscolor}{#1}}}
 \newcommand{\blocks}{{\posFmt{\mathsf{B}}}}
-\newcommand{\bid}[1]{\posFmt{b_{#1}}}
+\newcommand{\bid}[1]{\ensuremath{\posFmt{b_{#1}}}}
 
 %% Switches
 \definecolor{swcolor}{rgb}{0.4, 0.23, 0.56}
 \newcommand{\swFmt}[1]{{\color{swcolor}{#1}}}
 \newcommand{\sid}[1]{\ensuremath{\swFmt{s_{#1}}}}
 \newcommand{\turnouts}{\swFmt{\mathsf{\theta}}}
+\newcommand{\switches}{\ensuremath{\swFmt{\sigma}}}
 
 %% Trains
 \definecolor{traincolor}{rgb}{0.2, 0.2, 0.6}
@@ -62,6 +63,7 @@
 \newcommand{\turn}[2]{{\mbox{\ensuremath{\mathtt{turn}(#1, #2)}}}\xspace}
 \newcommand{\tokens}{\ensuremath{T}}
 \newcommand{\tokenOf}[1]{\ensuremath{T(\posFmt{#1})}}
+\newcommand{\regulator}{\ensuremath{R}}
 
 
 %% Signals
@@ -69,7 +71,19 @@
 \newcommand{\siggreen}{{\mbox{${\color{green!50!black}\mathtt{g}}$}}\xspace}
 \newcommand{\deviate}{{\mbox{$\mathtt{v}$}}\xspace}
 \newcommand{\direct}{{\mbox{$\mathtt{d}$}}\xspace}
-\newcommand{\signalF}[2]{\ensuremath{F(\posFmt{#1}, \dirFmt{#2})}}
+\newcommand{\signalF}[2]{\ensuremath{\signals(\posFmt{#1}, \dirFmt{#2})}}
+\newcommand{\signals}{\ensuremath{F}}
+
+%% Guard
+\definecolor{guardcolor}{rgb}{0.53, 0.66, 0.42}
+\newcommand{\guardFmt}[1]{{\color{guardcolor} \ensuremath{\mathtt{#1}}}}
+\newcommand{\guardT}{\guardFmt{T}}
+\newcommand{\guardS}{\guardFmt{S1}}
+\newcommand{\guardSS}{\guardFmt{S2}}
+\newcommand{\guardR}{\guardFmt{R}}
+
+%% Buffer
+\newcommand{\bufferFmt}[1]{#1}
 
 %% Reduction relation
 \newcommand{\reduces}{\ensuremath{\rightarrow}}
@@ -256,6 +270,8 @@ Notice that all actions of a rule are executed atomically. Our semantics, presen
 	\otherform{auth}{}
 \end{grammar}
   
+\paragraph{Model.}
+Overall, states of our model are tuples $\tuple{\trainSeq, \regulator, \switches, \signals}$ where $\trainSeq$ is a sequence of train tuples, $\regulator$ a regulator tuple, $\switches$ a network configuration (indicating trackworks states) and $\signals$ a signals state function.
 
 \paragraph{Network hypothesis, events, and conventions.}
 On the tracks, we suppose there are sensors to detect the presence of trains. More precisely, we suppose that ---by means of the sensors--- the position of every train is known at any time. A \emph{position event} is when a train move from one block to an other one. 
@@ -270,6 +286,35 @@ In the previous section, we introduced our model. In this section, we present th
 
 \todo{Expliquer le temps discret et le mix grand pas/petit pas.}
 
+\subsection{Scheduling and communications}
+
+In our dynamic rules, we distinguish three kinds of rules: one kind for trains, one kind for the regulator, and one kind for updating signals. We intend the signals' and regulator's reactions to be executed atomically. On the other hand, trains evolve much slower. To reflect this behaviour in our rules, we introduce a \emph{guard}. While, in our rules, the reaction of the regulator can take several steps, to implement atomic reaction, the guard blocks the rest of the system. Similarly, upon any train movement or regulator reaction, signals can be updated. In practice, such update happens instantly. To mimick this reaction of signal w.r.t. other events, the guard is in charge of blocking the system until signals are up-to-date.
+
+Essentially, this guard is the state machine shown in Figure~\ref{fig:state_machine_guard}. The four states of the guard are \guardR, \guardS, \guardSS, and \guardT.
+
+\begin{figure}
+	\centering
+	\begin{tikzpicture}
+		\node[draw] (trains) {Train movements (\guardT)};
+		\node[draw, above right=of trains] (signals1) {Signals update (\guardS)};
+		\node[draw, below right=of trains] (regulator) {Regulator reaction (\guardT)};
+		\node[draw, right=of regulator] (signals2) {Signals update (\guardSS)};
+		
+		\draw[-stealth] (trains) to[bend right=20] (signals1);
+		\draw[-stealth] (signals1.west) to[bend right=20] (trains.north);
+		\draw[-stealth] (trains.south) to[bend right] (regulator.west);
+		\draw[-stealth] (regulator) to (signals2);
+		\draw[-stealth] (signals2) to[bend right=10] (trains);
+	\end{tikzpicture}
+	\caption{State machine of the guard.}
+	\label{fig:state_machine_guard}
+\end{figure}
+
+Train events are not dealt with instantly by the regulator (e.g. two train events can happen before the regulator begins to react to the first one). To characterise this behaviour, train events are stored in a buffer until the regulator uses them. Train events are tuples \tuple{\tid{id}, \bid{id}}, indicating that the train with id $\tid{id}$ enters block \bid{id}. A buffer \bufferFmt{B} is a sequence of such events.
+
+\subsection{Reduction rules}
+
+\todo{relation: (guard, buffer, état) -> (guard, buffer, etat)}
 
 \subsection{Modélisation d'une liste d'odre}
 %La modélisation de notre liste d'ordre doit prendre en compte les besoins et contraintes évoqués plus haut.
