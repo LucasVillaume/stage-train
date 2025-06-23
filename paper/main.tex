@@ -54,6 +54,7 @@
 \newcommand{\switches}{\ensuremath{\swFmt{\sigma}}}
 \newcommand{\networkConf}{\ensuremath{\swFmt{\Sigma}}}
 \newcommand{\nosuc}{\ensuremath{\swFmt{\bot}}}
+\newcommand{\updateSignals}[3]{\ensuremath{#1[\swFmt{#2}\leftarrow #3]}}
 
 %% Trains
 \definecolor{traincolor}{rgb}{0.2, 0.2, 0.6}
@@ -68,6 +69,11 @@
 \newcommand{\trainConcat}[2]{#1 \cdot #2}
 \newcommand{\emptyTrainProg}{\varepsilon}
 
+%% Regulator
+\newcommand{\handlerOf}[2]{\ensuremath{#1[\trainFmt{#2}]}}
+\newcommand{\popHandlerHead}[2]{\ensuremath{{\tt pop}(#1[\trainFmt{#2}])}}
+\newcommand{\substHandlerHead}[3]{\ensuremath{#1[\trainFmt{#2} \leftarrow #3]}}
+
 %% Regulator's Program
 \newcommand{\regTuple}[3]{\tuple{#1, #2, #3}}
 \newcommand{\evGuard}[2]{\ensuremath{\mathtt{ev}(\trainFmt{#1}, #2)}}
@@ -77,6 +83,8 @@
 \newcommand{\tokens}{\ensuremath{T}}
 \newcommand{\tokenOf}[1]{\ensuremath{T(\posFmt{#1})}}
 \newcommand{\regulator}{\ensuremath{R}}
+\newcommand{\wait}[2]{{\mbox{\ensuremath{\mathtt{wait}(\posFmt{#1}, #2)}}}\xspace}
+\newcommand{\regConcat}[2]{#1 \cdot #2}
 
 %% Sequences
 \newcommand{\push}[2]{\ensuremath{\mathtt{push}(#1, #2)}}
@@ -102,6 +110,12 @@
 
 %% Buffer
 \newcommand{\bufferFmt}[1]{#1}
+\newcommand{\head}[1]{\ensuremath{{\tt hd}(#1)}}
+\newcommand{\buflen}[1]{\ensuremath{{\tt len}(\bufferFmt{#1})}}
+\newcommand{\bufhead}[1]{\head{\bufferFmt{#1}}}
+\newcommand{\buftail}[1]{\ensuremath{{\tt tl}(\bufferFmt{#1})}}
+\newcommand{\emptyList}{\ensuremath{\varepsilon}}
+
 
 %% Reduction relation
 \newcommand{\reduces}{\ensuremath{\rightarrow}}
@@ -232,7 +246,7 @@ Our model is has $k+1$ agents corresponding to the $k$ trains and the Regulator.
 
 \paragraph{The network.} 
 
-We suppose that the train network can be described as follows. First, we consider a set of $n$ blocks: $\blocks = \{ \bid{1}, \bid{2}, \ldots, \bid{n}\}$. Blocks are oriented: there is a $\dirForward$ (forward) end and a $\dirBackward$ (backward) one. Let $\directions = \{\dirForward, \dirBackward\}$ be the set of directions.  Second, we consider a set of $m$ trackworks\footnote{For the sake of simplicity, in this paper, we only consider switches. Our work can easily be extended to crossings and double slip switches (e.g. crossings have only one internal state and double slip switches have four states).}: $\turnouts = \{\sid{1}, \ldots, \sid{m}\}$. Trackworks are characterized by an internal state: switches can be in direct or deviate position (next denoted '\direct' and '\deviate'). Let $\internalState$ denotes the set of internal states. A \emph{network configuration} is given by a function $\sigma: \turnouts \to \internalState$. Let $\networkConf$ denotes the set of all network configurations. For instance, for two turnouts $\theta = \{\sid{1}, \sid{2}\}$, the function $\sid{1} \mapsto \deviate, \sid{2} \mapsto \direct$ states that switch $\sid{1}$ is in deviate position while \sid{2} is in direct one. The latter function is also described via an array  $[\deviate, \direct]$ giving states in trackwork order. 
+We suppose that the train network can be described as follows. First, we consider a set of $n$ blocks: $\blocks = \{ \bid{1}, \bid{2}, \ldots, \bid{n}\}$. Blocks are oriented: there is a $\dirForward$ (forward) end and a $\dirBackward$ (backward) one. Let $\directions = \{\dirForward, \dirBackward\}$ be the set of directions.  Second, we consider a set of $m$ trackworks\footnote{For the sake of simplicity, in this paper, we only consider switches. Our work can easily be extended to crossings and double slip switches (e.g. crossings have only one internal state and double slip switches have four states).}: $\turnouts = \{\sid{1}, \ldots, \sid{m}\}$. Trackworks are characterized by an internal state: switches can be in direct or deviate position (next denoted '\direct' and '\deviate'). Let $\internalState$ denotes the set of internal states. A \emph{network configuration} is given by a function $\sigma: \turnouts \to \internalState$. Let $\networkConf$ denotes the set of all network configurations. For instance, for two turnouts $\theta = \{\sid{1}, \sid{2}\}$, the function $\sid{1} \mapsto \deviate, \sid{2} \mapsto \direct$ states that switch $\sid{1}$ is in deviate position while \sid{2} is in direct one. The latter function is also described via an array  $[\deviate, \direct]$ giving states in trackwork order.
 
 The network is then described as a triple $(\blocks, \turnouts, \sucblock)$ where $\sucblock$ is a partial function indicating the following block given a starting position, a direction and a network configuration: $\sucblock: \blocks\times \directions \times \networkConf \to \blocks$. We note $\suc{\bid{id}}{d}{\switches} = \nosuc$ when it is undefined. From an abstract point of view, the topology of the network reduces to that data.  
 
@@ -261,30 +275,34 @@ The regulator is in charge of the execution of the routing.
 It is characterised by a routing program, a token list, and a waiting set.
 
 \begin{itemize}
-	\item The routing program $E$ specifies how the regulator should react to events (i.e. when a train enters a block). A program is a sequence of rules, which are described below.
+	\item The routing program $E$ specifies how the regulator should react to events (i.e. when a train enters a block). A program is a collection of rules to apply upon each event (called an \emph{event handler}). We detail further event handlers below.
 	\item The token list, denoted $\tokens$, is a function  $\tokens: \blocks \to \Nat$ associating a token level to each block. Those tokens are used to prevent multiple trains accessing the same block at the same time.
 	\item The waiting set is a set $W \subseteq \blocks \times \Nat \times \trains$. A triple $\tuple{\bid{id}, n, \tid{id}} \in W$ means block $\bid{id}$ must be protected against train $\tid{id}$ entering as long as $\tokenOf{\bid{id}} < n$.
 \end{itemize}
 
 Overall, the regulator is a tuple $R = \regTuple{E}{\tokens}{W}$. By convention, applying $\incr{pid}$ to the regulator is applying it to the token field: $R \cdot \incr{pid} = (E, T \cdot \incr{pid}, W)$. We use the same convention for the other atoms. \todo{move below}
 
-\paragraph{Regulator's rules.}
+For the sake of clarity $\handlerOf{E}{\tid{id}}$ denotes the list of handlers for events of train $\tid{id}$.
+
+
+\paragraph{Regulator's event handlers.}
 
 The syntax of regulator programs is given by the non-terminal {\ttfamily stmt} in Grammar~\ref{gr:regulator_program}.
-The program of the regulator is a set of rules, guarded by events. A rule $\ev{\tid{id}}{n}{A}$ denotes that upon entering the $n$-th block of its route, train $\tid{id}$ will trigger actions $A$. There are four kinds of actions: 
+The program of the regulator is a set of rules, guarded by events. A rule $\ev{\tid{id}}{n}{A}$ denotes that upon entering the $n$-th block of its route, train $\tid{id}$ will trigger actions $A$. The list of actions in the handler are of four kinds: 
 \begin{description}
 	\item[\incr{\bid{id}}:] this updates the token $\bid{id}$ in $T$:  $T \cdot \incr{\bid{id}}  \triangleq T[\bid{id} \leftarrow T(\bid{id})+1]$
-	\item [att(pid, v):] ...\todo{}
+	\item [\wait{\bid{id}}{i}:] ...\todo{}
 	\item [\turn{\sid{id}}{s}:] this instructs the regulator to turn the switch $\sid{id}$ into the $s$ state: $\sigma\cdot\turn{\sid{id}}{s} = \sigma[\sid{id} \leftarrow s]$
 	\item [auth:] ...\todo{}
 \end{description}
 
 Notice that all actions of a rule are executed atomically. Our semantics, presented below, details actions' behaviour.
+\todo{Clarifier Event, indexation par train, qui donne une liste de handlers, eux-même une liste d'ordres}
 
 \begin{grammar}[Regulator's rules, with $\tid{id} \in \trains$, $n \in  \Nat$, $\bid{id} \in \blocks$, $\sid{id} \in \turnouts$, $s\in \internalState$.][h][gr:regulator_program]
 	\firstcasesubtil{\ttfamily stmt}{\evGuard{\tid{id}}{n} : \nonterm{A}^\star}{}
 	\firstcase{A}{\incr{\bid{id}}}{}
-	\otherform{att(\bid{id}, v)}{}
+	\otherform{\wait{\bid{id}}{i}}{}
 	\otherform{\turn{\sid{id}}{s}}{}
 	\otherform{auth}{}
 \end{grammar}
@@ -345,7 +363,7 @@ We first focus on rules that affect trains. The first rule is \ruleRef{Start}, w
 	}{
 		\hspace{3mm} \redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{P}\}}{\regulator}{\switches}{\signals}} \\
 		\reduces
-		\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d^\prime}{P}\}}{\regulator}{\switches}{\signals}}
+		\redTuple{\guardT}{\push{B}{\tuple{\tid{id}, \bid{id}}}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d^\prime}{P}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
 
@@ -356,7 +374,7 @@ Conversely, if the train program is empty (i.e. upon termination), the train sto
 	}{
 	\hspace{4mm}  \redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}} \\
 	\reduces
-	\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{\dirStop}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}}
+	\redTuple{\guardT}{\push{B}{\tuple{\tid{id}, \bid{id}}}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{\dirStop}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
 
@@ -386,9 +404,50 @@ The last two rules for trains describe what happens when a train actually moves,
 		\reduces		
 		\redTuple{\guardS}{\push{\bufferFmt{B}}{\tuple{\tid{id}, \bid{id^\prime}}}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id^\prime}}{d}{P}\}}{\regulator}{\switches}{\signals}}
 	}
-\end{mathpar}
+\end{mathpar}\todo{Pas de message dans ce cas là?}
 
 \paragraph{Regulator rules.}
+
+When the regulator reacts to a train event, it executes atomically all rules associated with that event. To implement this atomic execution, the first regulator event is to change the guard to \guardR (see Fig. \ref{fig:state_machine_guard}).
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{StartEvent}] {
+		\buflen{B} \neq 0
+	}{
+		\tuple{\guardT, B, R} \reduces \tuple{\guardR, B, R}
+	}
+\end{mathpar}
+
+Then, the regulator lookup the first event on the buffer, and executes all the rules in the event handler associated with this event. All actions are treated in order, and when the list of remaining actions is empty, the handling terminates and the event is removed of the buffer. We introduce 6 reduction rules for the 4 possible kinds of orders (\incr{\bid{id}} and \wait{\bid{id}}{i} have two rules).
+
+Rule \ruleRef{Turn} triggers when a \turn{\sid{id}}{s} is encountered in the event handler. It updates the state of the targeted switch.
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{Turn}]{
+		\bufhead{B} = \tuple{\tid{id}, \bid{id}}
+		\and
+		\head{\handlerOf{E}{\tid{id}}} = \regConcat{\turn{\sid{id}}{s}}{A^\prime}
+	}{
+	\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
+	\reduces
+	\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{\substHandlerHead{E}{\tid{id}}{A^\prime}, T, W}}{\updateSignals{\switches}{\sid{id}}{s}}{\signals}}
+	}
+\end{mathpar}
+
+\todo{other rules}
+
+Finally, when the handler of the pending event has no action leftover, the regulator terminates its handling: it removes the (now empty) head of $\handlerOf{E}{\tid{id}}$, the head of the buffer, and returns the guard to state $\guardT$.
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{EndEvent}]{
+		\bufhead{B} = \tuple{\tid{id}, \bid{id}}
+		\and
+		\head{\handlerOf{E}{\tid{id}}} = \emptyList
+	}{
+		\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
+		\reduces
+		\redTuple{\guardT}{\buftail{B}}{\stateTuple{\trainSeq}{\tuple{\popHandlerHead{E}{\tid{id}}, T, W}}{\switches}{\signals}}
+	}
+\end{mathpar}
 
 \subsection{Modélisation d'une liste d'odre}
 %La modélisation de notre liste d'ordre doit prendre en compte les besoins et contraintes évoqués plus haut.
