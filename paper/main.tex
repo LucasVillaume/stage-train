@@ -48,7 +48,7 @@
 \definecolor{swcolor}{rgb}{0.4, 0.23, 0.56}
 \newcommand{\swFmt}[1]{{\color{swcolor}{#1}}}
 \newcommand{\sid}[1]{\ensuremath{\swFmt{s_{#1}}}}
-\newcommand{\turnouts}{\swFmt{\mathsf{\theta}}}
+\newcommand{\turnouts}{\swFmt{\mathsf{\Theta}}}
 \newcommand{\switches}{\ensuremath{\swFmt{\sigma}}}
 \newcommand{\networkConf}{\ensuremath{\swFmt{\Sigma}}}
 \newcommand{\nosuc}{\ensuremath{\swFmt{\bot}}}
@@ -237,7 +237,7 @@ The network is then described as a triple $(\blocks, \turnouts, \sucblock)$ wher
 
 \paragraph{Signals.}
 \todo{Est-ce qu'on met les signaux dans les agents ?}
-At each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $F: \blocks \times \directions \to \{ \sigred, \siggreen\}$. Given some signal status $F$, a block $\bid{id}$ and a direction $\dirFmt{dir}$, $\signalF{\bid{id}}{dir} = \sigred$ means the signal guarding the exit of block $\bid{id}$ in direction $\dirFmt{dir}$ is red, and we expect trains not leaving that block going in this direction\footnote{Our semantics, presented in Section~\ref{sec:formal-model}, ensure such behaviour.}. The signal status is entirely determined by the network configuration and the locking status due to the regulator\todo{Le régulateur n'est pas encore introduit, je propose de déplacer ça plus bas.}.
+At each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $F: \blocks \times \directions \to \{ \sigred, \siggreen\}$. Given some signal status $F$, a block $\bid{id}$ and a direction $\dirFmt{d}$, $\signalF{\bid{id}}{d} = \sigred$ means the signal guarding the exit of block $\bid{id}$ in direction $\dirFmt{d}$ is red, and we expect trains not leaving that block going in this direction\footnote{Our semantics, presented in Section~\ref{sec:formal-model}, ensure such behaviour.}. The signal status is entirely determined by the network configuration and the locking status due to the regulator\todo{Le régulateur n'est pas encore introduit, je propose de déplacer ça plus bas.}.
 
 
 \subsection{Agents}
@@ -247,11 +247,11 @@ Each train is characterised by an identifier, a position, a direction, and a lis
 \begin{itemize}
 	\item Train identifiers form a set  $\trains = \{\tid{1}, \ldots, \tid{k}\}$, each train having its own identifier.
 	\item The position is the index of the block currently occupied by the train.
-	\item The direction (taken from $\directions_\dirStop = \{\dirBackward, \dirForward, \dirStop\}$) indicates the direction the train is ordered to go towards, where \dirStop indicates the train has no direction order at the moment. The direction represent the current move order, but does not mean the train is actually moving: it can be blocked at a signal.
-	\item Orders are given as a (possibly empty) sequence of orders $\su{dir}{\bid{id}}$ ($\dirFmt{dir} \in \directions$, $\bid{id} \in \blocks$). Such order states that the train direction is set to $\dirFmt{dir}$ and that the train runs until it reaches $\bid{id}$.\todo{Le 2nd argument est une liste de positions à venir}
+	\item The direction (taken from $\directions_\dirStop = \{\dirBackward, \dirForward, \dirStop\}$) indicates the direction the train is ordered to go towards, where \dirStop indicates the train has no direction order at the moment. The direction represents the current move order, but does not mean the train is actually moving: it can be blocked at a signal.
+	\item Orders are given as a (possibly empty) sequence of orders $\su{d}{\bid{id}}$ ($\dirFmt{d} \in \directions$, $\bid{id} \in \blocks$). Such order states that the train direction is set to $\dirFmt{d}$ and that the train runs until it reaches $\bid{id}$.\todo{Le 2nd argument est une liste de positions à venir}
 \end{itemize}
 
-Thus, each train is a quadruple $\trainFmt{t} = \trainTuple{\tid{id}}{\bid{id}}{dir}{P}$ with $\tid{id}$ the train's identifier, $\bid{id}$ its position, $\dirFmt{dir}$ its direction and $P$ its sequence of orders. Trains are collected in a sequence $\trainSeq = (\trainFmt{t_1}, \ldots, \trainFmt{t_k})$ where each $\trainFmt{t_i}$ being the tuple of train $\trainFmt{i}$. 
+Thus, each train is a quadruple $\trainFmt{t} = \trainTuple{\tid{id}}{\bid{id}}{d}{P}$ with $\tid{id}$ the train's identifier, $\bid{id}$ its position, $\dirFmt{d}$ its direction and $P$ its sequence of orders. Trains are collected in a sequence $\trainSeq = (\trainFmt{t_1}, \ldots, \trainFmt{t_k})$ where each $\trainFmt{t_i}$ being the tuple of train $\trainFmt{i}$. 
 
 
 \paragraph{The Regulator.}
