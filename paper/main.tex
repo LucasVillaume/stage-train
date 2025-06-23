@@ -416,31 +416,6 @@ The last two rules for trains describe what happens when a train actually moves,
 
 \paragraph{Regulator rules.}
 
-\paragraph{Guillaume rajoute la normalisation}
-
-%Rule application induce a relation between system state:  $S\reduces S'$ if $\gamma'$  if there is a rule for which $\gamma$ is the initial state and $\gamma'$ the conclusion. 
-The reflexive-transitive closure of $\reduces$ is denoted $\reduces^*$, that is $S \reduces^* S'$ iff $S =S_0 \reduces \cdots S_n = S'$. The value $n = 0$ corresponds to $S = S'$.  A normal form of a configuration $S$ is a configuration $S'$ such that $S \reduces^* S'$ and there is no $S''$ with $S' \reduces S''$. In other words, starting from $S$, the computation can stop on $S'$. We note $S \reduces^! S'$ this relationship.
-
-Given a system state  $S = \redTuple{x}{B}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ and a train $\tid{id}$, 
-\begin{itemize}
-\item   we say that it has no jobs if  $\trainSeq{}[\tid{id}].P = \emptyTrainProg$;
-\item its source is $\mathtt{src}(S, \tid{id}) = \trainSeq{}[\tid{id}].pid$;
-\item its destination is $\mathtt{dst}(S, \tid{id}) = pid \in \blocks $ if either
-\begin{itemize}
-\item  it has no jobs and  $\trainSeq{}[\tid{id}].pid = pid$  or
-\item  the last order in  $\trainSeq{}[\tid{id}].P$ is $\su{d}{pid}$ for some direction $d$.
-\end{itemize}
-\end{itemize}
-
-A system state $S = \redTuple{\guardT}{\emptyset}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}} $  is \emph{reliable} if: 
-\begin{itemize}
-\item  no two trains meet on the same block or the same switch, \todo{En dire plus}
-\item $S$ has  a unique normal form $S'$ and 
-\item any train in $S'$ has no jobs and 
-\item for any train $\tid{id}$, $\mathtt{dst}(S, \tid{id}) =  \mathtt{dst}(S', \tid{id})$. 
-\end{itemize}
-
-
 When the regulator reacts to a train event, it executes atomically all rules associated with that event. To implement this atomic execution, the first regulator event is to change the guard to \guardR (see Fig. \ref{fig:state_machine_guard}).
 
 \begin{mathpar}
@@ -484,6 +459,31 @@ Finally, when the handler of the pending event has no action leftover, the regul
 
 \paragraph{Signal rules.}
 
+
+
+\paragraph{Guillaume rajoute la normalisation}
+
+%Rule application induce a relation between system state:  $S\reduces S'$ if $\gamma'$  if there is a rule for which $\gamma$ is the initial state and $\gamma'$ the conclusion. 
+The reflexive-transitive closure of $\reduces$ is denoted $\reduces^*$, that is $S \reduces^* S'$ iff $S =S_0 \reduces \cdots S_n = S'$. The value $n = 0$ corresponds to $S = S'$.  A normal form of a configuration $S$ is a configuration $S'$ such that $S \reduces^* S'$ and there is no $S''$ with $S' \reduces S''$. In other words, starting from $S$, the computation can stop on $S'$. We note $S \reduces^! S'$ this relationship.
+
+Given a system state  $S = \redTuple{x}{B}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ and a train $\tid{id}$, 
+\begin{itemize}
+	\item   we say that it has no jobs if  $\trainSeq{}[\tid{id}].P = \emptyTrainProg$;
+	\item its source is $\mathtt{src}(S, \tid{id}) = \trainSeq{}[\tid{id}].pid$;
+	\item its destination is $\mathtt{dst}(S, \tid{id}) = pid \in \blocks $ if either
+	\begin{itemize}
+		\item  it has no jobs and  $\trainSeq{}[\tid{id}].pid = pid$  or
+		\item  the last order in  $\trainSeq{}[\tid{id}].P$ is $\su{d}{pid}$ for some direction $d$.
+	\end{itemize}
+\end{itemize}
+
+A system state $S = \redTuple{\guardT}{\emptyset}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}} $  is \emph{reliable} if: 
+\begin{itemize}
+	\item  no two trains meet on the same block or the same switch, \todo{En dire plus}
+	\item $S$ has  a unique normal form $S'$ and 
+	\item any train in $S'$ has no jobs and 
+	\item for any train $\tid{id}$, $\mathtt{dst}(S, \tid{id}) =  \mathtt{dst}(S', \tid{id})$. 
+\end{itemize}
 
 \subsection{Détecter les problèmes}
 Cette section est particulièrement importante, modéliser les problèmes que l'on peut rencontrer permet de les détecter.
