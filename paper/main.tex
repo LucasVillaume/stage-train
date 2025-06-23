@@ -32,6 +32,9 @@
 \newcommand{\backward}{\ensuremath{\mathtt{b}}\xspace}
 \newcommand{\sucblock}{{\mathtt{suc}}}
 
+%% Modèle
+\newcommand{\modelSet}{\ensuremath{\mathbb{M}}}
+
 %% Train directions
 \definecolor{dircolor}{rgb}{1.0, 0.13, 0.32}
 \newcommand{\dirFmt}[1]{{\color{dircolor} #1}}
@@ -115,6 +118,7 @@
 \newcommand{\bufhead}[1]{\head{\bufferFmt{#1}}}
 \newcommand{\buftail}[1]{\ensuremath{{\tt tl}(\bufferFmt{#1})}}
 \newcommand{\emptyList}{\ensuremath{\varepsilon}}
+\newcommand{\bufferSet}{\ensuremath{\bufferFmt{\mathbb{B}}}\xspace}
 
 
 %% Reduction relation
@@ -309,7 +313,7 @@ Notice that all actions of a rule are executed atomically. Our semantics, presen
 \end{grammar}
   
 \paragraph{Model.}
-Overall, states of our model are tuples $\tuple{\trainSeq, \regulator, \switches, \signals}$ where $\trainSeq$ is a set of train tuples, $\regulator$ a regulator tuple, $\switches$ a network configuration (indicating trackworks states) and $\signals$ a signals state function. We suppose all train tuples in $\trainSeq$ have a different identifier. Notice that $\sucblock$ is not part of the state. Instead, the dynamics of the model (see below) is parameterised by $\sucblock$.
+Overall, states of our model are tuples $\tuple{\trainSeq, \regulator, \switches, \signals}$ where $\trainSeq$ is a set of train tuples, $\regulator$ a regulator tuple, $\switches$ a network configuration (indicating trackworks states) and $\signals$ a signals state function. We suppose all train tuples in $\trainSeq$ have a different identifier. Notice that $\sucblock$ is not part of the state. Instead, the dynamics of the model (see below) is parameterised by $\sucblock$. Let $\modelSet$ be the set of all model states.
 
 \paragraph{Network hypothesis, events, and conventions.}
 On the tracks, we suppose there are sensors to detect the presence of trains. More precisely, we suppose that ---by means of the sensors--- the position of every train is known at any time. A \emph{position event} is when a train move from one block to an other one. 
@@ -320,7 +324,9 @@ Train speed are not modeled, and we consider trains can always stop within their
 \section{Model Semantics/Model dynamics}
 \label{sec:formal-model}
 
-In the previous section, we introduced our model. In this section, we present the dynamics of our model, that is the rules that govern how our model can switch from one state to the other. The dynamics is described by means of a reduction relation, characterising the successive states of our model. We define this reduction relation using inference rules, described hereafter.
+In the previous section, we introduced our model. In this section, we present the dynamics of our model, that is the rules that govern how our model can switch from one state to the other.
+We enrich our model with two elements: a guard, which goal is to schedule agents (for instance, it ensures the regulator acts atomically); and a communication buffer, which stores pending events until the regulator treats them. We present those two new elements in the first subsection.
+The dynamics is described by means of a reduction relation, characterising the successive states of our model. We define this reduction relation using inference rules in the second subsection.
 
 \todo{Expliquer le temps discret et le mix grand pas/petit pas.}
 
@@ -346,13 +352,11 @@ Essentially, this guard is the state machine shown in Figure~\ref{fig:state_mach
 	\label{fig:state_machine_guard}
 \end{figure}
 
-Train events are not dealt with instantly by the regulator (e.g. two train events can happen before the regulator begins to react to the first one). To characterise this behaviour, train events are stored in a buffer until the regulator uses them. Train events are tuples \tuple{\tid{id}, \bid{id}}, indicating that the train with id $\tid{id}$ enters block \bid{id}. A buffer \bufferFmt{B} is a sequence of such events.
+Train events are not dealt with instantly by the regulator (e.g. two train events can happen before the regulator begins to react to the first one). To characterise this behaviour, train events are stored in a buffer until the regulator uses them. Train events are tuples \tuple{\tid{id}, \bid{id}}, indicating that the train with id $\tid{id}$ enters block \bid{id}. A buffer \bufferFmt{B} is a sequence of such events. Let \bufferSet{} be the set of all buffers.
 
 \subsection{Reduction rules}
 
-\todo{relation: (guard, buffer, état) -> (guard, buffer, etat)}
-
-
+States of the system are triples from $\{\guardR, \guardS, \guardT\} \times \bufferSet \times \modelSet$. Our reduction relation is a binary relation on system states, noted $\reduces$: $S_1 \reduces S_2$ means that state $S_1$ can change to $S_2$ (note that this relation is not a function: $S_1$ can reduce to multiple states, due to non-determinism). We define $\reduces$ as the least relation induced by the inference rules presented hereafter.
 
 \paragraph{Train rules.}
 We first focus on rules that affect trains. The first rule is \ruleRef{Start}, which is used to change the direction of a train (e.g. to go from a stop to a given direction, or to change direction if the train has to backtrack). This rule can be triggered when the program of the train begins by \su{d^\prime}{N}. This order says that the train should got in direction $\dirFmt{d^\prime}$, and on that direction, it is expected to meet the sequence of block which ids are in $\posFmt{N}$.
