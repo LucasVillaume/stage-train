@@ -15,6 +15,9 @@
 
 \usepackage{minted}
 
+\usepackage{caption}
+\usepackage{subcaption}
+
 \usepackage{package/formal-grammar}
 
 \newcommand{\ruleFmt}[1]{\textsc{(#1)}}
@@ -31,6 +34,9 @@
 \newcommand{\forward}{\ensuremath{\mathtt{f}}}
 \newcommand{\backward}{\ensuremath{\mathtt{b}}\xspace}
 \newcommand{\sucblock}{{\mathtt{suc}}}
+
+%% Modèle
+\newcommand{\modelSet}{\ensuremath{\mathbb{M}}}
 
 %% Train directions
 \definecolor{dircolor}{rgb}{1.0, 0.13, 0.32}
@@ -54,6 +60,7 @@
 \newcommand{\switches}{\ensuremath{\swFmt{\sigma}}}
 \newcommand{\networkConf}{\ensuremath{\swFmt{\Sigma}}}
 \newcommand{\nosuc}{\ensuremath{\swFmt{\bot}}}
+\newcommand{\updateSignals}[3]{\ensuremath{#1[\swFmt{#2}\leftarrow #3]}}
 
 %% Trains
 \definecolor{traincolor}{rgb}{0.2, 0.2, 0.6}
@@ -68,6 +75,11 @@
 \newcommand{\trainConcat}[2]{#1 \cdot #2}
 \newcommand{\emptyTrainProg}{\varepsilon}
 
+%% Regulator
+\newcommand{\handlerOf}[2]{\ensuremath{#1[\trainFmt{#2}]}}
+\newcommand{\popHandlerHead}[2]{\ensuremath{{\tt pop}(#1[\trainFmt{#2}])}}
+\newcommand{\substHandlerHead}[3]{\ensuremath{#1[\trainFmt{#2} \leftarrow #3]}}
+
 %% Regulator's Program
 \newcommand{\regTuple}[3]{\tuple{#1, #2, #3}}
 \newcommand{\evGuard}[2]{\ensuremath{\mathtt{ev}(\trainFmt{#1}, #2)}}
@@ -77,6 +89,8 @@
 \newcommand{\tokens}{\ensuremath{T}}
 \newcommand{\tokenOf}[1]{\ensuremath{T(\posFmt{#1})}}
 \newcommand{\regulator}{\ensuremath{R}}
+\newcommand{\wait}[2]{{\mbox{\ensuremath{\mathtt{wait}(\posFmt{#1}, #2)}}}\xspace}
+\newcommand{\regConcat}[2]{#1 \cdot #2}
 
 %% Sequences
 \newcommand{\push}[2]{\ensuremath{\mathtt{push}(#1, #2)}}
@@ -102,6 +116,13 @@
 
 %% Buffer
 \newcommand{\bufferFmt}[1]{#1}
+\newcommand{\head}[1]{\ensuremath{{\tt hd}(#1)}}
+\newcommand{\buflen}[1]{\ensuremath{{\tt len}(\bufferFmt{#1})}}
+\newcommand{\bufhead}[1]{\head{\bufferFmt{#1}}}
+\newcommand{\buftail}[1]{\ensuremath{{\tt tl}(\bufferFmt{#1})}}
+\newcommand{\emptyList}{\ensuremath{\varepsilon}}
+\newcommand{\bufferSet}{\ensuremath{\bufferFmt{\mathbb{B}}}\xspace}
+
 
 %% Reduction relation
 \newcommand{\reduces}{\ensuremath{\rightarrow}}
@@ -232,7 +253,7 @@ Our model is has $k+1$ agents corresponding to the $k$ trains and the Regulator.
 
 \paragraph{The network.} 
 
-We suppose that the train network can be described as follows. First, we consider a set of $n$ blocks: $\blocks = \{ \bid{1}, \bid{2}, \ldots, \bid{n}\}$. Blocks are oriented: there is a $\dirForward$ (forward) end and a $\dirBackward$ (backward) one. Let $\directions = \{\dirForward, \dirBackward\}$ be the set of directions.  Second, we consider a set of $m$ trackworks\footnote{For the sake of simplicity, in this paper, we only consider switches. Our work can easily be extended to crossings and double slip switches (e.g. crossings have only one internal state and double slip switches have four states).}: $\turnouts = \{\sid{1}, \ldots, \sid{m}\}$. Trackworks are characterized by an internal state: switches can be in direct or deviate position (next denoted '\direct' and '\deviate'). Let $\internalState$ denotes the set of internal states. A \emph{network configuration} is given by a function $\sigma: \turnouts \to \internalState$. Let $\networkConf$ denotes the set of all network configurations. For instance, for two turnouts $\theta = \{\sid{1}, \sid{2}\}$, the function $\sid{1} \mapsto \deviate, \sid{2} \mapsto \direct$ states that switch $\sid{1}$ is in deviate position while \sid{2} is in direct one. The latter function is also described via an array  $[\deviate, \direct]$ giving states in trackwork order. 
+We suppose that the train network can be described as follows. First, we consider a set of $n$ blocks: $\blocks = \{ \bid{1}, \bid{2}, \ldots, \bid{n}\}$. Blocks are oriented: there is a $\dirForward$ (forward) end and a $\dirBackward$ (backward) one. Let $\directions = \{\dirForward, \dirBackward\}$ be the set of directions.  Second, we consider a set of $m$ trackworks\footnote{For the sake of simplicity, in this paper, we only consider switches. Our work can easily be extended to crossings and double slip switches (e.g. crossings have only one internal state and double slip switches have four states).}: $\turnouts = \{\sid{1}, \ldots, \sid{m}\}$. Trackworks are characterized by an internal state: switches can be in direct or deviate position (next denoted '\direct' and '\deviate'). Let $\internalState$ denotes the set of internal states. A \emph{network configuration} is given by a function $\sigma: \turnouts \to \internalState$. Let $\networkConf$ denotes the set of all network configurations. For instance, for two turnouts $\theta = \{\sid{1}, \sid{2}\}$, the function $\sid{1} \mapsto \deviate, \sid{2} \mapsto \direct$ states that switch $\sid{1}$ is in deviate position while \sid{2} is in direct one. The latter function is also described via an array  $[\deviate, \direct]$ giving states in trackwork order.
 
 The network is then described as a triple $(\blocks, \turnouts, \sucblock)$ where $\sucblock$ is a partial function indicating the following block given a starting position, a direction and a network configuration: $\sucblock: \blocks\times \directions \times \networkConf \to \blocks$. We note $\suc{\bid{id}}{d}{\switches} = \nosuc$ when it is undefined. From an abstract point of view, the topology of the network reduces to that data.  
 
@@ -261,36 +282,41 @@ The regulator is in charge of the execution of the routing.
 It is characterised by a routing program, a token list, and a waiting set.
 
 \begin{itemize}
-	\item The routing program $E$ specifies how the regulator should react to events (i.e. when a train enters a block). A program is a sequence of rules, which are described below.
+	\item The routing program $E$ specifies how the regulator should react to events (i.e. when a train enters a block). A program is a collection of rules to apply upon each event (called an \emph{event handler}). We detail further event handlers below.
 	\item The token list, denoted $\tokens$, is a function  $\tokens: \blocks \to \Nat$ associating a token level to each block. Those tokens are used to prevent multiple trains accessing the same block at the same time.
 	\item The waiting set is a set $W \subseteq \blocks \times \Nat \times \trains$. A triple $\tuple{\bid{id}, n, \tid{id}} \in W$ means block $\bid{id}$ must be protected against train $\tid{id}$ entering as long as $\tokenOf{\bid{id}} < n$.
 \end{itemize}
 
 Overall, the regulator is a tuple $R = \regTuple{E}{\tokens}{W}$. By convention, applying $\incr{pid}$ to the regulator is applying it to the token field: $R \cdot \incr{pid} = (E, T \cdot \incr{pid}, W)$. We use the same convention for the other atoms. \todo{move below}
 
-\paragraph{Regulator's rules.}
+\paragraph{Regulator's event handlers.}
 
-The syntax of regulator programs is given by the non-terminal {\ttfamily stmt} in Grammar~\ref{gr:regulator_program}.
-The program of the regulator is a set of rules, guarded by events. A rule $\ev{\tid{id}}{n}{A}$ denotes that upon entering the $n$-th block of its route, train $\tid{id}$ will trigger actions $A$. There are four kinds of actions: 
+Train events are handled by the regulator. Upon such events, the regulator can take actions such as turning a switch, allowing or blocking a train, etc.. The regulator is equipped with a routing program. This routing program contains, for each train, a list of handlers. For a given train, the first handler of the list is the set of actions that have to be executed on the train's first event, second handler for the second event, and so on.
+
+Given a routing program $E$, $\handlerOf{E}{\tid{id}}$ is the list of handlers of train $\tid{id}$, $\head{\handlerOf{E}{\tid{id}}}$ is the handler of the first event for that train.
+
+The syntax of each handler is given by the non-terminal {\ttfamily stmt} in Grammar~\ref{gr:regulator_program}.\todo{est-ce toujours nécessaire maintenant que les handlers sont dans un liste ?}
+The program of the regulator is a set of rules, guarded by events. A rule $\ev{\tid{id}}{n}{A}$ denotes that upon entering the $n$-th block of its route, train $\tid{id}$ will trigger actions $A$. The list of actions in the handler are of four kinds: 
 \begin{description}
 	\item[\incr{\bid{id}}:] this updates the token $\bid{id}$ in $T$:  $T \cdot \incr{\bid{id}}  \triangleq T[\bid{id} \leftarrow T(\bid{id})+1]$
-	\item [att(pid, v):] ...\todo{}
+	\item [\wait{\bid{id}}{i}:] ...\todo{}
 	\item [\turn{\sid{id}}{s}:] this instructs the regulator to turn the switch $\sid{id}$ into the $s$ state: $\sigma\cdot\turn{\sid{id}}{s} = \sigma[\sid{id} \leftarrow s]$
 	\item [auth:] ...\todo{}
 \end{description}
 
 Notice that all actions of a rule are executed atomically. Our semantics, presented below, details actions' behaviour.
+\todo{Clarifier Event, indexation par train, qui donne une liste de handlers, eux-même une liste d'ordres}
 
 \begin{grammar}[Regulator's rules, with $\tid{id} \in \trains$, $n \in  \Nat$, $\bid{id} \in \blocks$, $\sid{id} \in \turnouts$, $s\in \internalState$.][h][gr:regulator_program]
 	\firstcasesubtil{\ttfamily stmt}{\evGuard{\tid{id}}{n} : \nonterm{A}^\star}{}
 	\firstcase{A}{\incr{\bid{id}}}{}
-	\otherform{att(\bid{id}, v)}{}
+	\otherform{\wait{\bid{id}}{i}}{}
 	\otherform{\turn{\sid{id}}{s}}{}
 	\otherform{auth}{}
 \end{grammar}
   
 \paragraph{Model.}
-Overall, states of our model are tuples $\tuple{\trainSeq, \regulator, \switches, \signals}$ where $\trainSeq$ is a set of train tuples, $\regulator$ a regulator tuple, $\switches$ a network configuration (indicating trackworks states) and $\signals$ a signals state function. We suppose all train tuples in $\trainSeq$ have a different identifier. Notice that $\sucblock$ is not part of the state. Instead, the dynamics of the model (see below) is parameterised by $\sucblock$.
+Overall, states of our model are tuples $\tuple{\trainSeq, \regulator, \switches, \signals}$ where $\trainSeq$ is a set of train tuples, $\regulator$ a regulator tuple, $\switches$ a network configuration (indicating trackworks states) and $\signals$ a signals state function. We suppose all train tuples in $\trainSeq$ have a different identifier. Notice that $\sucblock$ is not part of the state. Instead, the dynamics of the model (see below) is parameterised by $\sucblock$. Let $\modelSet$ be the set of all model states.
 
 \paragraph{Network hypothesis, events, and conventions.}
 On the tracks, we suppose there are sensors to detect the presence of trains. More precisely, we suppose that ---by means of the sensors--- the position of every train is known at any time. A \emph{position event} is when a train move from one block to an other one. 
@@ -301,7 +327,9 @@ Train speed are not modeled, and we consider trains can always stop within their
 \section{Model Semantics/Model dynamics}
 \label{sec:formal-model}
 
-In the previous section, we introduced our model. In this section, we present the dynamics of our model, that is the rules that govern how our model can switch from one state to the other. The dynamics is described by means of a reduction relation, characterising the successive states of our model. We define this reduction relation using inference rules, described hereafter.
+In the previous section, we introduced our model. In this section, we present the dynamics of our model, that is the rules that govern how our model can switch from one state to the other.
+We enrich our model with two elements: a guard, which goal is to schedule agents (for instance, it ensures the regulator acts atomically); and a communication buffer, which stores pending events until the regulator treats them. We present those two new elements in the first subsection.
+The dynamics is described by means of a reduction relation, characterising the successive states of our model. We define this reduction relation using inference rules in the second subsection.
 
 \todo{Expliquer le temps discret et le mix grand pas/petit pas.}
 
@@ -327,16 +355,11 @@ Essentially, this guard is the state machine shown in Figure~\ref{fig:state_mach
 	\label{fig:state_machine_guard}
 \end{figure}
 
-Train events are not dealt with instantly by the regulator (e.g. two train events can happen before the regulator begins to react to the first one). To characterise this behaviour, train events are stored in a buffer until the regulator uses them. Train events are tuples \tuple{\tid{id}, \bid{id}}, indicating that the train with id $\tid{id}$ enters block \bid{id}. A buffer \bufferFmt{B} is a sequence of such events.
+Train events are not dealt with instantly by the regulator (e.g. two train events can happen before the regulator begins to react to the first one). To characterise this behaviour, train events are stored in a buffer until the regulator uses them. Train events are tuples \tuple{\tid{id}, \bid{id}}, indicating that the train with id $\tid{id}$ enters block \bid{id}. A buffer \bufferFmt{B} is a sequence of such events. Let \bufferSet{} be the set of all buffers.
 
 \subsection{Reduction rules}
 
-\todo{Rajouté par Guillaume}
-A \emph{configuration} is a tuple of the shape $\gamma =  \redTuple{s}{\bufferFmt{B}}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ with $s$ a guard, $B$ a buffer, and the 4-tuple $\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}$ denotes respectively the train sequence, the regulator, the switches and the signals. 
-
-\todo{relation: (guard, buffer, état) -> (guard, buffer, etat)}
-
-
+States of the system are triples from $\{\guardR, \guardS, \guardT\} \times \bufferSet \times \modelSet$. Our reduction relation is a binary relation on system states, noted $\reduces$: $S_1 \reduces S_2$ means that state $S_1$ can change to $S_2$ (note that this relation is not a function: $S_1$ can reduce to multiple states, due to non-determinism). We define $\reduces$ as the least relation induced by the inference rules presented hereafter.
 
 \paragraph{Train rules.}
 We first focus on rules that affect trains. The first rule is \ruleRef{Start}, which is used to change the direction of a train (e.g. to go from a stop to a given direction, or to change direction if the train has to backtrack). This rule can be triggered when the program of the train begins by \su{d^\prime}{N}. This order says that the train should got in direction $\dirFmt{d^\prime}$, and on that direction, it is expected to meet the sequence of block which ids are in $\posFmt{N}$.
@@ -348,7 +371,7 @@ We first focus on rules that affect trains. The first rule is \ruleRef{Start}, w
 	}{
 		\hspace{3mm} \redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{P}\}}{\regulator}{\switches}{\signals}} \\
 		\reduces
-		\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d^\prime}{P}\}}{\regulator}{\switches}{\signals}}
+		\redTuple{\guardT}{\push{B}{\tuple{\tid{id}, \bid{id}}}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d^\prime}{P}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
 
@@ -359,7 +382,7 @@ Conversely, if the train program is empty (i.e. upon termination), the train sto
 	}{
 	\hspace{4mm}  \redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}} \\
 	\reduces
-	\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{\dirStop}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}}
+	\redTuple{\guardT}{\push{B}{\tuple{\tid{id}, \bid{id}}}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{\dirStop}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
 
@@ -389,136 +412,77 @@ The last two rules for trains describe what happens when a train actually moves,
 		\reduces		
 		\redTuple{\guardS}{\push{\bufferFmt{B}}{\tuple{\tid{id}, \bid{id^\prime}}}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id^\prime}}{d}{P}\}}{\regulator}{\switches}{\signals}}
 	}
-\end{mathpar}
+\end{mathpar}\todo{Pas de message dans ce cas là?}
 
 \paragraph{Regulator rules.}
 
-
 \paragraph{Guillaume rajoute la normalisation}
 
-Rule application induce a relation between configuration:  $\gamma \reduces \gamma'$ if $\gamma'$  if there is a rule for which $\gamma$ is the initial state and $\gamma'$ the conclusion. The reflexive-transitive closure of $\reduces$ is denoted $\reduces^*$, that is $\gamma \reduces^* \gamma'$ iff $\gamma = \gamma_0 \reduces \cdots \gamma_n = \gamma'$. The value $n = 0$ corresponds to $\gamma = \gamma'$. 
+%Rule application induce a relation between system state:  $S\reduces S'$ if $\gamma'$  if there is a rule for which $\gamma$ is the initial state and $\gamma'$ the conclusion. 
+The reflexive-transitive closure of $\reduces$ is denoted $\reduces^*$, that is $S \reduces^* S'$ iff $S =S_0 \reduces \cdots S_n = S'$. The value $n = 0$ corresponds to $S = S'$.  A normal form of a configuration $S$ is a configuration $S'$ such that $S \reduces^* S'$ and there is no $S''$ with $S' \reduces S''$. In other words, starting from $S$, the computation can stop on $S'$. We note $S \reduces^! S'$ this relationship.
 
-A normal form of a configuration $\gamma$ is a configuration $\gamma'$ such that $\gamma \reduces^* \gamma'$ and there is no $\gamma''$ with $\gamma' \reduces \gamma''$. In other words, starting from $\gamma$, the computation may end on $\gamma'$. We note $\gamma \reduces^! \gamma'$ this relationship.
-
-Given a configuration of the shape  $\gamma = \redTuple{x}{B}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ and a train $\tid{id}$, 
+Given a system state  $S = \redTuple{x}{B}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ and a train $\tid{id}$, 
 \begin{itemize}
 \item   we say that it has no jobs if  $\trainSeq{}[\tid{id}].P = \emptyTrainProg$;
-\item its source is $\mathtt{src}(\gamma, \tid{id}) = \trainSeq{}[\tid{id}].pid$;
-\item its destination is $\mathtt{dst}(\gamma, \tid{id}) = pid \in \blocks $ if either
+\item its source is $\mathtt{src}(S, \tid{id}) = \trainSeq{}[\tid{id}].pid$;
+\item its destination is $\mathtt{dst}(S, \tid{id}) = pid \in \blocks $ if either
 \begin{itemize}
 \item  it has no jobs and  $\trainSeq{}[\tid{id}].pid = pid$  or
 \item  the last order in  $\trainSeq{}[\tid{id}].P$ is $\su{d}{pid}$ for some direction $d$.
 \end{itemize}
 \end{itemize}
 
-A configuration $\gamma = \redTuple{\guardT}{\emptyset}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}} $  is \emph{reliable} if: 
+A system state $S = \redTuple{\guardT}{\emptyset}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}} $  is \emph{reliable} if: 
 \begin{itemize}
 \item  no two trains meet on the same block or the same switch, \todo{En dire plus}
-\item $\gamma$ has  a unique normal form $\gamma'$ and 
-\item any train in $\gamma'$ has no jobs and 
-\item for any train $\tid{id}$, $\mathtt{dst}(\gamma, \tid{id}) =  \mathtt{dst}(\gamma', \tid{id})$. 
+\item $S$ has  a unique normal form $S'$ and 
+\item any train in $S'$ has no jobs and 
+\item for any train $\tid{id}$, $\mathtt{dst}(S, \tid{id}) =  \mathtt{dst}(S', \tid{id})$. 
 \end{itemize}
 
 
-\subsection{Modélisation d'une liste d'odre}
-%La modélisation de notre liste d'ordre doit prendre en compte les besoins et contraintes évoqués plus haut.
-%Pour cela, nous avons choisi de la représenter comme cela : $O = \{\Gamma, R\}$, avec $\Gamma$ l'ensemble des trains et $R$ notre régulateur.
-%Chaque train peut être représenté par un identifiant unique, une position, une direction et son programme : $t = (id, pos, dir, P)$, avec $t \in \Gamma$.
-Le régulateur, portant une grande partie de la logique du modèle, se représente de manière plus complexe : $R = (E,T,S,W,G,H,TL,B)$.
-%##########
-%Définit ce qu'est un event à ce moment ou plus haut ?
-%##########
-Nous ne détaillerons pas l'ensemble des éléments de $R$ ici, mais nous pouvons en donner un aperçu rapide : $E$ contient l'ensemble des events,
-$T$ le token courant pour chaque ressource et $H$ la dernière position connue de chaque train par le régulateur.
+When the regulator reacts to a train event, it executes atomically all rules associated with that event. To implement this atomic execution, the first regulator event is to change the guard to \guardR (see Fig. \ref{fig:state_machine_guard}).
 
-Idée: Pourquoi besoin des jetons ? Plusieurs trains peuvent attendre la même ressource critique, il faut donc créer un "ordre de passage".
-Avoir un unique token par ressource complexifie les règles.
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{StartEvent}] {
+		\buflen{B} \neq 0
+	}{
+		\tuple{\guardT, B, R} \reduces \tuple{\guardR, B, R}
+	}
+\end{mathpar}
 
+Then, the regulator lookup the first event on the buffer, and executes all the rules in the event handler associated with this event. All actions are treated in order, and when the list of remaining actions is empty, the handling terminates and the event is removed of the buffer. We introduce 6 reduction rules for the 4 possible kinds of orders (\incr{\bid{id}} and \wait{\bid{id}}{i} have two rules).
 
-\subsection{Règles de transitions}
-Nous avons défini formellement la modélisation du système, il est temps d'ajouter du mouvement à notre modèle.
-Une règle de transition nous permet de définir de manière formelle une évolution du système. 
-Si l'on note notre état de base $e$ alors une règle de transition $r$ nous emmène dans un état différent $e'$. On a donc $r: e \rightarrow e'$.
-Cependant, nous voulons ajouter des conditions, le train n'avance que si le feu est vert $r:$ \inferrule{feu = vert \\ cond2 \\ cond3 \\ \dots}{e \rightarrow e'}.
-\\Dans notre modèle, nous avons plusieurs sémantiques, une pour les trains, une pour le régulateur et une pour le système.
-Ainsi, le régulateur et les trains sont isolés, permettant une approche plus proche de la réalité.\\
+Rule \ruleRef{Turn} triggers when a \turn{\sid{id}}{s} is encountered in the event handler. It updates the state of the targeted switch.
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{Turn}]{
+		\bufhead{B} = \tuple{\tid{id}, \bid{id}}
+		\and
+		\head{\handlerOf{E}{\tid{id}}} = \regConcat{\turn{\sid{id}}{s}}{A^\prime}
+	}{
+	\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
+	\reduces
+	\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{\substHandlerHead{E}{\tid{id}}{A^\prime}, T, W}}{\updateSignals{\switches}{\sid{id}}{s}}{\signals}}
+	}
+\end{mathpar}
 
+\todo{other rules}
 
-%Montrer les déplacements d'un train
-\noindent
-\textbf{Les trains}
+Finally, when the handler of the pending event has no action leftover, the regulator terminates its handling: it removes the (now empty) head of $\handlerOf{E}{\tid{id}}$, the head of the buffer, and returns the guard to state $\guardT$.
 
-\noindent
-Nous avons donc nos politiques d'évolutions, une modélisation des trains et du régulateur, et enfin, la syntaxe des règles de transitions. 
-Il est temps de définir nos sémantiques. D'abord, on s'intéresse au démarrage d'un train, ce dernier ne doit s'effectuer 
-que si aucun event n'est en cours et que sa direction est différente de la direction de son programme. 
-Ainsi, on attribue la bonne direction au train et on envoie un message, comportant l'identifiant du train et sa position, au régulateur.
-$$\startRule$$
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{EndEvent}]{
+		\bufhead{B} = \tuple{\tid{id}, \bid{id}}
+		\and
+		\head{\handlerOf{E}{\tid{id}}} = \emptyList
+	}{
+		\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
+		\reduces
+		\redTuple{\guardT}{\buftail{B}}{\stateTuple{\trainSeq}{\tuple{\popHandlerHead{E}{\tid{id}}, T, W}}{\switches}{\signals}}
+	}
+\end{mathpar}
 
-\noindent
-Pour l'arrêt, on vérifie bien que le programme du train ne contient plus aucune instruction, que nous ne sommes pas déjà à l'arrêt et qu'aucun event n'est en cours.
-De ce fait, on change la direction du train à "*" et on envoie un message au régulateur.
-$$\stopRule$$
-
-\noindent
-Les deux dernières règles régissent les déplacements du train. Elles sont similaires, à ça près que la dernière permet de "dépiler" les ordres du trains. 
-Comme vous pouvez le constater, seul la règle \textit{Until} envoie un message au régulateur, en effet, cela dédoublait les
-events lors du demi-tour du train. (Garder ce cas comme exemple à traiter ? Se rendre compte avec TLA que ça marche pas)
-$$\untilRule$$
-$$\untilConsRule$$
-
-
-\noindent
-\textbf{Le système}
-
-\noindent
-Avant de passer aux règles du régulateur, attardons-nous sur un point passé sous silence, la communication entre nos deux sous-systèmes : les trains et le régulateur.
-Nous modélisons cela via une règle de transition étiquetée : "\textit{!ev(id,pos)}" permets d'envoyer le message "ev(id,pos)", et "\textit{?ev(id,pos)}" permet de le recevoir.
-$$\systemRule$$
-Ainsi, cette règle nous permet d'envoyer et de recevoir les messages en parallèle. Cependant, pour obtenir une modélisation plus
-proche de la réalité, ces messages sont envoyés dans un buffer unidirectionnel (train $\rightarrow$ régulateur).
-De cette manière, il est possible de tendre vers des conditions réseaux réels, sans perte de paquet.\\
-
-
-\noindent
-\textbf{Le régulateur}
-
-\noindent
-La règles de récéption permets de mettre en buffer un message envoyé par un train.
-$$\recvRule$$
-
-\noindent
-Dans notre modèle, nous avons des events atomiques, c'est-à-dire qu'ils ne peuvent pas être interrompus.
-Cependant, l'approche "grands pas" est bien plus difficile à mettre en place que l'approche "petits pas",
-car elle nécessite d'être exhaustif sur les entrelacements possibles.
-Pour des raisons de simplicité, nous avons choisi de simuler une approche "grands pas" avec une approche "petits pas".
-C'est la raison d'être de ces deux règles, elles permettent d'entraver les trains tant que l'event n'est pas terminé.
-$$\SERule$$
-$$\EERule$$
-
-\noindent
-TODO
-$$\incrBFRule$$
-
-\noindent
-TODO
-$$\incrAFRule$$
-
-\noindent
-TODO
-$$\attBFRule$$
-
-\noindent
-TODO
-$$\attAFRule$$
-
-\noindent
-TODO
-$$\turnRule$$
-
-\noindent
-TODO
-$$\authRule$$
+\paragraph{Signal rules.}
 
 
 \subsection{Détecter les problèmes}
@@ -595,10 +559,121 @@ The main principle behind our routing process is composition that we discuss now
 This strategy has a main advantage, it is quite flexible to new events. Suppose that at some point a train is blocked, we may recompute safe steps for the other trains, possibly releasing a deadlock. But, that being said, we are now turned to the transformation of safe steps into train orders and regulator rules. 
 
 
+
+\subsection{Préparation}
+\textbf{Simplification des ordres "turn"}\\
+La préparation est une étape cruciale, nous permettant de simplifier la suite du processus.
+D'abord, nous allons simplifier les ordres "turn", pour cela, {\color{red} on pose l'hypothèse que o1 et o2 sont élémentaires (embêtant si on veut faire des compositions complexes)}.
+Ainsi, dans chaque liste d'ordre, un ordre "turn" ne peut concerner qu'un seul switch. On cherche alors les ordres similaires entre les listes pour les supprimer de o2.
+\\Par exemple :
+
+\begin{center}
+	\begin{tabular}{||c || c | c||}
+		\hline
+		tid & o$_1$ & o$_2$ \\ [0.5ex] 
+		\hline\hline
+		0 & \tuple{10d,{\color{blue}11v}} & \tuple{} \\ 
+		1 & \tuple{} & \tuple{{\color{blue}12v},10d} \\
+		\hline
+		0 & \tuple{{\color{blue}10d},11v} & \tuple{} \\ 
+		1 & \tuple{} & \tuple{{\color{blue}12v},10d} \\
+		\hline
+		0 & \tuple{10d,{\color{violet}11v}} & \tuple{} \\ 
+		1 & \tuple{} & \tuple{12v,{\color{violet}10d}} \\
+		\hline
+		0 & \tuple{\underline{\color{violet}10d},11v} & \tuple{} \\ 
+		1 & \tuple{} & \tuple{12v,\underline{\color{violet}10d}} \\
+		\hline
+		0 & \tuple{10d,11v} & \tuple{} \\ 
+		1 & \tuple{} & \tuple{12v} \\
+		\hline
+	\end{tabular}
+\end{center}
+On convertie ensuite les ordres "turn" restant dans o1 en "initialisation" d'un aiguillage si ce dernier n'est pas déjà initialisé.
+\\\textbf{Traiter les ressources critiques}\\
+Pour cette étape, on cherche d'abord à identifier les ressources critiques. Avec une méthode similaire à celle vue précédemment :
+
+\vspace{0.5cm}
+
+\begin{center}
+	\begin{tabular}{||c || c | c||} 
+		\hline
+		tid & o$_1$ & o$_2$ \\ [0.5ex] 
+		\hline\hline
+		0 & \tuple{4,3,{\color{red}8}} & \tuple{8} \\ 
+		1 & \tuple{6} & \tuple{{\color{red}7},3,4,5} \\
+		\hline
+		0 & \tuple{4,{\color{red}3},8} & \tuple{8} \\ 
+		1 & \tuple{6} & \tuple{{\color{red}7},3,4,5} \\
+		\hline
+		0 & \tuple{{\color{red}4},3,8} & \tuple{8} \\ 
+		1 & \tuple{6} & \tuple{{\color{red}7},3,4,5} \\
+		\hline
+		
+		0 & \tuple{4,3,{\color{violet}8}} & \tuple{8} \\
+		1 & \tuple{6} & \tuple{7,{\color{violet}3},4,5} \\
+		\hline
+		0 & \tuple{4,\underline{\color{violet}3},8} & \tuple{8} \\ 
+		1 & \tuple{6} & \tuple{7,\underline{\color{violet}3},4,5} \\
+		\hline
+
+		0 & \tuple{4,3,{\color{blue}8}} & \tuple{8} \\
+		1 & \tuple{6} & \tuple{7,3,{\color{blue}4},5} \\
+		\hline
+
+		0 & \tuple{4,3,{\color{orange}8}} & \tuple{8} \\
+		1 & \tuple{6} & \tuple{7,3,4,{\color{orange}5}} \\
+		\hline
+	\end{tabular}
+\end{center}
+\noindent
+Dans notre exemple, on peut voir que 3 est la seule ressource critique, il faut donc traiter ce cas.
+On va ajouter un ordre "att(3,valT)" à l'event précédent l'entrée de la ressource critique pour le train qui utilise la ressource en second.
+On ajoute également un ordre "incr(3)" à l'event suivant la sortie de la ressource critique pour le train qui utilise la ressource en premier.
+Si le train à besoin d'un "turn" pour entrer dans la ressources critique, alors on le décale dans un event du train ayant utilisé l'aiguillage le plus récemment.
+\\\textbf{Mettre à jour les jetons}\\
+Laissons de côté l'hypothèse que o1 et o2 sont élémentaires, il est alors possible que o1 contienne des ordres de type "att" et "incr". Il faut donc mettre à jour les valeurs
+des tokens pour "att" et "incr" dans o2. Par exemple, si dans o1 on trouve les ordres : (att(3,1), incr(3)), alors dans o2 on va devoir transformer att(3,1) en att(3,2).
+
+\subsection{Assemblage}
+L'assemblage est la partie la plus simple de cette fonction, il s'agit de concaténer les ordres des trains et des events.
+Pas de technique intelligente, si les programmes du train 1 pour o1 et o2 sont "<L,[1,2]>" et "<L,[3,4]>", alors la concaténation donne "<L,[1,2]>,<L,[3,4]>".
+Même chose pour les events, \tuple{\tuple{1,\tuple{}},\tuple{2,\tuple{turn(x,y)}}} et \tuple{\tuple{2,\tuple{att(3,1)}},\tuple{3,\tuple{}}} devient \tuple{\tuple{1,\tuple{}},\tuple{2,\tuple{turn(x,y),(att(3,1))}},\tuple{3,\tuple{}}}.
+À partir de maintenant, nous ne manipulerons plus deux listes d'ordres, o1 et o2, mais une seule : o3. 
+\\Aussi, on reprend l'initialisation des aiguillages de o1 pour o3.
+
+\subsection{Nettoyage}
+Cette partie fait office de "finalisation". On va d'abord s'occuper de "regrouper" les ordres des trains. Notre exemple précédent "<L,[1,2]>,<L,[3,4]>", nous donne maintenant "<L,[1,2,3,4]>". 
+On ajoute également un ordre "auth" pour les "turn" utilisés par des trains pour agir sur leur propre parcours. (les trains n'utilisent pas directement "turn", mais plus simple à expliquer de cette manière)
+Enfin, on chercher le premier arrêt de chaque train pour assigner les feux au rouge.
+
 \section{Expériences}
 \label{sec:experiments}
 
-%\newpage
+Maintenant que tous les éléments sont définis, nous pouvons nous intéresser à la vérification de notre modèle.
+L'ultime but est de tester tous les chemins possibles sur notre modèle pour s'assurer qu'il est correct pour n'importe quel chemin.
+Ce projet est ambitieux, nous allons donc nous concentrer sur la composition de deux chemins élémentaires, et vérifier que le modèle est correct pour ces cas.
+
+\subsection{Test sur les chemins élémentaires}
+Avant de passer à la composition, nous devons tester que l'algorithme permettant de "parser" un chemin élémentaire en TLA+ depuis sa description contenue dans le fichier JSON fonctionne.
+Pour cela, nous allons tester les 165 500 chemins élémentaires de notre circuit, du moins, ceux que l'on considère comme "valides".
+Certains chemins élémentaires ne font que démarrer, ce qui n'a pas de sens dans notre modèle, aucune règle de transition n'est prévue pour cela.
+Après 111 812 secondes, soit 31 heures, l'intégralité des chemins a été passée en revue. Parmi eux, 58 368 chemins valides ont été testés, ne rencontrant aucun problème. (Sur l'image on lit 58 370, petit bug d'affichage que j'ai laissé passer)  
+
+\begin{figure}
+	\begin{subfigure}{0.5\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{img/spec_pc.png}
+		\caption{Spec de l'ordinateur}
+	\end{subfigure}
+	\begin{subfigure}{0.5\textwidth}
+		\centering
+		\includegraphics[width=\textwidth+0.5cm]{img/testElem.png}
+		\caption{Vérification des chemins élémentaires}
+	\end{subfigure}
+	\caption{Tests sur les chemins élémentaires}
+\end{figure}
+\label{fig:elem-tests}
 
 \section{Conclusion}
 \label{sec:conclusion}
