@@ -341,11 +341,11 @@ We first focus on rules that affect trains. The first rule is \ruleRef{Start}, w
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{Start}]{
-		\dirFmt{d} \neq \dirFmt{d^\prime}
+		\dirFmt{d} \neq \dirFmt{d^\prime} \and P = \trainConcat{\su{d^\prime}{\posFmt{N}}}{P^\prime}
 	}{
-		\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\trainConcat{\su{d^\prime}{\posFmt{N}}}{P^\prime}}\}}{\regulator}{\switches}{\signals}} \\
+		\hspace{3mm} \redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{P}\}}{\regulator}{\switches}{\signals}} \\
 		\reduces
-		\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d^\prime}{\trainConcat{\su{d^\prime}{\posFmt{N}}}{P^\prime}}\}}{\regulator}{\switches}{\signals}}
+		\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d^\prime}{P}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
 
@@ -354,7 +354,7 @@ Conversely, if the train program is empty (i.e. upon termination), the train sto
 	\inferrule*[left=\ruleDef{Stop}]{
 		\dirFmt{d} \neq \dirStop
 	}{
-	\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}} \\
+	\hspace{4mm}  \redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}} \\
 	\reduces
 	\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{\dirStop}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}}
 	}
