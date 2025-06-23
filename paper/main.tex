@@ -13,6 +13,8 @@
 \usepackage{mathtools}
 \usepackage{ amssymb }
 
+\usepackage{minted}
+
 \usepackage{package/formal-grammar}
 
 \newcommand{\ruleFmt}[1]{\textsc{(#1)}}
@@ -496,53 +498,65 @@ les trains n'arrivent pas destination, c'est un deadlock, ou les trains partagen
 Point important, nos règles de transitions se basent sur l'interleaving, les trains ne peuvent donc pas se croiser. (($\triangle$,2) $\Rightarrow$ ($\triangle$,3) || ($O$,3) $\Rightarrow$ ($O$,2)).
 Le premier problème représente notre propriété de Liveness, les trains arrivent à destination, et le second représente notre propriété de Safety, les trains ne se crashent pas.
 
-\section{Formalisation en TLA+}
+\section{Formalisation within TLA+}
 \label{sec:tla-formalisation}
 
-\subsection{Intro ?}
+Our global aim is to check that routes are correct. That is we want, for any initial configuration, to check that no trains meet on the same block, that there is no deadlocks and finally  that trains will reach their destination. To do that, we implement the rules of Section~\ref{sec:formal-model} in TLA+. The tool provides both a specification language and a model checker. We let the reader refer to the book of Lamport~\cite{Lamport} for a full presentation of TLA+. 
 
-\begin{itemize}
-	\item Présenter le logiciel global (TLA + Python + ..., entrées/sorties, etc...)
-	\item Schéma architectural
-	\item Ordre d'exécution des programmes.
-\end{itemize}
+To specify a system in TLA+, first, a configurations is described as a list of variables, then rules  will give the dynamic of the system and finally some assertions  will check the model.  Variables values range within sets. Either directly, or via a library, we have access to integers, strings, finite sets (e.g. \mintinline{C}{ T = {1, 2, 3}}), sequences (e.g. \mintinline{C}{route = <<7,3,4>>}),  arrays (e.g. for the initial token valuation \mintinline{C}{token = [bid in 1..nbBlock |-> 0]} ) and tuples (e.g. \mintinline{C}{[tid|->1, pid|->9, d|->"*", prog|-> << <<"StartUntil","f",4>> >>]}  for a train configuration:).
 
-\subsection{Fonctionnement de TLA+}
-Comme nous l'avons vu, TLA+ repose sur la logique temporelle et nous permet de modéliser des systèmes afin de vérifier leurs propriétés.
-Pour cela, nous commençons par définir les variables du système, dans la philosophie de TLA+, c'est ce qui évolue dans le temps. 
-Pour notre modèle, nous avons $\Gamma$, $R$, mais aussi deux dernières variables sur lesquelles nous reviendrons plus tard.
-Ensuite, il nous faut décrire l'état initial de notre système, traditionnellement dans une "fonction" nommée Init.
-Le prochain point réside dans la définition des règles de transitions, c'est le moteur de notre système. 
-Toutes ces règles doivent être rassemblées, traditionnellement sous la fonction Next. 
-Enfin, cette étape s'achève par la définition de la spécification du système, globalement, la mise en commun de tout ce que nous avons créé.
-\\Ainsi, nous créons la fonction Spec comme ceci :
+With those latter constructions, we can represent an initial configuration. It takes the form of a logical formula (partially given here):
+\begin{minted}{C}
+Init == 
+    LET 
+        four_to_8 ==  << <<"StartUntil","b",<<3,8>> >>  >>
+        five_to_4 ==  << <<"StartUntil","f",<<7,3,4>> >> >>
+        train1 == [tid|->1, pid|->4, d|->"*", prog|-> four_to_8]
+        train2 == [tid|->2, pid|->5, d|->"*", prog|-> five_to_4]
+        traffic_lights ==[x \in (1..8) \X {"f","b"} |-> "g"]
+        ...
+    IN
+        /\ gamma = <<train1,train2>>
+        /\ sigma =  <<"d", "d", "v", "d", "d">> 
+        /\ F = [traffic_lights EXCEPT ![7,"f"]="r", ![8,"b"]="r"]
+        ...
+\end{minted}
+
+The representation of the network topology is also represented within TLA+. It takes the shape of a function that is precomputed via a python script (see XXX\todo{Référence au schéma}). 
+
+\subsection{The implementation of the dynamics}
+
+Variables will update with time, each transition is described with prime variables. Those represent the value of the variable after the transition. For instance, \mintinline{C}{gamma' = [gamma EXCEPT ![T.id].d = "f"]} updates the train tuple: the train \mintinline{C}{T.id}'s direction is set to \mintinline{C}{"f"} where  \mintinline{C}{T} is a variable  defined somewhere else. 
+
+To each rule in Section~\ref{sec:formal-model}, we associate a TLA+ rule taking the shape (here the Stop rule): 
+\begin{minted}{C}
+Stop (T) ==
+        /\ Len(T.prog) = 0
+        /\ meta.G.state = "none"
+        /\ T.d /= "*"
+        /\ gamma' = [gamma EXCEPT ![T.id].d = "*"]
+        /\ meta' = [meta EXCEPT !.msg[1] = Append(meta.msg[1],<<T.id,T.pid>>)]
+        /\ UNCHANGED << reg, sigma, F >>
+ \end{minted}
+The first three lines correspond to the conditions that will fire the rule, the last ones correspond to the configuration update. The next definition represent the application of one rule:
+\begin{minted}{C}
+Next == 
+   \/ UpdateTL
+   \/ StartEvent
+   \/ Turn
+   ...
+   \/  \E i \in 1..Len(gamma) :
+            \/ Start(gamma[i])
+            \/ Until(gamma[i])
+            ...
+\end{minted}       
+        
+The system is then reprensented by a formula:
 \begin{verbatim}
     Spec == Init /\  [][Next]_variables
 \end{verbatim}%Revoir la syntaxe au cas où / remplacer par le jolie tla2latex
-Vous avez désormais une vue d'ensemble sur la construction d'une spécification TLA+.
-Rentrons désormais dans les détails de l'implémentation.
 
-
-\subsection{Implémentation du modèle}
-TLA+ n'étant pas un langage de programmation, nous devons utiliser les structures de données mises à disposition pour représenter les éléments de notre modèle.
-Or, ce dernier gère très bien les fonctions et les ensembles, ainsi ce qu'on apparente à un tableau ou une structure n'est qu'une fonction.
-Par exemple, pour la sequence $[8,7,6,5]$, on créer en TLA+ une fonction $s$ telle que $s(1) = 8$, $s(2) = 7$\dots
-Le procédé est similaire pour les structures, on associe une chaîne de caractères à une donnée.
-
-
-\subsection{Questionner TLA+}
-Maintenant que notre implémentation est terminée, il est temps de questionner TLA+ sur le comportement de notre spécification.
-Pour ça, nous allons définir des invariants qui devront être vrais dans tous les états du système, sans surprise, ces invariants 
-se rapportent à nos propriétés de Liveness et de Safety vue plus haut.
-$$Liveness : TODO$$
-$$Safety : TODO$$
-Désormais, il est possible d'utiliser le model checker de TLA+, TLC, pour vérifier que nos propriétés sont bien respectés
-peu importe l'entrelacement des règles de transitions.
-
-%Test notre scénario avec TLC :
-%crash (a cause de Until_cons et du message envoyé en double)
-%répare et deadlock (mise en place de IDLE et de Weak Fairness)
-%Pourquoi Weak Fairness et pas Strong Fairness ou Unfair ?
+Actually, in our formal semantics, nothing forces a rule to be applied. As a consequence, an ongoing train may never reach its next block. Thanks to TLA+, we can ensure that a rule will eventually be applied (if it can be). Those are known as weak fairness conditions. Again, we specify it as follows. \todo{WF condition?}
 
 \section{Composition}
 \label{sec:composition}
