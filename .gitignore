@@ -22,9 +22,11 @@
 /composition.log
 /composition.synctex.gz
 /ref.txt
+
+/code/experience/exp0
+/code/experience/exp1/OAR*
 /code/composition/states
 /code/composition/graphe_mouvements.pdf
-
 /code/composition/__pycache__
 /code/composition/model/tla2tools.jar
 /code/composition/model/out.log
@@ -43,4 +45,5 @@
 /paper/main.log
 /paper/main.synctex.gz
 /paper/main.pdf
+
 

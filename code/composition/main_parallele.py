@@ -64,7 +64,7 @@ def check(etat1, etat2, etat3):
 
 
 def execution(dir="model"):
-    command = ["java", "-jar", f"model/tla2tools.jar", "-noGenerateSpecTE", "-config", f"model/compo.cfg", f"{dir}/model1.tla"]
+    command = ["java", "-jar", f"model/tla2tools.jar", "-noGenerateSpecTE", "-config", f"model/compo.cfg", f"{dir}/model2.tla"]
     if dir != "model":
         command.insert(4,"-metadir")
         command.insert(5, dir+"/tmp")
@@ -85,6 +85,8 @@ def execution(dir="model"):
 
 
 def analyse(data=None, dir=None, term_event=None, tab=None):
+
+    print(f"Taille du graph : {len(etats)} états")
     if data is None:
         data = etats
 
@@ -122,7 +124,7 @@ def analyse(data=None, dir=None, term_event=None, tab=None):
                         error_file.write(f"Erreur {etat1} -> {etat2} -> {etat3} : {e}\n")
         with open(f"{dir}/progress.log", "a") as progress_file:
             progress_file.write(etat1 + "\n")
-        etats.pop(etat1)
+        data.pop(etat1)
 
     print(f"Travail terminé. Sauvegarde en cours...")
     save_path = "model/save_etats.json"
@@ -145,7 +147,8 @@ def affichage(array, term):
 
 def manager(pid):
     """ Contrôle la durée de l'expérience """
-    time.sleep(120) # Laisser le temps aux processus de s'exécuter
+    for i in range(10):
+        time.sleep(60) # Laisser le temps aux processus de s'exécuter
     os.kill(pid, signal.SIGINT)
 
 
@@ -177,7 +180,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     term_event = Event()
 
-    divided = divide_dict(nodeData, 3)
+    divided = divide_dict(nodeData, 2)
     
     for d in divided:
         print(f"Nombre d'états dans le dictionnaire : {len(d)}")
@@ -188,7 +191,7 @@ if __name__ == "__main__":
     for i in range(len(d_procs)):
         #arrays.append(Array('i', [0, 0]))
         #p = Process(target=analyse, args=(d_procs[i], "model/compo"+str(i+1), arrays[i], term_event))
-        p = Process(target=analyse, args=(d_procs[i], "model/compo"+str(i+1), term_event,))
+        p = Process(target=analyse, args=(d_procs[i], "model/node"+sys.argv[1]+"/compo"+str(i+1), term_event,))
         procs.append(p)
         p.start()
 
