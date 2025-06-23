@@ -25,6 +25,19 @@ if s != len(etats):
 else:
     print(f"Total items: {s}")
 
+#check si pas de doublons entre les dictionnaires
+for d1 in div:
+    for d2 in div:
+        if d1 is d2:
+            continue
+        intersection = set(d1.keys()).intersection(set(d2.keys()))
+        if intersection:
+            print(f"Error: Duplicates found between dictionaries: {intersection}")
+            raise ValueError("Duplicates found in divided dictionaries.")
+        
+
+
+
 i = 0
 for d in div:
     with open(f"model/gs_{i}.json", "w") as file:
