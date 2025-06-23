@@ -331,6 +331,9 @@ Train events are not dealt with instantly by the regulator (e.g. two train event
 
 \subsection{Reduction rules}
 
+\todo{Rajouté par Guillaume}
+A \emph{configuration} is a tuple of the shape $\gamma =  \redTuple{s}{\bufferFmt{B}}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ with $s$ a guard, $B$ a buffer, and the 4-tuple $\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}$ denotes respectively the train sequence, the regulator, the switches and the signals. 
+
 \todo{relation: (guard, buffer, état) -> (guard, buffer, etat)}
 
 
@@ -389,6 +392,33 @@ The last two rules for trains describe what happens when a train actually moves,
 \end{mathpar}
 
 \paragraph{Regulator rules.}
+
+
+\paragraph{Guillaume rajoute la normalisation}
+
+Rule application induce a relation between configuration:  $\gamma \reduces \gamma'$ if $\gamma'$  if there is a rule for which $\gamma$ is the initial state and $\gamma'$ the conclusion. The reflexive-transitive closure of $\reduces$ is denoted $\reduces^*$, that is $\gamma \reduces^* \gamma'$ iff $\gamma = \gamma_0 \reduces \cdots \gamma_n = \gamma'$. The value $n = 0$ corresponds to $\gamma = \gamma'$. 
+
+A normal form of a configuration $\gamma$ is a configuration $\gamma'$ such that $\gamma \reduces^* \gamma'$ and there is no $\gamma''$ with $\gamma' \reduces \gamma''$. In other words, starting from $\gamma$, the computation may end on $\gamma'$. We note $\gamma \reduces^! \gamma'$ this relationship.
+
+Given a configuration of the shape  $\gamma = \redTuple{x}{B}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ and a train $\tid{id}$, 
+\begin{itemize}
+\item   we say that it has no jobs if  $\trainSeq{}[\tid{id}].P = \emptyTrainProg$;
+\item its source is $\mathtt{src}(\gamma, \tid{id}) = \trainSeq{}[\tid{id}].pid$;
+\item its destination is $\mathtt{dst}(\gamma, \tid{id}) = pid \in \blocks $ if either
+\begin{itemize}
+\item  it has no jobs and  $\trainSeq{}[\tid{id}].pid = pid$  or
+\item  the last order in  $\trainSeq{}[\tid{id}].P$ is $\su{d}{pid}$ for some direction $d$.
+\end{itemize}
+\end{itemize}
+
+A configuration $\gamma = \redTuple{\guardT}{\emptyset}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}} $  is \emph{reliable} if: 
+\begin{itemize}
+\item  no two trains meet on the same block or the same switch, \todo{En dire plus}
+\item $\gamma$ has  a unique normal form $\gamma'$ and 
+\item any train in $\gamma'$ has no jobs and 
+\item for any train $\tid{id}$, $\mathtt{dst}(\gamma, \tid{id}) =  \mathtt{dst}(\gamma', \tid{id})$. 
+\end{itemize}
+
 
 \subsection{Modélisation d'une liste d'odre}
 %La modélisation de notre liste d'ordre doit prendre en compte les besoins et contraintes évoqués plus haut.
@@ -526,9 +556,9 @@ The representation of the network topology is also represented within TLA+. It t
 
 \subsection{The implementation of the dynamics}
 
-Variables will update with time, each transition is described with prime variables. Those represent the value of the variable after the transition. For instance, \mintinline{C}{gamma' = [gamma EXCEPT ![T.id].d = "f"]} updates the train tuple: the train \mintinline{C}{T.id}'s direction is set to \mintinline{C}{"f"} where  \mintinline{C}{T} is a variable  defined somewhere else. 
+Variables will be updated with time flying, each transition is described with prime variables. Those latter represent the value of the variable after the transition. For instance, \mintinline{C}{gamma' = [gamma EXCEPT ![T.id].d = "*"]} updates the train tuple: the train \mintinline{C}{T.id}'s direction is set to \mintinline{C}{"*"} where  \mintinline{C}{T} is a variable  defined somewhere else. 
 
-To each rule in Section~\ref{sec:formal-model}, we associate a TLA+ rule taking the shape (here the Stop rule): 
+To each inference rule in Section~\ref{sec:formal-model}, we associate a TLA+ rule taking the shape (here the Stop rule): 
 \begin{minted}{C}
 Stop (T) ==
         /\ Len(T.prog) = 0
@@ -546,20 +576,24 @@ Next ==
    \/ Turn
    ...
    \/  \E i \in 1..Len(gamma) :
-            \/ Start(gamma[i])
+            \/ Stop(gamma[i])
             \/ Until(gamma[i])
             ...
 \end{minted}       
         
-The system is then reprensented by a formula:
+The system is then represented by a formula:
 \begin{verbatim}
     Spec == Init /\  [][Next]_variables
 \end{verbatim}%Revoir la syntaxe au cas où / remplacer par le jolie tla2latex
-
-Actually, in our formal semantics, nothing forces a rule to be applied. As a consequence, an ongoing train may never reach its next block. Thanks to TLA+, we can ensure that a rule will eventually be applied (if it can be). Those are known as weak fairness conditions. Again, we specify it as follows. \todo{WF condition?}
+where variables is the tuple of all variables. The intended meaning is that the initial configuration is specified in \mintinline{C}{Init} and steps follow the \mintinline{C}{Next} formula.  Actually, presently, in our formal semantics, nothing forces a rule to be applied. As a consequence, an ongoing train may never reach its next block. Thanks to TLA+, we can ensure that a rule will eventually be applied (if it can be). Those are known as weak fairness conditions. Again, we specify it as follows. \todo{WF condition?}
 
 \section{Composition}
 \label{sec:composition}
+
+The main principle behind our routing process is composition that we discuss now. A route for a train is a sequence $\vec{x} = x_1, \ldots, x_k$ of (contiguous) blocks and switches. Two routes $\vec{x}$ and $\vec{y}$ have a critical resource if  $x_i = y_j$ for some $i,j$. A \emph{global routing} is a route for each train. To compute global routing, we decompose them in  safe steps. A safe step is a global routing such that the routes share no critical resources, neither a block, neither a switch. It is clear that any global routing can be decomposed into such safe steps.
+
+This strategy has a main advantage, it is quite flexible to new events. Suppose that at some point a train is blocked, we may recompute safe steps for the other trains, possibly releasing a deadlock. But, that being said, we are now turned to the transformation of safe steps into train orders and regulator rules. 
+
 
 \section{Expériences}
 \label{sec:experiments}
