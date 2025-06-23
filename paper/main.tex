@@ -15,6 +15,9 @@
 
 \usepackage{minted}
 
+\usepackage{caption}
+\usepackage{subcaption}
+
 \usepackage{package/formal-grammar}
 
 \newcommand{\ruleFmt}[1]{\textsc{(#1)}}
@@ -620,7 +623,30 @@ Enfin, on chercher le premier arrêt de chaque train pour assigner les feux au r
 \section{Expériences}
 \label{sec:experiments}
 
-%\newpage
+Maintenant que tous les éléments sont définis, nous pouvons nous intéresser à la vérification de notre modèle.
+L'ultime but est de tester tous les chemins possibles sur notre modèle pour s'assurer qu'il est correct pour n'importe quel chemin.
+Ce projet est ambitieux, nous allons donc nous concentrer sur la composition de deux chemins élémentaires, et vérifier que le modèle est correct pour ces cas.
+
+\subsection{Test sur les chemins élémentaires}
+Avant de passer à la composition, nous devons tester que l'algorithme permettant de "parser" un chemin élémentaire en TLA+ depuis sa description contenue dans le fichier JSON fonctionne.
+Pour cela, nous allons tester les 165 500 chemins élémentaires de notre circuit, du moins, ceux que l'on considère comme "valides".
+Certains chemins élémentaires ne font que démarrer, ce qui n'a pas de sens dans notre modèle, aucune règle de transition n'est prévue pour cela.
+Après 111 812 secondes, soit 31 heures, l'intégralité des chemins a été passée en revue. Parmi eux, 58 368 chemins valides ont été testés, ne rencontrant aucun problème. (Sur l'image on lit 58 370, petit bug d'affichage que j'ai laissé passer)  
+
+\begin{figure}
+	\begin{subfigure}{0.5\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{img/spec_pc.png}
+		\caption{Spec de l'ordinateur}
+	\end{subfigure}
+	\begin{subfigure}{0.5\textwidth}
+		\centering
+		\includegraphics[width=\textwidth+0.5cm]{img/testElem.png}
+		\caption{Vérification des chemins élémentaires}
+	\end{subfigure}
+	\caption{Tests sur les chemins élémentaires}
+\end{figure}
+\label{fig:elem-tests}
 
 \section{Conclusion}
 \label{sec:conclusion}
