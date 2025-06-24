@@ -123,12 +123,15 @@
 \newcommand{\bufhead}[1]{\head{\bufferFmt{#1}}}
 \newcommand{\buftail}[1]{\ensuremath{{\tt tl}(\bufferFmt{#1})}}
 \newcommand{\emptyList}{\ensuremath{\varepsilon}}
-\newcommand{\bufferSet}{\ensuremath{\bufferFmt{\mathbb{B}}}\xspace}
+\newcommand{\bufTrainSet}{\ensuremath{\bufferFmt{\mathbb{B}_t}}\xspace}
+\newcommand{\bufSigSet}{\ensuremath{\bufferFmt{\mathbb{B}_s}}\xspace}
+\newcommand{\bufTrain}{\ensuremath{\bufferFmt{B_t}}\xspace}
+\newcommand{\bufSig}{\ensuremath{\bufferFmt{B_s}}\xspace}
 
 
 %% Reduction relation
 \newcommand{\reduces}{\ensuremath{\rightarrow}}
-\newcommand{\redTuple}[3]{\ensuremath{\tuple{#1, #2, #3}}}
+\newcommand{\redTuple}[4]{\ensuremath{\tuple{#1, \bufferFmt{#2}, \bufferFmt{#3}, #4}}}
 
 %% Rule predicates
 \newcommand{\requestS}[3]{\ensuremath{{\tt RequestS}(\trainFmt{#1}, \posFmt{#2}, #3)}}
@@ -273,7 +276,7 @@ Each train is characterised by an identifier, a position, a direction, and a lis
 	\item Train identifiers form a set  $\trains = \{\tid{1}, \ldots, \tid{k}\}$, each train having its own identifier.
 	\item The position is the index of the block currently occupied by the train.
 	\item The direction (taken from $\directions_\dirStop = \{\dirBackward, \dirForward, \dirStop\}$) indicates the direction the train is ordered to go towards, where \dirStop indicates the train has no direction order at the moment. The direction represents the current move order, but does not mean the train is actually moving: it can be blocked at a signal.
-	\item Orders are given as a (possibly empty) sequence of orders $\su{d}{\bid{id}}$ ($\dirFmt{d} \in \directions$, $\bid{id} \in \blocks$). Such order states that the train direction is set to $\dirFmt{d}$ and that the train runs until it reaches $\bid{id}$.\todo{Le 2nd argument est une liste de positions à venir}
+	\item Orders are a (possibly empty) sequence of orders $\su{d}{\bid{1}\dots\bid{n}}$ ($\dirFmt{d} \in \directions$, $\bid{i} \in \blocks^\star$). Such order states that the train direction is set to $\dirFmt{d}$ and that the train will use blocks $\bid{1}\dots\bid{n}$.
 \end{itemize}
 
 Thus, each train is a quadruple $\trainFmt{t} = \trainTuple{\tid{id}}{\bid{id}}{d}{P}$ with $\tid{id}$ the train's identifier, $\bid{id}$ its position, $\dirFmt{d}$ its direction and $P$ its sequence of orders. Trains are collected in a sequence $\trainSeq = (\trainFmt{t_1}, \ldots, \trainFmt{t_k})$ where each $\trainFmt{t_i}$ being the tuple of train $\trainFmt{i}$. 
@@ -296,27 +299,17 @@ Overall, the regulator is a tuple $R = \regTuple{E}{\tokens}{W}$. By convention,
 Train events are handled by the regulator. Upon such events, the regulator can take actions such as turning a switch, allowing or blocking a train, etc.. The regulator is equipped with a routing program. This routing program contains, for each train, a list of handlers\todo{Chaque handler associe une position et une liste d'ordres.}. For a given train, the first handler of the list is the set of actions that have to be executed on the train's first event, second handler for the second event, and so on.
 
 Given a routing program $E$, $\handlerOf{E}{\tid{id}}$ is the list of handlers of train $\tid{id}$, $\head{\handlerOf{E}{\tid{id}}}$ is the handler of the first event for that train.
-
-The syntax of each handler is given by the non-terminal {\ttfamily stmt} in Grammar~\ref{gr:regulator_program}.\todo{est-ce toujours nécessaire maintenant que les handlers sont dans un liste ?}
-The program of the regulator is a set of rules, guarded by events. A rule $\ev{\tid{id}}{n}{A}$ denotes that upon entering the $n$-th block of its route, train $\tid{id}$ will trigger actions $A$. The list of actions in the handler are of four kinds: 
+The handler for a given event is a list of actions, each of them being one of the following:
 \begin{description}
-	\item[\incr{\bid{id}}:] this updates the token $\bid{id}$ in $T$:  $T \cdot \incr{\bid{id}}  \triangleq T[\bid{id} \leftarrow T(\bid{id})+1]$
-	\item [\wait{\bid{id}}{i}:] ...\todo{}
-	\item [\turn{\sid{id}}{s}:] this instructs the regulator to turn the switch $\sid{id}$ into the $s$ state: $\sigma\cdot\turn{\sid{id}}{s} = \sigma[\sid{id} \leftarrow s]$
-	\item [\auth:] ...\todo{}
+	\item [\wait{\bid{id}}{n}:] the train waits until the token of block \bid{id} reaches value $n$
+	\item [\incr{\bid{id}}:] this increments the token $\bid{id}$ in $T$, thus releasing a train waiting
+	\item [\turn{\sid{id}}{s}:] this turns the switch $\sid{id}$ into the $s$ state: $\sigma\cdot\turn{\sid{id}}{s} = \sigma[\sid{id} \leftarrow s]$
+	\item [\auth:] a shortcut for waiting on oneself
 \end{description}
 
 Notice that all actions of a rule are executed atomically. Our semantics, presented below, details actions' behaviour.
 \todo{Clarifier Event, indexation par train, qui donne une liste de handlers, eux-même une liste d'ordres}
 
-\begin{grammar}[Regulator's rules, with $\tid{id} \in \trains$, $n \in  \Nat$, $\bid{id} \in \blocks$, $\sid{id} \in \turnouts$, $s\in \internalState$.][h][gr:regulator_program]
-	\firstcasesubtil{\ttfamily stmt}{\evGuard{\tid{id}}{n} : \nonterm{A}^\star}{}
-	\firstcase{A}{\incr{\bid{id}}}{}
-	\otherform{\wait{\bid{id}}{i}}{}
-	\otherform{\turn{\sid{id}}{s}}{}
-	\otherform{\auth}{}
-\end{grammar}
-  
 \paragraph{Model.}
 Overall, states of our model are tuples $\tuple{\trainSeq, \regulator, \switches, \signals}$ where $\trainSeq$ is a set of train tuples, $\regulator$ a regulator tuple, $\switches$ a network configuration (indicating trackworks states) and $\signals$ a signals state function. We suppose all train tuples in $\trainSeq$ have a different identifier. Notice that $\sucblock$ is not part of the state. Instead, the dynamics of the model (see below) is parameterised by $\sucblock$. Let $\modelSet$ be the set of all model states.
 
@@ -357,13 +350,12 @@ Essentially, this guard is the state machine shown in Figure~\ref{fig:state_mach
 	\label{fig:state_machine_guard}
 \end{figure}
 
-Train events are not dealt with instantly by the regulator (e.g. two train events can happen before the regulator begins to react to the first one). To characterise this behaviour, train events are stored in a buffer until the regulator uses them. Train events are tuples \tuple{\tid{id}, \bid{id}}, indicating that the train with id $\tid{id}$ enters block \bid{id}. A buffer \bufferFmt{B} is a sequence of such events. Let \bufferSet{} be the set of all buffers.
-
-Similarly, the regulator communicates with signals with a \emph{signal buffer} $B_s$, which is a list of tuple $\tuple{\bid{id}, c}$, indicating that both signals of block $\bid{id}$ should be turned to color $c$. \todo{mise en page}
+Train events are not dealt with instantly by the regulator (e.g. two train events can happen before the regulator begins to react to the first one). To characterise this behaviour, train events are stored in a buffer until the regulator uses them. In our model, a train event represent a train going from one block to another. When such thing happens, the train sends a message with its identifier to the regulator. A \emph{train buffer} \bufTrain is a sequence of such events, i.e. of train identifiers.
+Similarly, the regulator communicates with signals with a \emph{signal buffer} \bufSig, which is a list of tuples $\tuple{\bid{id}, c}$, indicating that both signals of block $\bid{id}$ should be turned to color $c$. Let \bufTrainSet (resp. \bufSigSet) denote the set of train (resp. signal) buffers.
 
 \subsection{Reduction rules}
 
-States of the system are triples from $\{\guardR, \guardS, \guardT\} \times \bufferSet \times \modelSet$. Our reduction relation is a binary relation on system states, noted $\reduces$: $S_1 \reduces S_2$ means that state $S_1$ can change to $S_2$ (note that this relation is not a function: $S_1$ can reduce to multiple states, due to non-determinism). We define $\reduces$ as the least relation induced by the inference rules presented hereafter.
+States of the system are triples from $\{\guardR, \guardS, \guardT\} \times \bufTrainSet \times \bufSigSet \times \modelSet$. Our reduction relation is a binary relation on system states, noted $\reduces$: $S_1 \reduces S_2$ means that state $S_1$ can change to $S_2$ (note that this relation is not a function: $S_1$ can reduce to multiple states, due to non-determinism). We define $\reduces$ as the least relation induced by the inference rules presented hereafter.
 
 \paragraph{Train rules.}
 We first focus on rules that affect trains. The first rule is \ruleRef{Start}, which is used to change the direction of a train (e.g. to go from a stop to a given direction, or to change direction if the train has to backtrack). This rule can be triggered when the program of the train begins by \su{d^\prime}{N}. This order says that the train should got in direction $\dirFmt{d^\prime}$, and on that direction, it is expected to meet the sequence of block which ids are in $\posFmt{N}$.
@@ -373,9 +365,9 @@ We first focus on rules that affect trains. The first rule is \ruleRef{Start}, w
 	\inferrule*[left=\ruleDef{Start}]{
 		\dirFmt{d} \neq \dirFmt{d^\prime} \and P = \trainConcat{\su{d^\prime}{\posFmt{N}}}{P^\prime}
 	}{
-		\hspace{3mm} \redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{P}\}}{\regulator}{\switches}{\signals}} \\
+		\hspace{3mm} \redTuple{\guardT}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{P}\}}{\regulator}{\switches}{\signals}} \\
 		\reduces
-		\redTuple{\guardT}{\push{B}{\tuple{\tid{id}, \bid{id}}}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d^\prime}{P}\}}{\regulator}{\switches}{\signals}}
+		\redTuple{\guardT}{\push{\bufTrain}{\tuple{\tid{id}, \bid{id}}}}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d^\prime}{P}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
 
@@ -384,9 +376,9 @@ Conversely, if the train program is empty (i.e. upon termination), the train sto
 	\inferrule*[left=\ruleDef{Stop}]{
 		\dirFmt{d} \neq \dirStop
 	}{
-	\hspace{4mm}  \redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}} \\
+	\hspace{4mm}  \redTuple{\guardT}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}} \\
 	\reduces
-	\redTuple{\guardT}{\push{B}{\tuple{\tid{id}, \bid{id}}}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{\dirStop}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}}
+	\redTuple{\guardT}{\push{\bufTrain}{\tuple{\tid{id}, \bid{id}}}}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{\dirStop}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
 
@@ -400,9 +392,9 @@ The last two rules for trains describe what happens when a train actually moves,
 		\and
 		\posFmt{N}\neq \varepsilon
 	}{
-		\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\trainConcat{\su{d}{[\bid{id^\prime}; \posFmt{N}]}}{P}}\}}{\regulator}{\switches}{\signals}} \\
+		\redTuple{\guardT}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\trainConcat{\su{d}{[\bid{id^\prime}; \posFmt{N}]}}{P}}\}}{\regulator}{\switches}{\signals}} \\
 		\reduces		
-		\redTuple{\guardS}{\push{\bufferFmt{B}}{\tuple{\tid{id}, \bid{id^\prime}}}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id^\prime}}{d}{\trainConcat{\su{d}{[\posFmt{N}]}}{P}}\}}{\regulator}{\switches}{\signals}}
+		\redTuple{\guardS}{\push{\bufTrain}{\tuple{\tid{id}, \bid{id^\prime}}}}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id^\prime}}{d}{\trainConcat{\su{d}{[\posFmt{N}]}}{P}}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
 
@@ -412,9 +404,9 @@ The last two rules for trains describe what happens when a train actually moves,
 		\and
 		\signalF{\bid{id}}{d} = \siggreen
 	}{
-		\redTuple{\guardT}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\trainConcat{\su{d}{[\bid{id^\prime}]}}{P}}\}}{\regulator}{\switches}{\signals}} \\
+		\redTuple{\guardT}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{d}{\trainConcat{\su{d}{[\bid{id^\prime}]}}{P}}\}}{\regulator}{\switches}{\signals}} \\
 		\reduces		
-		\redTuple{\guardS}{\bufferFmt{B}}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id^\prime}}{d}{P}\}}{\regulator}{\switches}{\signals}}
+		\redTuple{\guardS}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id^\prime}}{d}{P}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
 Notice that, in \ruleRef{UntilNext}, no message is added to the buffer.
@@ -428,7 +420,7 @@ When the regulator reacts to a train event, it executes atomically all rules ass
 	\inferrule*[left=\ruleDef{StartEvent}] {
 		\buflen{B} \neq 0
 	}{
-		\tuple{\guardT, B, R} \reduces \tuple{\guardR, B, R}
+		\redTuple{\guardT}{\bufTrain}{\bufSig}{R} \reduces \redTuple{\guardR}{\bufTrain}{\bufSig}{R}
 	}
 \end{mathpar}
 
@@ -441,9 +433,9 @@ Rule \ruleRef{Turn} triggers when a \turn{\sid{id}}{s} is encountered in the eve
 		\and
 		\head{\handlerOf{E}{\tid{id}}} = \regConcat{\turn{\sid{id}}{s}}{A^\prime}
 	}{
-	\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
+	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
 	\reduces
-	\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{\substHandlerHead{E}{\tid{id}}{A^\prime}, T, W}}{\updateSignals{\switches}{\sid{id}}{s}}{\signals}}
+	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\tuple{\substHandlerHead{E}{\tid{id}}{A^\prime}, T, W}}{\updateSignals{\switches}{\sid{id}}{s}}{\signals}}
 	}
 \end{mathpar}
 
@@ -459,9 +451,9 @@ To execute a \wait{\bid{critical}}{n} order, the regulator stores the train id i
 		\\
 		\tokenOf{\bid{critical}} \neq n
 	}{
-		\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
-		\reduces
-		\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{\substHandlerHead{E}{\tid{id}}{A^\prime}, T, W\cup\tuple{\bid{src}, \bid{critical}, n, \tid{id}}}}{\switches}{\signals}}
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
+		\\\reduces
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\tuple{\substHandlerHead{E}{\tid{id}}{A^\prime}, T, W\cup\tuple{\bid{src}, \bid{critical}, n, \tid{id}}}}{\switches}{\signals}}
 	}
 \end{mathpar}
 
@@ -477,9 +469,9 @@ Then, when the releasing train frees the critical block, the token is incremente
 		\\
 		\nextWait{\handlerOf{E}{\tid{waiting}}} = \bid{next\_stop}
 	}{
-		\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
 		\\\reduces
-		\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{\substHandlerHead{E}{\tid{id}}{A^\prime}, T[\bid{critical} \leftarrow T(\bid{critical})+1], W\setminus\{\tuple{\bid{src}, \bid{critical}, \tokenOf{\bid{critical} + 1}, \tid{waiting}}\}}}{\switches}{\signals}}
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\tuple{\substHandlerHead{E}{\tid{id}}{A^\prime}, T[\bid{critical} \leftarrow T(\bid{critical})+1], W\setminus\{\tuple{\bid{src}, \bid{critical}, \tokenOf{\bid{critical} + 1}, \tid{waiting}}\}}}{\switches}{\signals}}
 	}
 \end{mathpar}
 \todo{ajouter $\tuple{\bid{next\_stop, \sigred}}, \tuple{\bid{src}, \siggreen}$}
@@ -496,9 +488,9 @@ On the other hand, if the releasing train arrives before the waiting train, the 
 		\\
 		\neg\exists \bid{src}, \tid{waiting} \text{ s.t. } \tuple{\bid{src}, \bid{critical}, \tokenOf{\bid{critical}} + 1, \tid{waiting}} \in W
 	}{
-		\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
 		\\\reduces
-		\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{\substHandlerHead{E}{\tid{id}}{A^\prime}, T[\bid{critical} \leftarrow T(\bid{critical})+1], W}}{\switches}{\signals}}
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\tuple{\substHandlerHead{E}{\tid{id}}{A^\prime}, T[\bid{critical} \leftarrow T(\bid{critical})+1], W}}{\switches}{\signals}}
 	}
 \end{mathpar}
 
@@ -513,9 +505,9 @@ Then, when the waiting train arrives, instead of stopping the train, the regulat
 		\and
 		\head{\handlerOf{E}{\tid{id}}} = \regConcat{\wait{\bid{critical}}{n}}{A^\prime}
 	}{
-		\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
 		\reduces
-		\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{\substHandlerHead{E}{\tid{id}}{A^\prime}, T, W}}{\switches}{\signals}}
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\tuple{\substHandlerHead{E}{\tid{id}}{A^\prime}, T, W}}{\switches}{\signals}}
 	}
 \end{mathpar}
 \todo{M-à-J des feux}
@@ -530,9 +522,9 @@ Then, when the waiting train arrives, instead of stopping the train, the regulat
 		\and
 		\head{\handlerOf{E}{\tid{id}}} = \regConcat{\auth}{A^\prime}
 	}{
-			\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
+			\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
 			\reduces
-			\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{\substHandlerHead{E}{\tid{id}}{A^\prime}, T, W}}{\switches}{\signals}}
+			\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\tuple{\substHandlerHead{E}{\tid{id}}{A^\prime}, T, W}}{\switches}{\signals}}
 	}
 \end{mathpar}\todo{ajouter $\tuple{\bid{wait}, \sigred}, \tuple{\bid{id}, \siggreen}$ dans le buffer des signaux}
 where \nextWait{E} returns the next position (block id) where the train has to was, using the event handlers of the train in question. Notice that, in our case, we consider the tail of the event handlers of the train, since it is already waiting and we want the next waiting location. \todo{rephrase}
@@ -547,9 +539,9 @@ Finally, when the handler of the pending event has no action leftover, the regul
 		\and
 		\head{\handlerOf{E}{\tid{id}}} = \emptyList
 	}{
-		\redTuple{\guardR}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
 		\reduces
-		\redTuple{\guardS}{\buftail{B}}{\stateTuple{\trainSeq}{\tuple{\popHandlerHead{E}{\tid{id}}, T, W}}{\switches}{\signals}}
+		\redTuple{\guardS}{\buftail{\bufTrain}}{\bufSig}{\stateTuple{\trainSeq}{\tuple{\popHandlerHead{E}{\tid{id}}, T, W}}{\switches}{\signals}}
 	}
 \end{mathpar}
 
@@ -562,7 +554,7 @@ Finally, when the handler of the pending event has no action leftover, the regul
 %Rule application induce a relation between system state:  $S\reduces S'$ if $\gamma'$  if there is a rule for which $\gamma$ is the initial state and $\gamma'$ the conclusion. 
 The reflexive-transitive closure of $\reduces$ is denoted $\reduces^*$, that is $S \reduces^* S'$ iff $S =S_0 \reduces \cdots S_n = S'$. The value $n = 0$ corresponds to $S = S'$.  A normal form of a configuration $S$ is a configuration $S'$ such that $S \reduces^* S'$ and there is no $S''$ with $S' \reduces S''$. In other words, starting from $S$, the computation can stop on $S'$. We note $S \reduces^! S'$ this relationship.
 
-Given a system state  $S = \redTuple{x}{B}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ and a train $\tid{id}$, 
+Given a system state  $S = \redTuple{x}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ and a train $\tid{id}$, 
 \begin{itemize}
 	\item   we say that it has no jobs if  $\trainSeq{}[\tid{id}].P = \emptyTrainProg$;
 	\item its source is $\mathtt{src}(S, \tid{id}) = \trainSeq{}[\tid{id}].pid$;
@@ -573,7 +565,7 @@ Given a system state  $S = \redTuple{x}{B}{\stateTuple{\trainSeq{}}{\regulator}{
 	\end{itemize}
 \end{itemize}
 
-A system state $S = \redTuple{\guardT}{\emptyset}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}} $  is \emph{reliable} if: 
+A system state $S = \redTuple{\guardT}{\emptyset}{\bufSig}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}} $  is \emph{reliable} if: 
 \begin{itemize}
 	\item  no two trains meet on the same block or the same switch, \todo{En dire plus}
 	\item $S$ has  a unique normal form $S'$ and 
@@ -722,7 +714,7 @@ Two states $S$ and $S'$ are said to be \emph{compatible} whenever:
 \item for any train $\tid{id}$, we have $\mathtt{dst}(S, \tid{id})  =  \mathtt{src}(S', \tid{id})$,
 \item for any normal form $S \reduces^! S''$, we have $S''.\sigma = S'.\sigma$.
 \end{itemize}
-In other words, at the arrival of $S$, trains are at the starting position of $S'$ and so are switches. We define the composition on compatible states. Actually, we describe composition of a system state and a safe step. So, from the remaining of the section, we suppose $S$ and $S'$ be compatible state, $S'$ being a safe step. We aim to compute their composition $S''  = \redTuple{x}{B}{\stateTuple{\trainSeq}{\regulator}{\switches}{\signals}}$.
+In other words, at the arrival of $S$, trains are at the starting position of $S'$ and so are switches. We define the composition on compatible states. Actually, we describe composition of a system state and a safe step. So, from the remaining of the section, we suppose $S$ and $S'$ be compatible state, $S'$ being a safe step. We aim to compute their composition $S''  = \redTuple{x}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regulator}{\switches}{\signals}}$.
 
 \paragraph{Train composition} For each train $\tid{id}$, the composition of $S$ and $S'$ is: $S''.\stateTuple[\tid{id}] = \langle S.\stateTuple[\tid{id}].pid$, 
 
