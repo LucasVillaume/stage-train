@@ -803,7 +803,19 @@ Ce projet est ambitieux, nous allons donc nous concentrer sur la composition de 
 \section{Conclusion}
 \label{sec:conclusion}
 
-Donner le lien vers github ? 
+\paragraph{Contributions.}
+This paper introduces three main contributions. First we presented a formal model for railway network. Our model simplifies multiple elements from real life networks, but nonetheless keeps non-trivial elements, such as trackworks and signals. Contrary to existing models, ours makes very few assumptions about the network: tracks are two ways and \todo{...}
+
+Our second contribution is the implementation of our model in the TLA+ model checker. Our implementation allows to verify that routing schedules are free from deadlocks and crashes, and reaches correct destinations. We tested our implementation on various schedules on a small-scale network, where the computation time was found to be negligible. Our implementation takes approximately 500 lines of TLA+.
+
+Our third contribution is a composition operator. This operator allows to incrementally build routing schedules, which can then be tested using our TLA+ implementation. Our composition distinguishes safe steps: steps where no two trains use the same track. Our composition can append safe steps to arbitrary schedules, creating new schedules. We implemented our composition operator in Python and we tested it by model checking all schedules composed of two and three safe steps in our small-scale network. The computation time was found to be affordable for companies: checking all two-steps schedules took less than a day on a cluster, using 8 nodes of 18 cores.
+
+Our implementation, including both the TLA model and the Python composition is available on...\todo{Donner le lien vers github ? }.
+
+\paragraph{Limitations and future works.}
+The main limitation of our paper regards scaling our approach. While we tested extensively our implementation on small-scale systems (small network, few trains), we expect the number of state to explode on larger networks. We intend to perform larger tests in future work.
+
+\todo{On peut avoir des routages de n'importe où, donc on peut voir pour interfacer avec d'autres approches ?}
 
 %temporaire, histoire d'avoir le sommaire en tête
 %\includegraphics[scale=0.1]{img/sommaire_tableau.jpg}
