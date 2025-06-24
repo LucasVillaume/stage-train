@@ -113,6 +113,7 @@
 \newcommand{\guardT}{\guardFmt{T}}
 \newcommand{\guardS}{\guardFmt{S}}
 \newcommand{\guardR}{\guardFmt{R}}
+\newcommand{\guardG}{\guardFmt{G}}
 
 %% Buffer
 \newcommand{\bufferFmt}[1]{#1}
@@ -555,16 +556,46 @@ where variables is the tuple of all variables. The intended meaning is that the 
 \section{Composition}
 \label{sec:composition}
 
-The main principle behind our routing process is composition that we discuss in more details in the next subsection. Those compositions involve what we call a safe step and our first experiments deal with them. 
+The main principle behind our scheduling process is based on the notion of route. A route for a train is a sequence $\vec{x} = x_1, \ldots, x_k$ of (contiguous) blocks and switches starting and ending on a block.   Two routes $\vec{x}$ and $\vec{y}$ have a critical resource if  $x_i = y_j$ for some $i,j$. A \emph{global routing}, denoted $X = (\vec{x}^{id})_{id \in \trains}$,  is a route for each train. Informally, a \emph{safe step} is a global routing such that there are no critical resources between two routes and there is a network configuration $\sigma$ such that  for each train $\tid{id}$, there is a direction according to which starting at $x_1^{id}$, following that direction and given the configuration $\sigma$, one reaches $x_{k_{id}}^{id}$. Let us turn to the technical definition.   A safe step is a global routing $X$ such that:
+\begin{itemize}
+\item for any $\tid{id} \neq \tid{id'} \in \trains$, $\vec{x}^{id}$ and $\vec{x}^{id'}$ have no critical resources,
+\item for any $\tid{id} \in \trains$, there is a privileged pair $\langle d, \sigma\rangle$  for $\vec{x}^{id}$,
+\item all the privileged pairs share the same value $\sigma$. 
+\end{itemize}
+
+Given a route $\vec{x} = x_1, \ldots, x_k$, we say that $\vec{x}$ has a privileged pair $\text{priv}(\vec{x}) = \langle d, \sigma\rangle \in \directions \times \Sigma$ whenever for any pair $i < j$ such that
+\begin{itemize}
+\item  $x_i$, $x_j$ are blocks and  , 
+\item $x_{i+1}, \ldots, x_{j-1}$ are switches
+\end{itemize} 
+then  $\sucblock(x_i, d, \sigma) = x_j$.
+
+
+Any global routing can be seen as the composition of safe steps and actually, that provides a scheduling algorithm. We say that a sequence of positions $(\bid{id})_{id \in \trains}$ is \emph{separate} if there are no two trains $\tid{id} \neq \tid{id'}$ with $\bid{id} = \bid{id'}$. This notion induces a graph: let $G = \langle V, E\rangle$ with $V$ the set of separate positions and $E$ the set of safe steps between them.  Then, to compute global routes, we look for a path in the graph from the source to the target. The  $A^*$ algorithm we implemented is proving highly effective. This strategy has a main advantage, it is quite flexible with respect to new events. Suppose that at some point a train is blocked, we may recompute safe steps for the other trains, possibly releasing a deadlock. 
+
+ But, that being said, we are now turned to the transformation of safe steps into system states, that is train orders and regulator rules. And then, to compose those system states into global routes. 
 
 \subsection{Safe steps}
 \label{sec:experiments:4}
 
-A route for a train is a sequence $\vec{x} = x_1, \ldots, x_k$ of (contiguous) blocks and switches. Two routes $\vec{x}$ and $\vec{y}$ have a critical resource if  $x_i = y_j$ for some $i,j$. A \emph{global routing}, denoted $(\vec{x}_i)_{i \in \trains}$,  is a route for each train. A safe step is a global routing such that the routes share no critical resources: that is for any train $\tid{id} \neq \tid{id'}$, $\vec{x}_{id}$ and $\vec{x}_{id'}$ have no critical resources. 
+To each safe step $X = (\vec{x}_i)_{i \in \trains}$, we can associate a system state $C(X) = \redTuple{\guardG}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\regulator}{\switches}{\signals}} $ as follows. 
+\begin{itemize}
+\item $\guardG = \guardT$,
+\item $\bufferFmt{B} = \emptyList$,
+\item for each train $\tid{id}$, $\trainSeq[id] = \trainTuple{\tid{id}}{\bid{id}}{d}{\su{d}{x^{id}_{k_{id}}}}$ with $\langle d,\sigma\rangle = \text{priv}(\vec{x}^{id})$,
+\item $R = \langle E, 0, \emptyset\rangle$, $E$ being defined below,
+\item $\sigma$ is the unique network configuration shared by all privileged pairs (here we suppose that there is at least one(!) train),
+\item $F = \blocks \times \directions \to \{\sigred, \siggreen \}$:
+$$
+(\bid{id}, d) \mapsto \left \{ \begin{array}{ll}
+\sigred & \text{if } \exists \tid{id} \in \trains \text{ such that }  \bid{id} = x^{id}_{k_{id}} \text{ and } \langle d,\sigma\rangle = \text{priv}(\vec{x}^{id}) \\
+\siggreen & \text{otherwise}
+\end{array} \right.$$
+\end{itemize}
 
-To each safe step $X = (\vec{x}_i)_{i \in \trains}$, we can associate a system state $C(X)$ as follows. \todo{Décrire la construction des safe steps}. 
+\todo{ La notion de priv(x) dit qu'il est unique.}
 
-With TLA+, we checked that any safe step is actually reliable.  On our network, one finds 58 368 safe steps, they are all reliable. Checking all the path took XXX seconds on YYY. \todo{XXX= nombre de seconde, YYY = décrire la machine (processeur, RAM, etc)}
+With TLA+, we checked that any safe step is actually reliable.  On our network, one finds 58 368 safe steps, all being reliable. Checking all the path took XXX seconds on YYY. \todo{XXX= nombre de seconde, YYY = décrire la machine (processeur, RAM, etc)}
 
 %\subsection{Test sur les chemins élémentaires}
 
@@ -589,9 +620,7 @@ With TLA+, we checked that any safe step is actually reliable.  On our network, 
 \label{fig:elem-tests}
 
 
-
-To compute global routing, we decompose them in  safe steps. 
-This strategy has a main advantage, it is quite flexible to new events. Suppose that at some point a train is blocked, we may recompute safe steps for the other trains, possibly releasing a deadlock. There is a second advantage. To compute the route, we look for sequences of safe steps, in other words, we are looking for a path within the graph of positions tuples. For that sake, we implemented an $A^*$ algorithm. But, that being said, we are now turned to the transformation of safe steps into system states, that is train orders and regulator rules.
+\subsection{Safe steps composition}
 
 Two states $S$ and $S'$ are said to be \emph{compatible} whenever:
 \begin{itemize}
@@ -638,11 +667,11 @@ The first step is the computation of critical resources. A block $\bid{id}$ is s
 %		\hline
 %	\end{tabular}
 %\end{center}
-On convertie ensuite les ordres "turn" restant dans o1 en "initialisation" d'un aiguillage si ce dernier n'est pas déjà initialisé.
-\\\textbf{Traiter les ressources critiques}\\
-Pour cette étape, on cherche d'abord à identifier les ressources critiques. Avec une méthode similaire à celle vue précédemment :
+%On convertie ensuite les ordres "turn" restant dans o1 en "initialisation" d'un aiguillage si ce dernier n'est pas déjà initialisé.
+%\\\textbf{Traiter les ressources critiques}\\
+%Pour cette étape, on cherche d'abord à identifier les ressources critiques. Avec une méthode similaire à celle vue précédemment :
 
-\vspace{0.5cm}
+%\vspace{0.5cm}
 
 %\begin{center}
 %	\begin{tabular}{||c || c | c||} 
