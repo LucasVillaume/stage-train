@@ -272,7 +272,7 @@ Each train is characterised by an identifier, a position, a direction, and a lis
 	\item Train identifiers form a set  $\trains = \{\tid{1}, \ldots, \tid{k}\}$, each train having its own identifier.
 	\item The position is the index of the block currently occupied by the train.
 	\item The direction (taken from $\directions_\dirStop = \{\dirBackward, \dirForward, \dirStop\}$) indicates the direction the train is ordered to go towards, where \dirStop indicates the train has no direction order at the moment. The direction represents the current move order, but does not mean the train is actually moving: it can be blocked at a signal.
-	\item Orders are given as a (possibly empty) sequence of orders $\su{d}{\bid{id}}$ ($\dirFmt{d} \in \directions$, $\bid{id} \in \blocks$). Such order states that the train direction is set to $\dirFmt{d}$ and that the train runs until it reaches $\bid{id}$.\todo{Le 2nd argument est une liste de positions à venir}
+	\item Orders are a (possibly empty) sequence of orders $\su{d}{\bid{1}\dots\bid{n}}$ ($\dirFmt{d} \in \directions$, $\bid{i} \in \blocks^\star$). Such order states that the train direction is set to $\dirFmt{d}$ and that the train will use blocks $\bid{1}\dots\bid{n}$.
 \end{itemize}
 
 Thus, each train is a quadruple $\trainFmt{t} = \trainTuple{\tid{id}}{\bid{id}}{d}{P}$ with $\tid{id}$ the train's identifier, $\bid{id}$ its position, $\dirFmt{d}$ its direction and $P$ its sequence of orders. Trains are collected in a sequence $\trainSeq = (\trainFmt{t_1}, \ldots, \trainFmt{t_k})$ where each $\trainFmt{t_i}$ being the tuple of train $\trainFmt{i}$. 
