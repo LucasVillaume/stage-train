@@ -115,7 +115,7 @@
 \newcommand{\guardS}{\guardFmt{S}}
 \newcommand{\guardR}{\guardFmt{R}}
 \newcommand{\guardG}{\guardFmt{G}}
-
+\newcommand{\guardI}{\guardFmt{I}}
 %% Buffer
 \newcommand{\bufferFmt}[1]{#1}
 \newcommand{\head}[1]{\ensuremath{{\tt hd}(#1)}}
@@ -665,10 +665,8 @@ Any global routing can be seen as the composition of safe steps and actually, th
 \subsection{Safe steps}
 \label{sec:experiments:4}
 
-To each safe step $X = (\vec{x}_i)_{i \in \trains}$, we can associate a system state $C(X) = \redTuple{\guardG}{\bufferFmt{B}}{\stateTuple{\trainSeq}{\regulator}{\switches}{\signals}} $ as follows. 
+To each safe step $X = (\vec{x}_i)_{i \in \trains}$, we can associate a system state $C(X) = \redTuple{\guardI}{ \emptyList}{ \emptyList}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ with $\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}$ defined as follows: 
 \begin{itemize}
-\item $\guardG = \guardT$,
-\item $\bufferFmt{B} = \emptyList$,
 \item for each train $\tid{id}$, $\trainSeq[id] = \trainTuple{\tid{id}}{\bid{id}}{d}{\su{d}{x^{id}_{k_{id}}}}$ with $\langle d,\sigma\rangle = \text{priv}(\vec{x}^{id})$,
 \item $R = \langle E, 0, \emptyset\rangle$, $E$ being defined below,
 \item $\sigma$ is the unique network configuration shared by all privileged pairs (here we suppose that there is at least one(!) train),
@@ -691,20 +689,20 @@ With TLA+, we checked that any safe step is actually reliable.  On our network, 
 %Certains chemins élémentaires ne font que démarrer, ce qui n'a pas de sens dans notre modèle, aucune règle de transition n'est prévue pour cela.
 %Après 111 812 secondes, soit 31 heures, l'intégralité des chemins a été passée en revue. Parmi eux, 58 368 chemins valides ont été testés, ne rencontrant aucun problème. (Sur l'image on lit 58 370, petit bug d'affichage que j'ai laissé passer)  
 
-\begin{figure}
-	\begin{subfigure}{0.5\textwidth}
-		\centering
-		%\includegraphics[width=\textwidth]{img/spec_pc.png}
-		\caption{Spec de l'ordinateur}
-	\end{subfigure}
-	\begin{subfigure}{0.5\textwidth}
-		\centering
-		%\includegraphics[width=\textwidth+0.5cm]{img/testElem.png}
-		\caption{Vérification des chemins élémentaires}
-	\end{subfigure}
-	\caption{Tests sur les chemins élémentaires}
-\end{figure}
-\label{fig:elem-tests}
+%\begin{figure}
+%	\begin{subfigure}{0.5\textwidth}
+%		\centering
+%		%\includegraphics[width=\textwidth]{img/spec_pc.png}
+%		\caption{Spec de l'ordinateur}
+%	\end{subfigure}
+%	\begin{subfigure}{0.5\textwidth}
+%		\centering
+%		%\includegraphics[width=\textwidth+0.5cm]{img/testElem.png}
+%		\caption{Vérification des chemins élémentaires}
+%	\end{subfigure}
+%	\caption{Tests sur les chemins élémentaires}
+%\end{figure}
+%\label{fig:elem-tests}
 
 
 \subsection{Safe steps composition}
