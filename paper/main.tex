@@ -295,27 +295,17 @@ Overall, the regulator is a tuple $R = \regTuple{E}{\tokens}{W}$. By convention,
 Train events are handled by the regulator. Upon such events, the regulator can take actions such as turning a switch, allowing or blocking a train, etc.. The regulator is equipped with a routing program. This routing program contains, for each train, a list of handlers\todo{Chaque handler associe une position et une liste d'ordres.}. For a given train, the first handler of the list is the set of actions that have to be executed on the train's first event, second handler for the second event, and so on.
 
 Given a routing program $E$, $\handlerOf{E}{\tid{id}}$ is the list of handlers of train $\tid{id}$, $\head{\handlerOf{E}{\tid{id}}}$ is the handler of the first event for that train.
-
-The syntax of each handler is given by the non-terminal {\ttfamily stmt} in Grammar~\ref{gr:regulator_program}.\todo{est-ce toujours nécessaire maintenant que les handlers sont dans un liste ?}
-The program of the regulator is a set of rules, guarded by events. A rule $\ev{\tid{id}}{n}{A}$ denotes that upon entering the $n$-th block of its route, train $\tid{id}$ will trigger actions $A$. The list of actions in the handler are of four kinds: 
+The handler for a given event is a list of actions, each of them being one of the following:
 \begin{description}
-	\item[\incr{\bid{id}}:] this updates the token $\bid{id}$ in $T$:  $T \cdot \incr{\bid{id}}  \triangleq T[\bid{id} \leftarrow T(\bid{id})+1]$
-	\item [\wait{\bid{id}}{i}:] ...\todo{}
-	\item [\turn{\sid{id}}{s}:] this instructs the regulator to turn the switch $\sid{id}$ into the $s$ state: $\sigma\cdot\turn{\sid{id}}{s} = \sigma[\sid{id} \leftarrow s]$
-	\item [\auth:] ...\todo{}
+	\item [\wait{\bid{id}}{n}:] the train waits until the token of block \bid{id} reaches value $n$
+	\item [\incr{\bid{id}}:] this increments the token $\bid{id}$ in $T$, thus releasing a train waiting
+	\item [\turn{\sid{id}}{s}:] this turns the switch $\sid{id}$ into the $s$ state: $\sigma\cdot\turn{\sid{id}}{s} = \sigma[\sid{id} \leftarrow s]$
+	\item [\auth:] a shortcut for waiting on oneself
 \end{description}
 
 Notice that all actions of a rule are executed atomically. Our semantics, presented below, details actions' behaviour.
 \todo{Clarifier Event, indexation par train, qui donne une liste de handlers, eux-même une liste d'ordres}
 
-\begin{grammar}[Regulator's rules, with $\tid{id} \in \trains$, $n \in  \Nat$, $\bid{id} \in \blocks$, $\sid{id} \in \turnouts$, $s\in \internalState$.][h][gr:regulator_program]
-	\firstcasesubtil{\ttfamily stmt}{\evGuard{\tid{id}}{n} : \nonterm{A}^\star}{}
-	\firstcase{A}{\incr{\bid{id}}}{}
-	\otherform{\wait{\bid{id}}{i}}{}
-	\otherform{\turn{\sid{id}}{s}}{}
-	\otherform{\auth}{}
-\end{grammar}
-  
 \paragraph{Model.}
 Overall, states of our model are tuples $\tuple{\trainSeq, \regulator, \switches, \signals}$ where $\trainSeq$ is a set of train tuples, $\regulator$ a regulator tuple, $\switches$ a network configuration (indicating trackworks states) and $\signals$ a signals state function. We suppose all train tuples in $\trainSeq$ have a different identifier. Notice that $\sucblock$ is not part of the state. Instead, the dynamics of the model (see below) is parameterised by $\sucblock$. Let $\modelSet$ be the set of all model states.
 
