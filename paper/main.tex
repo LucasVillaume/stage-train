@@ -643,44 +643,47 @@ where variables is the tuple of all variables. The intended meaning is that the 
 \section{Composition}
 \label{sec:composition}
 
-The main principle behind our scheduling process is based on the notion of route. A route for a train is a sequence $\vec{x} = x_1, \ldots, x_k$ of (contiguous) blocks and switches starting and ending on a block.   Two routes $\vec{x}$ and $\vec{y}$ have a critical resource if  $x_i = y_j$ for some $i,j$. A \emph{global routing}, denoted $X = (\vec{x}^{id})_{id \in \trains}$,  is a route for each train. Informally, a \emph{safe step} is a global routing such that there are no critical resources between two routes and there is a network configuration $\sigma$ such that  for each train $\tid{id}$, there is a direction according to which starting at $x_1^{id}$, following that direction and given the configuration $\sigma$, one reaches $x_{k_{id}}^{id}$. Let us turn to the technical definition.   A safe step is a global routing $X$ such that:
+The main principle behind our scheduling process is based on the notion of route. A route for a train is a sequence $\vec{x} = x_1, \ldots, x_k$ of (contiguous) blocks and switches starting and ending on a block.   Two routes $\vec{x}$ and $\vec{y}$ have a critical resource if  $x_i = y_j$ for some $i,j$. A \emph{global routing}, denoted $X = (\vec{x}^{\tid{id}})_{\tid{id} \in \trains}$, is a route for each train. We denote by $k_{\tid{id}}$ the index last component of sequence $\vec{x}^\tid{id}$ for any $\tid{id}\in \trains$. 
+
+Informally, a \emph{safe step} is a global routing such that there are no critical resources between two routes and there is a network configuration $\sigma$ such that  for each train $\tid{id}$, there is a direction according to which starting at $x_1^{\tid{id}}$, following that direction and given the configuration $\sigma$, one reaches $x_{k_{\tid{id}}}^{\tid{id}}$. Let us turn to the technical definition.   
+
+Given a route $\vec{x} = x_1, \ldots, x_k$, we say that $\vec{x}$ has a privileged pair denoted $\text{priv}(\vec{x}) = \langle d, \sigma\rangle \in \directions \times \Sigma$ whenever for any pair $i < j$ such that
 \begin{itemize}
-\item for any $\tid{id} \neq \tid{id'} \in \trains$, $\vec{x}^{id}$ and $\vec{x}^{id'}$ have no critical resources,
-\item for any $\tid{id} \in \trains$, there is a privileged pair $\langle d, \sigma\rangle$  for $\vec{x}^{id}$,
+\item  $x_i$, $x_j$ are blocks and  
+\item $x_{i+1}, \ldots, x_{j-1}$ are switches
+\end{itemize} 
+then  $\sucblock(x_i, d, \sigma) = x_j$. A safe step is a global routing $X$ such that:
+\begin{itemize}
+\item for any $\tid{id} \neq \tid{id'} \in \trains$, $\vec{x}^{\tid{id}}$ and $\vec{x}^{\tid{id'}}$ have no critical resources,
+\item for any $\tid{id} \in \trains$, there is a privileged pair $\langle d, \sigma\rangle$  for $\vec{x}^{\tid{id}}$,
+\item for any $\tid{id} \in \trains$, any component $x_j^\tid{id}$ with $j \leq k_{\tid{id}}$ occurs only once in $\vec{x}^{\tid{id}}$,
 \item all the privileged pairs share the same value $\sigma$. 
 \end{itemize}
 
-Given a route $\vec{x} = x_1, \ldots, x_k$, we say that $\vec{x}$ has a privileged pair $\text{priv}(\vec{x}) = \langle d, \sigma\rangle \in \directions \times \Sigma$ whenever for any pair $i < j$ such that
-\begin{itemize}
-\item  $x_i$, $x_j$ are blocks and  , 
-\item $x_{i+1}, \ldots, x_{j-1}$ are switches
-\end{itemize} 
-then  $\sucblock(x_i, d, \sigma) = x_j$.
-
-
-Any global routing can be seen as the composition of safe steps and actually, that provides a scheduling algorithm. We say that a sequence of positions $(\bid{id})_{id \in \trains}$ is \emph{separate} if there are no two trains $\tid{id} \neq \tid{id'}$ with $\bid{id} = \bid{id'}$. This notion induces a graph: let $G = \langle V, E\rangle$ with $V$ the set of separate positions and $E$ the set of safe steps between them.  Then, to compute global routes, we look for a path in the graph from the source to the target. The  $A^*$ algorithm we implemented is proving highly effective. This strategy has a main advantage, it is quite flexible with respect to new events. Suppose that at some point a train is blocked, we may recompute safe steps for the other trains, possibly releasing a deadlock. 
+Any global routing can be seen as the composition of safe steps and actually, that provides a scheduling algorithm. We say that a sequence of blocks indexed by trains $\vec{\bid{}}_{\tid{id} \in \trains}$ is \emph{separate} if there are no two trains $\tid{id} \neq \tid{id'}$ with $\vec{\bid{}}[\tid{id}] = \vec{\bid{}}[\tid{id'}]$. This notion induces a graph: let $G = \langle V, E\rangle$ with $V$ the set of separate positions and $E$ the set of safe steps between them.  Then, to compute global routes, we look for a path in the graph from the source to the target. The  $A^*$ algorithm we implemented is proving highly effective. This strategy has a main advantage, it is quite flexible with respect to new events. Suppose that at some point a train is blocked, we may recompute safe steps for the other trains, possibly releasing a deadlock. 
 
  But, that being said, we are now turned to the transformation of safe steps into system states, that is train orders and regulator rules. And then, to compose those system states into global routes. 
 
 \subsection{Safe steps}
 \label{sec:experiments:4}
 
-To each safe step $X = (\vec{x}_i)_{i \in \trains}$, we can associate a system state $C(X) = \redTuple{\guardI}{ \emptyList}{ \emptyList}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ with $\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}$ defined as follows: 
+To each safe step $X = (\vec{x}_i)_{i \in \trains}$, we can associate a system state $S(X) = \redTuple{\guardI}{ \emptyList}{ \emptyList}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ with $\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}$ defined as follows: 
 \begin{itemize}
-\item for each train $\tid{id}$, $\trainSeq[id] = \trainTuple{\tid{id}}{\bid{id}}{d}{\su{d}{x^{id}_{k_{id}}}}$ with $\langle d,\sigma\rangle = \text{priv}(\vec{x}^{id})$,
-\item $R = \langle E, 0, \emptyset\rangle$, $E$ being defined below,
+\item for each train $\tid{id}$, $\trainSeq[id] = \trainTuple{\tid{id}}{\bid{id}}{d}{\su{d}{x^{\tid{id}}_{k_{\tid{id}}}}}$ with $\langle d,\sigma\rangle = \text{priv}(\vec{x}^{\tid{id}})$,
+\item $R = \langle E,  \bid{id} \in \blocks \mapsto 0, \emptyset\rangle$, $E$ being defined just below,
 \item $\sigma$ is the unique network configuration shared by all privileged pairs (here we suppose that there is at least one(!) train),
-\item $F = \blocks \times \directions \to \{\sigred, \siggreen \}$:
-$$
-(\bid{id}, d) \mapsto \left \{ \begin{array}{ll}
-\sigred & \text{if } \exists \tid{id} \in \trains \text{ such that }  \bid{id} = x^{id}_{k_{id}} \text{ and } \langle d,\sigma\rangle = \text{priv}(\vec{x}^{id}) \\
-\siggreen & \text{otherwise}
-\end{array} \right.$$
+\item $F = \blocks \times \directions \to \{\sigred, \siggreen \}$: $\langle \bid{id}, d\rangle \mapsto \siggreen$,
 \end{itemize}
 
-\todo{ La notion de priv(x) dit qu'il est unique.}
+Now, let us turn to $E$. Let $\sigma$ be the unique  shared network configuration in pairs and let 
+$\vec{y} = \{ \langle x_{k_{\tid{id}}}^\tid{id}, d\rangle \mid \tid{id} \in \trains \text{ and }  \langle d, \sigma\rangle = \text{priv}(\vec{x}^\tid{id}) \}$. 
+We define $E(\bot) = (\turn{\sid{id}}{\sigma(\sid{id})})_{\sid{id} \in \turnouts} \cdot (\text{signalred}(x,d))_{(x,d) \in \vec{y}} $.
 
-With TLA+, we checked that any safe step is actually reliable.  On our network, one finds 58 368 safe steps, all being reliable. Checking all the path took XXX seconds on YYY. \todo{XXX= nombre de seconde, YYY = décrire la machine (processeur, RAM, etc)}
+Given some train $\tid{id} \in \trains$, let $B = (j \leq k_\tid{id} \mid  x_j^\tid{id} \text{ is a block})$. 
+Let $\text{priv}(\vec{x}^\tid{id}) = \langle d, \sigma\rangle$, then, $E( \tid{id} ) = \langle d,  (\emptyList)_{j \in B}\rangle$. 
+
+
+\paragraph{Experiments}  With TLA+, we checked that any safe step is actually reliable.  On our network, one finds 58 368 safe steps, all being reliable. Checking all the path took XXX seconds on YYY. \todo{XXX= nombre de seconde, YYY = décrire la machine (processeur, RAM, etc)}
 
 %\subsection{Test sur les chemins élémentaires}
 
@@ -716,6 +719,7 @@ In other words, at the arrival of $S$, trains are at the starting position of $S
 
 \paragraph{Train composition} For each train $\tid{id}$, the composition of $S$ and $S'$ is: $S''.\stateTuple[\tid{id}] = \langle S.\stateTuple[\tid{id}].pid$, 
 
+\subsection{Simplification}
 
 
 \subsection{Preparation}
@@ -789,31 +793,31 @@ The first step is the computation of critical resources. A block $\bid{id}$ is s
 %		\hline
 %	\end{tabular}
 %\end{center}
-\noindent
-Dans notre exemple, on peut voir que 3 est la seule ressource critique, il faut donc traiter ce cas.
-On va ajouter un ordre "att(3,valT)" à l'event précédent l'entrée de la ressource critique pour le train qui utilise la ressource en second.
-On ajoute également un ordre "incr(3)" à l'event suivant la sortie de la ressource critique pour le train qui utilise la ressource en premier.
-Si le train à besoin d'un "turn" pour entrer dans la ressources critique, alors on le décale dans un event du train ayant utilisé l'aiguillage le plus récemment.
-\\\textbf{Mettre à jour les jetons}\\
-Laissons de côté l'hypothèse que o1 et o2 sont élémentaires, il est alors possible que o1 contienne des ordres de type "att" et "incr". Il faut donc mettre à jour les valeurs
-des tokens pour "att" et "incr" dans o2. Par exemple, si dans o1 on trouve les ordres : (att(3,1), incr(3)), alors dans o2 on va devoir transformer att(3,1) en att(3,2).
-
-\subsection{Assemblage}
-L'assemblage est la partie la plus simple de cette fonction, il s'agit de concaténer les ordres des trains et des events.
-Pas de technique intelligente, si les programmes du train 1 pour o1 et o2 sont "<L,[1,2]>" et "<L,[3,4]>", alors la concaténation donne "<L,[1,2]>,<L,[3,4]>".
-Même chose pour les events, \tuple{\tuple{1,\tuple{}},\tuple{2,\tuple{turn(x,y)}}} et \tuple{\tuple{2,\tuple{att(3,1)}},\tuple{3,\tuple{}}} devient \tuple{\tuple{1,\tuple{}},\tuple{2,\tuple{turn(x,y),(att(3,1))}},\tuple{3,\tuple{}}}.
-À partir de maintenant, nous ne manipulerons plus deux listes d'ordres, o1 et o2, mais une seule : o3. 
-\\Aussi, on reprend l'initialisation des aiguillages de o1 pour o3.
-
-\subsection{Nettoyage}
-Cette partie fait office de "finalisation". On va d'abord s'occuper de "regrouper" les ordres des trains. Notre exemple précédent "<L,[1,2]>,<L,[3,4]>", nous donne maintenant "<L,[1,2,3,4]>". 
-On ajoute également un ordre "auth" pour les "turn" utilisés par des trains pour agir sur leur propre parcours. (les trains n'utilisent pas directement "turn", mais plus simple à expliquer de cette manière)
-Enfin, on chercher le premier arrêt de chaque train pour assigner les feux au rouge.
-
-Maintenant que tous les éléments sont définis, nous pouvons nous intéresser à la vérification de notre modèle.
-L'ultime but est de tester tous les chemins possibles sur notre modèle pour s'assurer qu'il est correct pour n'importe quel chemin.
-Ce projet est ambitieux, nous allons donc nous concentrer sur la composition de deux chemins élémentaires, et vérifier que le modèle est correct pour ces cas.
-
+%\noindent
+%Dans notre exemple, on peut voir que 3 est la seule ressource critique, il faut donc traiter ce cas.
+%On va ajouter un ordre "att(3,valT)" à l'event précédent l'entrée de la ressource critique pour le train qui utilise la ressource en second.
+%On ajoute également un ordre "incr(3)" à l'event suivant la sortie de la ressource critique pour le train qui utilise la ressource en premier.
+%Si le train à besoin d'un "turn" pour entrer dans la ressources critique, alors on le décale dans un event du train ayant utilisé l'aiguillage le plus récemment.
+%\\\textbf{Mettre à jour les jetons}\\
+%Laissons de côté l'hypothèse que o1 et o2 sont élémentaires, il est alors possible que o1 contienne des ordres de type "att" et "incr". Il faut donc mettre à jour les valeurs
+%des tokens pour "att" et "incr" dans o2. Par exemple, si dans o1 on trouve les ordres : (att(3,1), incr(3)), alors dans o2 on va devoir transformer att(3,1) en att(3,2).
+%
+%\subsection{Assemblage}
+%L'assemblage est la partie la plus simple de cette fonction, il s'agit de concaténer les ordres des trains et des events.
+%Pas de technique intelligente, si les programmes du train 1 pour o1 et o2 sont "<L,[1,2]>" et "<L,[3,4]>", alors la concaténation donne "<L,[1,2]>,<L,[3,4]>".
+%Même chose pour les events, \tuple{\tuple{1,\tuple{}},\tuple{2,\tuple{turn(x,y)}}} et \tuple{\tuple{2,\tuple{att(3,1)}},\tuple{3,\tuple{}}} devient \tuple{\tuple{1,\tuple{}},\tuple{2,\tuple{turn(x,y),(att(3,1))}},\tuple{3,\tuple{}}}.
+%À partir de maintenant, nous ne manipulerons plus deux listes d'ordres, o1 et o2, mais une seule : o3. 
+%\\Aussi, on reprend l'initialisation des aiguillages de o1 pour o3.
+%
+%\subsection{Nettoyage}
+%Cette partie fait office de "finalisation". On va d'abord s'occuper de "regrouper" les ordres des trains. Notre exemple précédent "<L,[1,2]>,<L,[3,4]>", nous donne maintenant "<L,[1,2,3,4]>". 
+%On ajoute également un ordre "auth" pour les "turn" utilisés par des trains pour agir sur leur propre parcours. (les trains n'utilisent pas directement "turn", mais plus simple à expliquer de cette manière)
+%Enfin, on chercher le premier arrêt de chaque train pour assigner les feux au rouge.
+%
+%Maintenant que tous les éléments sont définis, nous pouvons nous intéresser à la vérification de notre modèle.
+%L'ultime but est de tester tous les chemins possibles sur notre modèle pour s'assurer qu'il est correct pour n'importe quel chemin.
+%Ce projet est ambitieux, nous allons donc nous concentrer sur la composition de deux chemins élémentaires, et vérifier que le modèle est correct pour ces cas.
+%
 
 \subsection{Experiments}
 \label{sec:experiments:4}
