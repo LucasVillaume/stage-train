@@ -60,13 +60,13 @@
 \newcommand{\switches}{\ensuremath{\swFmt{\sigma}}}
 \newcommand{\networkConf}{\ensuremath{\swFmt{\Sigma}}}
 \newcommand{\nosuc}{\ensuremath{\swFmt{\bot}}}
-\newcommand{\updateSignals}[3]{\ensuremath{#1[\swFmt{#2}\leftarrow #3]}}
+\newcommand{\updateSwitch}[3]{\ensuremath{#1[\swFmt{#2}\leftarrow #3]}}
 
 %% Trains
 \definecolor{traincolor}{rgb}{0.2, 0.2, 0.6}
 \newcommand{\trainFmt}[1]{{\color{traincolor} #1}}
 \newcommand{\trainTuple}[4]{\langle \trainFmt{#1}, \posFmt{#2}, \dirFmt{#3}, #4 \rangle}
-\newcommand{\trainSeq}{\trainFmt{\Gamma\xspace}}
+\newcommand{\trainSeq}{\ensuremath{\trainFmt{\Gamma}}\xspace}
 \newcommand{\trains}{{\trainFmt{\mathsf{T}}}}
 \newcommand{\tid}[1]{\ensuremath{\trainFmt{t_{#1}}}}
 
@@ -98,6 +98,10 @@
 \newcommand{\regConcat}[2]{#1 \cdot #2}
 \newcommand{\incrToken}[2]{\ensuremath{#1. {\tt incr}(\posFmt{#2})}}
 
+%% Intial actions & event.
+\newcommand{\initialHandler}[1]{\handlerOf{#1}{\star}}
+\newcommand{\sendred}[2]{\ensuremath{{\tt sendred}(#1, #2)}}
+
 %% Sequences
 \newcommand{\push}[2]{\ensuremath{\mathtt{push}(#1, #2)}}
 \newcommand{\pop}[1]{\ensuremath{\mathtt{pop}(#1)}}
@@ -109,7 +113,9 @@
 \newcommand{\direct}{{\mbox{$\mathtt{d}$}}\xspace}
 \newcommand{\signalF}[2]{\ensuremath{\signals(\posFmt{#1}, \dirFmt{#2})}}
 \newcommand{\signals}{\ensuremath{F}}
-\newcommand{\setSignalsTo}[3]{\signals.{\tt set\_to}(#1, #2, #3)}
+\newcommand{\setSignalsTo}[2]{\signals.{\tt set\_to}(#1, #2)}
+\newcommand{\updateSfty}[4]{{\tt updateSfty}(\signals, #1, #2, #3, #4)}
+\newcommand{\updateSignal}[4]{\ensuremath{#1[\tuple{\swFmt{#2}, \dirFmt{#3}}\leftarrow #4]}}
 
 %% State
 \newcommand{\stateTuple}[4]{\tuple{#1, #2, #3, #4}}
@@ -271,9 +277,9 @@ The network is then described as a triple $(\blocks, \turnouts, \sucblock)$ wher
 
 \paragraph{Signals.}
 \todo{Est-ce qu'on met les signaux dans les agents ?}
-At each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $\signals: \blocks \times \directions \to \{ \sigred, \siggreen\}$. The signal status is determined by the network configuration and explicit locking requests. Given some signal status $\signals$, a block $\bid{id}$ and a direction $\dirFmt{d}$, $\signalF{\bid{id}}{d} = \sigred$ means the signal guarding the exit of block $\bid{id}$ in direction $\dirFmt{d}$ is red, and we expect trains not leaving that block going in this direction\footnote{Our semantics, presented in Section~\ref{sec:formal-model}, ensure such behaviour.}. We note $\setSignalsTo{\bid{\text{tgt}}}{c}{\switches}$ the signal state $\signals$ except for signals leading to block \bid{\text{tgt}} (given the current state of trackworks $\switches$), which are turned to color $c$: 
-$$(\setSignalsTo{\bid{\text{tgt}}}{c}{\switches})(\bid{\text{from}}, \dirFmt{d}) = \begin{cases}
-	c & \text{if }\suc{\bid{\text{from}}}{d}{\signals} = \bid{\text{tgt}}\\
+At each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $\signals: \blocks \times \directions \to \{ \sigred, \siggreen\}$. The signal status is determined by the network configuration and explicit locking requests. Given some signal status $\signals$, a block $\bid{id}$ and a direction $\dirFmt{d}$, $\signalF{\bid{id}}{d} = \sigred$ means the signal guarding the exit of block $\bid{id}$ in direction $\dirFmt{d}$ is red, and we expect trains not leaving that block going in this direction\footnote{Our semantics, presented in Section~\ref{sec:formal-model}, ensure such behaviour.}. We note $\setSignalsTo{\bid{\text{tgt}}}{c}$ the signal state $\signals$ except signals of block \bid{\text{tgt}}, which are turned to color $c$: 
+$$(\setSignalsTo{\bid{\text{tgt}}}{c})(\bid{\text{from}}, \dirFmt{d}) = \begin{cases}
+	c & \text{if }\bid{\text{from}} = \bid{\text{tgt}}\\
 	\signalF{\bid{\text{from}}}{d} & \text{otherwise}
 \end{cases}$$
 
@@ -286,7 +292,7 @@ Each train is characterised by an identifier, a position, a direction, and a lis
 	\item Train identifiers form a set  $\trains = \{\tid{1}, \ldots, \tid{k}\}$, each train having its own identifier.
 	\item The position is the index of the block currently occupied by the train.
 	\item The direction (taken from $\directions_\dirStop = \{\dirBackward, \dirForward, \dirStop\}$) indicates the direction the train is ordered to go towards, where \dirStop indicates the train has no direction order at the moment. The direction represents the current move order, but does not mean the train is actually moving: it can be blocked at a signal.
-	\item Orders are a (possibly empty) sequence of orders $\su{d}{\bid{1}\dots\bid{n}}$ ($\dirFmt{d} \in \directions$, $\bid{i} \in \blocks^\star$). Such order states that the train direction is set to $\dirFmt{d}$ and that the train will use blocks $\bid{1}\dots\bid{n}$. An empty sequence is denoted $\emptyTrainProg$.
+	\item Orders are a (possibly empty) sequence of orders $\su{d}{\bid{1}\dots\bid{n}}$ ($\dirFmt{d} \in \directions$, $\bid{i} \in \blocks^\star$). Such order states that the train direction is set to $\dirFmt{d}$ and that the train will use blocks $\bid{1}\dots\bid{n}$. An empty sequence is denoted $\emptyTrainProg$. We intend successive \su{d_i}{...} orders of the list to alternate directions \dirForward{} and \dirBackward{}. Two successive orders with the same direction can easily be merged into a single one.
 \end{itemize}
 
 Thus, each train is a quadruple $\trainFmt{t} = \trainTuple{\tid{id}}{\bid{id}}{d}{P}$ with $\tid{id}$ the train's identifier, $\bid{id}$ its position, $\dirFmt{d}$ its direction and $P$ its sequence of orders. Trains are collected in a sequence $\trainSeq = (\trainFmt{t_1}, \ldots, \trainFmt{t_k})$ where each $\trainFmt{t_i}$ being the tuple of train $\trainFmt{i}$. 
@@ -299,7 +305,7 @@ It is characterised by a routing program, a token list, and a waiting set.
 \begin{itemize}
 	\item The routing program $E$ specifies how the regulator should react to events (i.e. when a train enters a block). A program is a collection of rules to apply upon each event (called an \emph{event handler}). We detail further event handlers below.
 	\item The token list, denoted $\tokens$, is a function  $\tokens: \blocks \to \Nat$ associating a token level to each block. Those tokens are used to prevent multiple trains accessing the same block at the same time.
-	\item The waiting set is a set $W \subseteq \blocks \times \blocks \times \Nat \times \trains$. A triple $\tuple{\bid{src}, \bid{dst}, n, \tid{id}} \in W$ means that train \tid{id} is currently waiting in the block \bid{src} for $\tokenOf{\bid{dst}}$ to be increased up to $n$.
+	\item The waiting set is a set $W \subseteq \blocks \times \blocks \times \Nat \times \trains$. A 4-tuple $\tuple{\bid{src}, \bid{dst}, n, \tid{id}} \in W$ means that train \tid{id} is currently waiting in the block \bid{src} for $\tokenOf{\bid{dst}}$ to be increased up to $n$.
 \end{itemize}
 
 Overall, the regulator is a tuple $R = \regTuple{E}{\tokens}{W}$. We note $\incrToken{T}{\bid{id}}$ the list of tokens identical to $T$, except for $\tokenOf{\bid{id}}$, which is incremented.
@@ -316,6 +322,9 @@ Actions contained in a handler are of the four following kinds:
 	\item [\turn{\sid{id}}{s}:] this turns the switch $\sid{id}$ into the $s$ state: $\sigma\cdot\turn{\sid{id}}{s} = \sigma[\sid{id} \leftarrow s]$
 	\item [\auth:] a shortcut for waiting on oneself
 \end{description}
+
+\paragraph{Initial actions.}
+In order to ensure the initial configuration of the network is correct, we execute initial actions prior to any train movement. For that, we add a special list of event handler \initialHandler{E}, containing a single handler containing setup actions. Those actions are either \turn{\sid{id}}{s} or \sendred{\bid{id}}{\dirFmt{d}}, a special action used only during initialisation which request signals to be initial \sigred.
 
 \paragraph{Model.}
 Overall, states of our model are tuples $\tuple{\trainSeq, \regulator, \switches, \signals}$ where $\trainSeq$ is a set of train tuples, $\regulator$ a regulator tuple, $\switches$ a network configuration (indicating trackworks states) and $\signals$ a signals state function. We suppose all train tuples in $\trainSeq$ have a different identifier. Notice that $\sucblock$ is not part of the state. Instead, the dynamics of the model (see below) is parameterised by $\sucblock$. Let $\modelSet$ be the set of all model states.
@@ -346,16 +355,16 @@ Essentially, this guard is the state machine shown in Figure~\ref{fig:state_mach
 	\begin{tikzpicture}
 		\node[] (zero) {};
 		\node[draw, below=of zero] (initial) {Initial state (\guardI)};
-		\node[draw, right=of initial] (trains) {Train movements (\guardT)};
-		\node[draw, above right=of trains] (signals1) {Signals update (\guardS)};
-		\node[draw, below right=of trains] (regulator) {Regulator reaction (\guardR)};		
+		\node[draw, below=of initial] (trains) {Train movements (\guardT)};
+		\node[draw, right=of initial] (signals) {Signals update (\guardS)};
+		\node[draw, right=of trains] (regulator) {Regulator reaction (\guardR)};		
 		
 		\draw[-stealth] (zero) to (initial);
-		\draw[-stealth] (initial) to (trains);
-		\draw[-stealth] (trains) to[bend right=20] (signals1);
-		\draw[-stealth] (signals1.west) to[bend right=20] (trains.north);
-		\draw[-stealth] (trains.south) to[bend right] (regulator.west);
-		\draw[-stealth] (regulator) to[bend right] (signals1);
+		\draw[-stealth] (initial) to (signals);
+		\draw[-stealth] (trains) to[bend right=10] (signals);
+		\draw[-stealth] (signals) to[bend right=10] (trains.north);
+		\draw[-stealth] (trains) to (regulator);
+		\draw[-stealth] (regulator) to (signals);
 	\end{tikzpicture}
 	\caption{State machine of the guard.}
 	\label{fig:state_machine_guard}
@@ -368,8 +377,43 @@ Similarly, the regulator communicates with signals with a \emph{signal buffer} \
 
 States of the system are 4-tuples from $\{\guardI, \guardR, \guardS, \guardT\} \times \bufTrainSet \times \bufSigSet \times \modelSet$. Our reduction relation is a binary relation on system states, noted $\reduces$: $S_1 \reduces S_2$ means that state $S_1$ can change to $S_2$ (note that this relation is not a function: $S_1$ can reduce to multiple states, due to non-determinism). We define $\reduces$ as the least relation induced by the inference rules presented hereafter.
 
+\paragraph{Initialisation rules.}
+Upon starting, we first set up the switches and the signals using rules \ruleRef{TurnInit} and \ruleRef{SigInit}.
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{TurnInit}]{
+		\head{\actionsOf{\head{\initialHandler{E}}}} = \turn{\sid{id}}{s}
+	}{
+		\redTuple{\guardI}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
+		\\\reduces
+		\redTuple{\guardI}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\initialHandler{E}}}{T}{W}}{\updateSwitch{\switches}{\sid{id}}{s}}{\signals}}
+	}
+\end{mathpar}
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{SigInit}]{
+		\head{\actionsOf{\head{\initialHandler{E}}}} = \sendred{\bid{id}}{\dirFmt{d}}
+	}{
+	\redTuple{\guardI}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
+	\\\reduces
+		\redTuple{\guardI}{\bufTrain}{\push{\bufSig}{\tuple{\bid{id}, \sigred}}}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\initialHandler{E}}}{T}{W}}{\switches}{\signals}}
+	}
+\end{mathpar}\todo{Est-ce qu'on a vraiment besoin de spécifier la direction ?}
+
+Finally, when initial actions are done, we start the system by switching the guard to state \guardS. Switching to that state instead of \guardT ensures signals perform requests of the initialisation step, as well as an first computation of the safety rules (see \ruleRef{SignalReq} and \ruleRef{SignalSfty} below for signals dynamics).
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{TurnInit}]{
+	\actionsOf{\head{\initialHandler{E}}} = \emptyList
+	}{
+		\redTuple{\guardI}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
+		\reduces
+		\redTuple{\guardS}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
+	}
+\end{mathpar}
+
 \paragraph{Train rules.}
-We first focus on rules that affect trains. The first rule is \ruleRef{Start}, which is used to change the direction of a train (e.g. to go from a stop to a given direction, or to change direction if the train has to backtrack). This rule can be triggered when the program of the train begins by \su{d^\prime}{N}. This order says that the train should got in direction $\dirFmt{d^\prime}$, and on that direction, it is expected to meet the sequence of block which ids are in $\posFmt{N}$.
+We now focus on rules that affect trains. The first rule is \ruleRef{Start}, which is used to change the direction of a train (e.g. to go from a stop to a given direction, or to change direction if the train has to backtrack). This rule can be triggered when the program of the train begins by \su{d^\prime}{N}. This order says that the train should got in direction $\dirFmt{d^\prime}$, and on that direction, it is expected to meet the sequence of block which ids are in $\posFmt{N}$.
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{Start}]{
@@ -391,7 +435,6 @@ Conversely, if the train program is empty (i.e. upon termination), the train sto
 	\redTuple{\guardT}{\push{\bufTrain}{\tid{id}}}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{\dirStop}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
-\todo{Est ce qu'on met un évenement pour les départs/arrivée? }
 
 The last two rules for trains describe what happens when a train actually moves, i.e. when its position changes. Two cases can occur, depending on the list of intermediate blocks $\posFmt{N}$ in the current order of the train
 If $\posFmt{N}$ contains only the upcoming block, then upon leaving the block, the order is removed (rule \ruleRef{UntilNext}); otherwise the upcoming block is simply popped from $\posFmt{N}$ (rule \ruleRef{Until}). Notice that in both cases, the state of the guard changes to \guardS, meaning that signals will be updated immediately after that rule. Finally, when the train reaches intermediate positions (rule \ruleRef{Until}), a train event is enqueued for the regulator.
@@ -421,8 +464,7 @@ If $\posFmt{N}$ contains only the upcoming block, then upon leaving the block, t
 		\redTuple{\guardS}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id^\prime}}{d}{P}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
-Notice that, in \ruleRef{UntilNext}, no message is added to the buffer.
-\todo{@Lucas, expliquer pourquoi c'est pas nécessaire.}
+Notice that, in \ruleRef{UntilNext}, no message is added to the buffer. Since successive \su{d}{N} orders alternate directions, the next order for that train is either \ruleRef{Start} or \ruleRef{Stop}, which send the appropriate event. We prefer sending event in \ruleRef{Start} so that there is an initial event before the train initial departure.
 
 \paragraph{Regulator rules.}
 
@@ -447,12 +489,12 @@ Rule \ruleRef{Turn} triggers when a \turn{\sid{id}}{s} is encountered in the eve
 	}{
 	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regulator}{\switches}{\signals}}
 	\\\reduces
-	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regulator[E \leftarrow E[ \tid{id} \leftarrow \langle \bid{id}, A'\rangle] ] }{\updateSignals{\switches}{\sid{id}}{s}}{\signals}}
+	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regulator[E \leftarrow E[ \tid{id} \leftarrow \langle \bid{id}, A'\rangle] ] }{\updateSwitch{\switches}{\sid{id}}{s}}{\signals}}
 	}
 \end{mathpar}
 \todo{On ne peut pas résumer le régulateur à $R$, sinon $E$ n'est pas déclarée/n'apparait nulle part. Ou alors il faut préciser des notations comme $R.E$. On ne peut pas utiliser $R[E \leftarrow...]$ car $R$ n'est pas une fonction mais un tuple.}
 
-Of course, trains can conflict. For instance, if two trains have to use the same track, one has to go first and the other has to wait until the track is free\footnote{For the sake of clarity in rule presentation, we call the train that has to wait the \emph{waiting train} (with id \tid{w}), and the train that goes first the \emph{releasing train} (with id \tid{r}). We call teh \emph{critical block} the block to be used by both trains (with id \bid{\text{crit}}), and the \emph{source block} the block the waiting train waits on (with id \bid{\text{src}}).}. To schedule trains, we use a token system. Each block is assigned a token, which is an integer value. Trains can \emph{wait} until a token reaches a given value, and \emph{increment} a token after leaving a block. We introduce two pairs of rules for incrementing and waiting. The first pair deals with the case where the train waiting arrives before the token has the correct value, and the second pair deals with the (easier) case where the train releases the track (increments the associated token) before the next train arrives (and therefore does not need to wait).
+Of course, trains can conflict. For instance, if two trains have to use the same track, one has to go first and the other has to wait until the track is free\footnote{For the sake of clarity in rule presentation, we call the train that has to wait the \emph{waiting train} (with id \tid{w}), and the train that goes first the \emph{releasing train} (with id \tid{r}). We call the \emph{critical block} the block to be used by both trains (with id \bid{\text{crit}}), and the \emph{source block} the block the waiting train waits on (with id \bid{\text{src}}).}. To schedule trains, we use a token system. Each block is assigned a token, which is an integer value. Trains can \emph{wait} until a token reaches a given value, and \emph{increment} a token after leaving a block. We introduce two pairs of rules for incrementing and waiting. The first pair deals with the case where the train waiting arrives before the token has the correct value, and the second pair deals with the (easier) case where the train releases the track (increments the associated token) before the next train arrives (and therefore does not need to wait).
 
 
 To execute a \wait{\bid{\text{crit}}}{n} order, the regulator stores the train id in its waiting set, together with the current block of the train (\bid{\text{src}}), the block it is waiting for (\bid{\text{crit}}), and the value the token associated with the target block has to reach to release the train ($n$).
@@ -470,7 +512,7 @@ To execute a \wait{\bid{\text{crit}}}{n} order, the regulator stores the train i
 	}
 \end{mathpar}
 
-Then, when the releasing train frees the critical block, the token is incremented, and the train waiting for the new value of the token is released\footnote{By construction, nothing prevents multiple trains to be waiting for the same value, thus resulting in a faulty system. However, our model checker ensures programs (including event handlers) are correct, thus detecting such case.} and updates the signals to let the waiting train go. The predicate \nextWait{\cdot} looks-up the event handlers of a train (\tid{w} here) to find the next block (with id \bid{\text{stop}}) that train is expected to wait. This is used to turn the signals of that block to \sigred.
+Then, when the releasing train frees the critical block, three effects happen simultaneously: first, the token of the critical block is incremented; second the train waiting for the incremented token is released (we remove the correspond tuple from the waiting set)\footnote{By construction, nothing prevents multiple trains to be waiting for the same value, thus resulting in a faulty system. However, our model checker ensures programs (including event handlers) are correct, thus detecting such case.}; finally signals are updated to let the waiting train go until its next waiting point. The predicate \nextWait{\cdot} looks-up the event handlers of a train (\tid{w} here) to find the next block (with id \bid{\text{stop}}) where the train is expected to wait.
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{IncrAfter}] {
@@ -478,13 +520,18 @@ Then, when the releasing train frees the critical block, the token is incremente
 		\and
 		\actionsOf{\head{\handlerOf{E}{\tid{r}}}} = \regConcat{\incr{\bid{\text{crit}}}}{A^\prime}
 		\\
-		\exists \bid{\text{src}}, \tid{w} \text{ s.t. } \tuple{\bid{\text{src}}, \bid{\text{crit}}, \tokenOf{\bid{\text{crit}}} + 1, \tid{w}} \in W
+		\exists \bid{\text{src}}, \tid{w} \text{ s.t. } w = \tuple{\bid{\text{src}}, \bid{\text{crit}}, \tokenOf{\bid{\text{crit}}} + 1, \tid{w}} \in W
 		\\
 		\nextWait{\handlerOf{E}{\tid{w}}} = \bid{\text{stop}}
 	}{
 		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
 		\\\reduces
-		\redTuple{\guardR}{\bufTrain}{\push{\bufSig}{\tuple{\bid{\text{stop}}, \sigred}, \tuple{\bid{\text{src}}, \siggreen}}}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\handlerOf{E}{\tid{r}}}}{\incrToken{T}{\bid{\text{crit}}}}{W\setminus\{\tuple{\bid{\text{src}}, \bid{\text{crit}}, \tokenOf{\bid{\text{crit}} + 1}, \tid{w}}\}}}{\switches}{\signals}}
+		{\begin{aligned}[t]
+			\langle&\guardR, 
+			\bufTrain,
+			\push{\bufSig}{\tuple{\bid{\text{stop}}, \sigred}, \tuple{\bid{\text{src}}, \siggreen}}, \\
+			&\langle\trainSeq, \regTuple{\nextAct{\handlerOf{E}{\tid{r}}}}{\incrToken{T}{\bid{\text{crit}}}}{W\setminus\{w\}}, \switches, \signals\rangle\rangle
+		\end{aligned}}
 	}
 \end{mathpar}
 
@@ -555,7 +602,7 @@ Finally, when the handler of the pending event has no action leftover, the regul
 
 \paragraph{Signal rules.}
 
-We now introduce two rules to update signals. In the regulator rules, we push signal updates request in the signal buffer. Signal rule \ruleRef{SignalReq} read those requests and perform appropriate updates. When all requests are dealt with, a final rule \ruleRef{SignalSfty} updates all signals based on safety rules (e.g. even if there is no rule to explicitly turn red signals leading to occupied blocks, the safety rules automatically turn it red).
+We now introduce two rules to update signals. In the regulator rules, we push signal updates request in the signal buffer. Signal rule \ruleRef{SignalReq} read those requests and perform appropriate updates.
 
 
 \begin{mathpar}
@@ -564,14 +611,24 @@ We now introduce two rules to update signals. In the regulator rules, we push si
 	}{
 		\redTuple{\guardS}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{R}{\switches}{\signals}}
 		\\\reduces
-		\redTuple{\guardS}{\bufTrain}{\buftail{\bufSig}}{\stateTuple{\trainSeq}{R}{\switches}{\setSignalsTo{\bid{id}}{c}{\switches}}}
+		\redTuple{\guardS}{\bufTrain}{\buftail{\bufSig}}{\stateTuple{\trainSeq}{R}{\switches}{\setSignalsTo{\bid{id}}{c}}}
 	}
 \end{mathpar}
 
+When all requests are dealt with, a final rule \ruleRef{SignalSfty} updates all signals based on safety rules. The function $\updateSfty{W}{E}{\trainSeq}{\switches}$ returns a new signal state ensuring the following safety rules: 
+\begin{itemize}
+	\item if there is a train occupying block $\bid{id}$, then signals in neighbour blocks leading to \bid{id} are turned to \sigred (computed using \trainSeq and \switches);
+	\item if a block leads to nothing (due to switches state) in a given direction, then the signal in that direction is turned to \sigred (computed using \switches);
+	\item other signals are turned to \siggreen, unless they have been explicitly requested to be \sigred by the regulator (this information is retrieved from $W$ and $E$).
+\end{itemize}
+
 \begin{mathpar}
-	\inferrule*[left=\ruleRef{SignalSfty}] {
+	\inferrule*[left=\ruleDef{SignalSfty}] {
+		\signals^\prime = \updateSfty{W}{E}{\trainSeq}{\switches}
 	}{
-		\redTuple{\guardS}{\bufTrain}{\emptyList}{\stateTuple{\trainSeq}{R}{\switches}{\signals}}
+		\redTuple{\guardS}{\bufTrain}{\emptyList}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
+		\\\reduces
+		\redTuple{\guardT}{\bufTrain}{\emptyList}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals^\prime}}
 	}
 \end{mathpar}
 
