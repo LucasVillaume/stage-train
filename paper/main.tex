@@ -632,33 +632,29 @@ When all requests are dealt with, a final rule \ruleRef{SignalSfty} updates all 
 	}
 \end{mathpar}
 
+\subsection{Program correctness}
 
-\paragraph{Guillaume rajoute la normalisation}
+The reflexive-transitive closure of $\reduces$ is denoted $\reduces^*$, that is $S \reduces^* S'$ iff $S =S_0 \reduces \cdots S_n = S'$. The value $n = 0$ corresponds to $S = S'$.  A final state of $S$ is a configuration $S'$ such that $S \reduces^* S'$ and there is no $S''$ with $S' \reduces S''$. In other words, starting from $S$, the computation stops on $S'$. We note $S \reduces^! S'$ this relationship. Notice that the uniqueness (or not) of final forms is not important in our context.
 
-%Rule application induce a relation between system state:  $S\reduces S'$ if $\gamma'$  if there is a rule for which $\gamma$ is the initial state and $\gamma'$ the conclusion. 
-The reflexive-transitive closure of $\reduces$ is denoted $\reduces^*$, that is $S \reduces^* S'$ iff $S =S_0 \reduces \cdots S_n = S'$. The value $n = 0$ corresponds to $S = S'$.  A normal form of a configuration $S$ is a configuration $S'$ such that $S \reduces^* S'$ and there is no $S''$ with $S' \reduces S''$. In other words, starting from $S$, the computation can stop on $S'$. We note $S \reduces^! S'$ this relationship.
-
-Given a system state  $S = \redTuple{x}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ and a train $\tid{id}$, 
+Given a system state  $S = \redTuple{\guardG}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ and a train $\tid{id}$ such that $\trainSeq[\tid{id}] = \tuple{\tid{id}, \bid{\text{src}}, \dirFmt{d}, P}$, we say that:
 \begin{itemize}
-	\item   we say that it has no jobs if  $\trainSeq{}[\tid{id}].P = \emptyTrainProg$;
-	\item its source is $\mathtt{src}(S, \tid{id}) = \trainSeq{}[\tid{id}].pid$;
-	\item its destination is $\mathtt{dst}(S, \tid{id}) = pid \in \blocks $ if either
+	\item train \tid{id} \emph{has no job} if $P = \emptyTrainProg$;
+	\item its \emph{source} is $\mathtt{src}(S, \tid{id}) = \bid{\text{src}}$;
+	\item its \emph{destination} is $\mathtt{dst}(S, \tid{id}) = \bid{\text{dst}}$, such that:
 	\begin{itemize}
-		\item  it has no jobs and  $\trainSeq{}[\tid{id}].pid = pid$  or
-		\item  the last order in  $\trainSeq{}[\tid{id}].P$ is $\su{d}{pid}$ for some direction $d$.
+		\item $\bid{\text{src}} = \bid{\text{dst}}$, if \tid{id} has no job; and
+		\item the last order in $P$ is $\su{d^\prime}{\bid{1}...\bid{\text{dst}}}$ for some direction $\dirFmt{d^\prime}$, otherwise.
 	\end{itemize}
 \end{itemize}
 
-A system state $S = \redTuple{\guardT}{\emptyset}{\bufSig}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}} $  is \emph{reliable} if: 
+A system state $S = \redTuple{\guardG}{\emptyset}{\bufSig}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$ is:
 \begin{itemize}
-	\item  no two trains meet on the same block or the same switch, \todo{En dire plus}
-	\item $S$ has  a unique normal form $S'$ and 
-	\item any train in $S'$ has no jobs and 
-	\item for any train $\tid{id}$, $\mathtt{dst}(S, \tid{id}) =  \mathtt{dst}(S', \tid{id})$. 
+	\item\emph{safe} if no two trains are on the same block: $\forall \tid{1}, \tid{2}\cdot \mathtt{src}(S, \tid{1}) \neq \mathtt{src}(S, \tid{2})$.
+	\item\emph{live} all train events are dealt with ($\bufTrain = \emptyList$) and all trains have finished their orders (they all have no job) and all trains have reached their destination ($\forall \tid{id}\in\trains\cdot \mathtt{src}(S, \tid{id}) = \mathtt{dst}(S, \tid{id})$).
+	\item \emph{correct} if forall reachable state $S^\prime$ such that $S\reduces^\star S^\prime$, $S^\prime$ is safe and if all final states of $S$ are live\footnote{Traditionally, we only care that liveness conditions are eventually verified, even if it is not in the final state. In our case, not only we want trains to reach their destination, but we want them to stay there, thus requiring final states to be live.}.
 \end{itemize}
 
-%\subsection{Détecter les problèmes}
-%Cette section est particulièrement importante, modéliser les problèmes que l'on peut rencontrer permet de les détecter. Cette phrase peut paraître évidente, mais elle est centrale dans notre méthodologie. Ici, nous pouvons faire face à deux problèmes :  les trains n'arrivent pas destination, c'est un deadlock, ou les trains partagent une même ressource, c'est un crash.  Point important, nos règles de transitions se basent sur l'interleaving, les trains ne peuvent donc pas se croiser. (($\triangle$,2) $\Rightarrow$ ($\triangle$,3) || ($O$,3) $\Rightarrow$ ($O$,2)). Le premier problème représente notre propriété de Liveness, les trains arrivent à destination, et le second représente notre propriété de Safety, les trains ne se crashent pas.
+The main question we are concerned about is whether a given state is correct (in particular, initial states), as answering this question guarantees that trains eventually reach their destination without crashes. We claim our model allows to check for correctness of states. To motivate this claim, we implement our model in TLA+, which allows to check the safety and liveness conditions mentioned above.
 
 \section{Formalisation within TLA+}
 \label{sec:tla-formalisation}
