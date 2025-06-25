@@ -246,6 +246,9 @@ Our second research question is the related to the following need. Suppose we wa
 For our last research problem, we show that TLA+ may be used to refine a regulation policy. In our first attempts, we had typically some deadlocks issues. We have been able to detect them via TLA+ and then to provide some correction. 
 
 
+\paragraph{Outline.}
+In Section~\ref{sec:model_configurations}, we introduce the main building blocks of our model: network infrastructure, trains and the regulator. In Section~\ref{sec:model_semantics}, we present the dynamic aspects of our system: how trains can move and how the regulator schedules them. We conclude this section by stating what we expect of correct networks. Then, in Section~\ref{sec:tla-formalisation}, we build a TLA+ implementation of our model and its dynamics, which we use to check network correctness. Thus, model checking a schedule \emph{certifies} its correctness. Our last contribution, in Section~\ref{sec:composition}, explains how to build large schedules by composing smaller ones. While we don't prove the correctness \emph{by construction} of composed schedules, we use the TLA+ implementation to certify, \emph{a posteriori}, the correctness of composed schedules.
+
 % ############################# %
 % Espace réservé aux encadrants %
 % ############################# %
@@ -260,7 +263,7 @@ x' \neq x \in X &\mapsto f(x')
 
 
 \section{Model configurations}
-\label{sec:informal-model}
+\label{sec:model_configurations}
 
 In this section, we present configurations of our model, i.e. how we represent, at a given point in time, the state of our network. The dynamic rules of train routing are then presented in the following section.
 
@@ -277,7 +280,7 @@ The network is then described as a triple $(\blocks, \turnouts, \sucblock)$ wher
 
 \paragraph{Signals.}
 \todo{Est-ce qu'on met les signaux dans les agents ?}
-At each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $\signals: \blocks \times \directions \to \{ \sigred, \siggreen\}$. The signal status is determined by the network configuration and explicit locking requests. Given some signal status $\signals$, a block $\bid{id}$ and a direction $\dirFmt{d}$, $\signalF{\bid{id}}{d} = \sigred$ means the signal guarding the exit of block $\bid{id}$ in direction $\dirFmt{d}$ is red, and we expect trains not leaving that block going in this direction\footnote{Our semantics, presented in Section~\ref{sec:formal-model}, ensure such behaviour.}. We note $\setSignalsTo{\bid{\text{tgt}}}{c}$ the signal state $\signals$ except signals of block \bid{\text{tgt}}, which are turned to color $c$: 
+At each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $\signals: \blocks \times \directions \to \{ \sigred, \siggreen\}$. The signal status is determined by the network configuration and explicit locking requests. Given some signal status $\signals$, a block $\bid{id}$ and a direction $\dirFmt{d}$, $\signalF{\bid{id}}{d} = \sigred$ means the signal guarding the exit of block $\bid{id}$ in direction $\dirFmt{d}$ is red, and we expect trains not leaving that block going in this direction\footnote{Our semantics, presented in Section~\ref{sec:model_semantics}, ensure such behaviour.}. We note $\setSignalsTo{\bid{\text{tgt}}}{c}$ the signal state $\signals$ except signals of block \bid{\text{tgt}}, which are turned to color $c$: 
 $$(\setSignalsTo{\bid{\text{tgt}}}{c})(\bid{\text{from}}, \dirFmt{d}) = \begin{cases}
 	c & \text{if }\bid{\text{from}} = \bid{\text{tgt}}\\
 	\signalF{\bid{\text{from}}}{d} & \text{otherwise}
@@ -336,7 +339,7 @@ Train speed are not modeled, and we consider trains can always stop within their
 
 
 \section{Model Semantics/Model dynamics}
-\label{sec:formal-model}
+\label{sec:model_semantics}
 
 In the previous section, we introduced our model. In this section, we present the dynamics of our model, that is the rules that govern how our model can switch from one state to the other.
 We enrich our model with two elements: a guard, which goal is to schedule agents (for instance, it ensures the regulator acts atomically); and a communication buffer, which stores pending events until the regulator treats them. We present those two new elements in the first subsection.
@@ -659,7 +662,7 @@ The main question we are concerned about is whether a given state is correct (in
 \section{Formalisation within TLA+}
 \label{sec:tla-formalisation}
 
-Our global aim is to check that routes are correct. That is we want, for any initial configuration, to check that no trains meet on the same block, that there is no deadlocks and finally  that trains will reach their destination. To do that, we implement the rules of Section~\ref{sec:formal-model} in TLA+. The tool provides both a specification language and a model checker. We let the reader refer to the book of Lamport~\cite{Lamport} for a full presentation of TLA+. 
+Our global aim is to check that routes are correct. That is we want, for any initial configuration, to check that no trains meet on the same block, that there is no deadlocks and finally  that trains will reach their destination. To do that, we implement the rules of Section~\ref{sec:model_semantics} in TLA+. The tool provides both a specification language and a model checker. We let the reader refer to the book of Lamport~\cite{Lamport} for a full presentation of TLA+. 
 
 To specify a system in TLA+, first, a configurations is described as a list of variables, then rules  will give the dynamic of the system and finally some assertions  will check the model.  Variables values range within sets. Either directly, or via a library, we have access to integers, strings, finite sets (e.g. \mintinline{C}{ T = {1, 2, 3}}), sequences (e.g. \mintinline{C}{route = <<7,3,4>>}),  arrays (e.g. for the initial token valuation \mintinline{C}{token = [bid in 1..nbBlock |-> 0]} ) and tuples (e.g. \mintinline{C}{[tid|->1, pid|->9, d|->"*", prog|-> << <<"StartUntil","f",4>> >>]}  for a train configuration:).
 
@@ -686,7 +689,7 @@ The representation of the network topology is also represented within TLA+. It t
 
 Variables will be updated with time flying, each transition is described with prime variables. Those latter represent the value of the variable after the transition. For instance, \mintinline{C}{gamma' = [gamma EXCEPT ![T.id].d = "*"]} updates the train tuple: the train \mintinline{C}{T.id}'s direction is set to \mintinline{C}{"*"} where  \mintinline{C}{T} is a variable  defined somewhere else. 
 
-To each inference rule in Section~\ref{sec:formal-model}, we associate a TLA+ rule taking the shape (here the Stop rule): 
+To each inference rule in Section~\ref{sec:model_semantics}, we associate a TLA+ rule taking the shape (here the Stop rule): 
 \begin{minted}{C}
 Stop (T) ==
         /\ Len(T.prog) = 0
