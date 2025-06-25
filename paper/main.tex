@@ -96,7 +96,7 @@
 \newcommand{\regulator}{\ensuremath{R}}
 \newcommand{\wait}[2]{{\mbox{\ensuremath{\mathtt{wait}(\posFmt{#1}, #2)}}}\xspace}
 \newcommand{\regConcat}[2]{#1 \cdot #2}
-\newcommand{\incrToken}[2]{\ensuremath{#1 \cdot {\tt incr}(\posFmt{#2})}}
+\newcommand{\incrToken}[2]{\ensuremath{#1. {\tt incr}(\posFmt{#2})}}
 
 %% Sequences
 \newcommand{\push}[2]{\ensuremath{\mathtt{push}(#1, #2)}}
@@ -109,6 +109,7 @@
 \newcommand{\direct}{{\mbox{$\mathtt{d}$}}\xspace}
 \newcommand{\signalF}[2]{\ensuremath{\signals(\posFmt{#1}, \dirFmt{#2})}}
 \newcommand{\signals}{\ensuremath{F}}
+\newcommand{\setSignalsTo}[3]{\signals.{\tt set\_to}(#1, #2, #3)}
 
 %% State
 \newcommand{\stateTuple}[4]{\tuple{#1, #2, #3, #4}}
@@ -270,7 +271,11 @@ The network is then described as a triple $(\blocks, \turnouts, \sucblock)$ wher
 
 \paragraph{Signals.}
 \todo{Est-ce qu'on met les signaux dans les agents ?}
-At each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $F: \blocks \times \directions \to \{ \sigred, \siggreen\}$. Given some signal status $F$, a block $\bid{id}$ and a direction $\dirFmt{d}$, $\signalF{\bid{id}}{d} = \sigred$ means the signal guarding the exit of block $\bid{id}$ in direction $\dirFmt{d}$ is red, and we expect trains not leaving that block going in this direction\footnote{Our semantics, presented in Section~\ref{sec:formal-model}, ensure such behaviour.}. The signal status is entirely determined by the network configuration and the locking status due to the regulator\todo{Le régulateur n'est pas encore introduit, je propose de déplacer ça plus bas.}.
+At each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $\signals: \blocks \times \directions \to \{ \sigred, \siggreen\}$. The signal status is determined by the network configuration and explicit locking requests. Given some signal status $\signals$, a block $\bid{id}$ and a direction $\dirFmt{d}$, $\signalF{\bid{id}}{d} = \sigred$ means the signal guarding the exit of block $\bid{id}$ in direction $\dirFmt{d}$ is red, and we expect trains not leaving that block going in this direction\footnote{Our semantics, presented in Section~\ref{sec:formal-model}, ensure such behaviour.}. We note $\setSignalsTo{\bid{\text{tgt}}}{c}{\switches}$ the signal state $\signals$ except for signals leading to block \bid{\text{tgt}} (given the current state of trackworks $\switches$), which are turned to color $c$: 
+$$(\setSignalsTo{\bid{\text{tgt}}}{c}{\switches})(\bid{\text{from}}, \dirFmt{d}) = \begin{cases}
+	c & \text{if }\suc{\bid{\text{from}}}{d}{\signals} = \bid{\text{tgt}}\\
+	\signalF{\bid{\text{from}}}{d} & \text{otherwise}
+\end{cases}$$
 
 
 \subsection{Agents}
@@ -366,7 +371,6 @@ States of the system are 4-tuples from $\{\guardI, \guardR, \guardS, \guardT\} \
 \paragraph{Train rules.}
 We first focus on rules that affect trains. The first rule is \ruleRef{Start}, which is used to change the direction of a train (e.g. to go from a stop to a given direction, or to change direction if the train has to backtrack). This rule can be triggered when the program of the train begins by \su{d^\prime}{N}. This order says that the train should got in direction $\dirFmt{d^\prime}$, and on that direction, it is expected to meet the sequence of block which ids are in $\posFmt{N}$.
 
-\todo{Enlever les bid dans le buffer des trains}
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{Start}]{
 		\dirFmt{d} \neq \dirFmt{d^\prime} \and P = \trainConcat{\su{d^\prime}{\posFmt{N}}}{P^\prime}
@@ -389,8 +393,8 @@ Conversely, if the train program is empty (i.e. upon termination), the train sto
 \end{mathpar}
 \todo{Est ce qu'on met un évenement pour les départs/arrivée? }
 
-The last two rules for trains describe what happens when a train actually moves, i.e. when its position changes. Two cases can occur, depending on the current order of the train: in \su{d}{N}, the $\posFmt{N}$ parameter is a list of blocks the train is about to encounter (including the current block), while going in direction \dirFmt{d}. %Two cases occur, depending on whether \posFmt{N} contains future blocks or not. 
-If \posFmt{N} contains only the upcoming block, then upon leaving the block, the order is removed (rule \ruleRef{UntilNext}); otherwise the upcoming block is simply popped from \posFmt{N} (rule \ruleRef{Until}). Notice that in both cases, the state of the guard changes to \guardS, meaning that signals will be updated immediately after that rule.\todo{Introduire/formaliser N} Also, both rules create an event, pushed in the buffer, informing the regulator that the train has changed block.
+The last two rules for trains describe what happens when a train actually moves, i.e. when its position changes. Two cases can occur, depending on the list of intermediate blocks $\posFmt{N}$ in the current order of the train
+If $\posFmt{N}$ contains only the upcoming block, then upon leaving the block, the order is removed (rule \ruleRef{UntilNext}); otherwise the upcoming block is simply popped from $\posFmt{N}$ (rule \ruleRef{Until}). Notice that in both cases, the state of the guard changes to \guardS, meaning that signals will be updated immediately after that rule. Finally, when the train reaches intermediate positions (rule \ruleRef{Until}), a train event is enqueued for the regulator.
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{Until}] {
@@ -418,7 +422,7 @@ If \posFmt{N} contains only the upcoming block, then upon leaving the block, the
 	}
 \end{mathpar}
 Notice that, in \ruleRef{UntilNext}, no message is added to the buffer.
-\todo{@Lucas, expliquer pourquoi c'est pas nécessaire. \\ @Martin, cela semble contradictoire avec la dernière phrase avant les règles.}
+\todo{@Lucas, expliquer pourquoi c'est pas nécessaire.}
 
 \paragraph{Regulator rules.}
 
@@ -447,7 +451,6 @@ Rule \ruleRef{Turn} triggers when a \turn{\sid{id}}{s} is encountered in the eve
 	}
 \end{mathpar}
 \todo{On ne peut pas résumer le régulateur à $R$, sinon $E$ n'est pas déclarée/n'apparait nulle part. Ou alors il faut préciser des notations comme $R.E$. On ne peut pas utiliser $R[E \leftarrow...]$ car $R$ n'est pas une fonction mais un tuple.}
-\todo{Attention, on considère la \emph{tête} de $E[tid]$}
 
 Of course, trains can conflict. For instance, if two trains have to use the same track, one has to go first and the other has to wait until the track is free\footnote{For the sake of clarity in rule presentation, we call the train that has to wait the \emph{waiting train} (with id \tid{w}), and the train that goes first the \emph{releasing train} (with id \tid{r}). We call teh \emph{critical block} the block to be used by both trains (with id \bid{\text{crit}}), and the \emph{source block} the block the waiting train waits on (with id \bid{\text{src}}).}. To schedule trains, we use a token system. Each block is assigned a token, which is an integer value. Trains can \emph{wait} until a token reaches a given value, and \emph{increment} a token after leaving a block. We introduce two pairs of rules for incrementing and waiting. The first pair deals with the case where the train waiting arrives before the token has the correct value, and the second pair deals with the (easier) case where the train releases the track (increments the associated token) before the next train arrives (and therefore does not need to wait).
 
@@ -551,6 +554,26 @@ Finally, when the handler of the pending event has no action leftover, the regul
 \end{mathpar}
 
 \paragraph{Signal rules.}
+
+We now introduce two rules to update signals. In the regulator rules, we push signal updates request in the signal buffer. Signal rule \ruleRef{SignalReq} read those requests and perform appropriate updates. When all requests are dealt with, a final rule \ruleRef{SignalSfty} updates all signals based on safety rules (e.g. even if there is no rule to explicitly turn red signals leading to occupied blocks, the safety rules automatically turn it red).
+
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{SignalReq}]{
+		\head{\bufSig} = \tuple{\bid{id}, c}
+	}{
+		\redTuple{\guardS}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{R}{\switches}{\signals}}
+		\\\reduces
+		\redTuple{\guardS}{\bufTrain}{\buftail{\bufSig}}{\stateTuple{\trainSeq}{R}{\switches}{\setSignalsTo{\bid{id}}{c}{\switches}}}
+	}
+\end{mathpar}
+
+\begin{mathpar}
+	\inferrule*[left=\ruleRef{SignalSfty}] {
+	}{
+		\redTuple{\guardS}{\bufTrain}{\emptyList}{\stateTuple{\trainSeq}{R}{\switches}{\signals}}
+	}
+\end{mathpar}
 
 
 \paragraph{Guillaume rajoute la normalisation}
