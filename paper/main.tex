@@ -435,7 +435,6 @@ Conversely, if the train program is empty (i.e. upon termination), the train sto
 	\redTuple{\guardT}{\push{\bufTrain}{\tid{id}}}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id}}{\dirStop}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
-\todo{Est ce qu'on met un évenement pour les départs/arrivée? }
 
 The last two rules for trains describe what happens when a train actually moves, i.e. when its position changes. Two cases can occur, depending on the list of intermediate blocks $\posFmt{N}$ in the current order of the train
 If $\posFmt{N}$ contains only the upcoming block, then upon leaving the block, the order is removed (rule \ruleRef{UntilNext}); otherwise the upcoming block is simply popped from $\posFmt{N}$ (rule \ruleRef{Until}). Notice that in both cases, the state of the guard changes to \guardS, meaning that signals will be updated immediately after that rule. Finally, when the train reaches intermediate positions (rule \ruleRef{Until}), a train event is enqueued for the regulator.
@@ -465,7 +464,7 @@ If $\posFmt{N}$ contains only the upcoming block, then upon leaving the block, t
 		\redTuple{\guardS}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{id}}{\bid{id^\prime}}{d}{P}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
-Notice that, in \ruleRef{UntilNext}, no message is added to the buffer. since successive \su{d}{N} orders alternate directions, the next order for that train is either \ruleRef{Start} or \ruleRef{Stop}, which send the appropriate event. We prefer sending event in \ruleRef{Start} so that there is an initial event before the train initial departure.
+Notice that, in \ruleRef{UntilNext}, no message is added to the buffer. Since successive \su{d}{N} orders alternate directions, the next order for that train is either \ruleRef{Start} or \ruleRef{Stop}, which send the appropriate event. We prefer sending event in \ruleRef{Start} so that there is an initial event before the train initial departure.
 
 \paragraph{Regulator rules.}
 
