@@ -685,29 +685,6 @@ Let $\text{priv}(\vec{x}^\tid{id}) = \langle d, \sigma\rangle$, then, $E( \tid{i
 
 \paragraph{Experiments}  With TLA+, we checked that any safe step is actually (not surprisingly!) reliable.  On our network, one finds 58 368 safe steps, all being reliable. Checking all the path took XXX seconds on YYY. \todo{XXX= nombre de seconde, YYY = décrire la machine (processeur, RAM, etc)}
 
-%\subsection{Test sur les chemins élémentaires}
-
-%Avant de passer à la composition, nous devons tester que l'algorithme permettant de "parser" un chemin élémentaire en TLA+ depuis sa description contenue dans le fichier JSON fonctionne.
-%Pour cela, nous allons tester les 165 500 chemins élémentaires de notre circuit, du moins, ceux que l'on considère comme "valides".
-%Certains chemins élémentaires ne font que démarrer, ce qui n'a pas de sens dans notre modèle, aucune règle de transition n'est prévue pour cela.
-%Après 111 812 secondes, soit 31 heures, l'intégralité des chemins a été passée en revue. Parmi eux, 58 368 chemins valides ont été testés, ne rencontrant aucun problème. (Sur l'image on lit 58 370, petit bug d'affichage que j'ai laissé passer)  
-
-%\begin{figure}
-%	\begin{subfigure}{0.5\textwidth}
-%		\centering
-%		%\includegraphics[width=\textwidth]{img/spec_pc.png}
-%		\caption{Spec de l'ordinateur}
-%	\end{subfigure}
-%	\begin{subfigure}{0.5\textwidth}
-%		\centering
-%		%\includegraphics[width=\textwidth+0.5cm]{img/testElem.png}
-%		\caption{Vérification des chemins élémentaires}
-%	\end{subfigure}
-%	\caption{Tests sur les chemins élémentaires}
-%\end{figure}
-%\label{fig:elem-tests}
-
-
 \subsection{Safe steps composition}
 
 Two states $S$ and $S'$ are said to be \emph{compatible} whenever  for any train $\tid{id}$, we have $\mathtt{dst}(S, \tid{id})  =  \mathtt{src}(S', \tid{id})$. In other words, trains must start in $S'$ at destinations of $S$. We define the composition only compatible states. Actually, since we are interested by safe steps compositions, we restrict our attention to their compositions.
@@ -722,114 +699,10 @@ So, we suppose we are given safe step states $S_1, \ldots, S_k$ corresponding to
 
 For $1)$, in other words, we concatenates the train orders without changing its position, nor its direction. For $2)$, we start as we would do for $S$. The same for $3)$. 
 
-
-%we describe composition of a system state and a safe step. So, from the remaining of the section, we suppose $S$ and $S'$ be compatible state, $S'$ being a safe step. We aim to compute their composition $S''  = \redTuple{x}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regulator}{\switches}{\signals}}$.
-
-\paragraph{Train composition} For each train $\tid{id}$, the composition of $S$ and $S'$ is: $S''.\stateTuple[\tid{id}] = \langle S.\stateTuple[\tid{id}].pid$, 
-
 \subsection{Simplification}
 
-
-%\subsection{Preparation}
-
-%The first step is the computation of critical resources. A block $\bid{id}$ is said to be critical if it occurs in both a train sequence in $S$ occurs an other train sequence in $S'$. A switch $\sid{id}$ is said to be critical if it occurs in one order of the regulator $S.R$ and in one order of $S'.R$. 
-
-
-
-%\textbf{Simplification des ordres "turn"}\\
-%La préparation est une étape cruciale, nous permettant de simplifier la suite du processus.
-%D'abord, nous allons simplifier les ordres "turn", pour cela, {\color{red} on pose l'hypothèse que o1 et o2 sont élémentaires (embêtant si on veut faire des compositions complexes)}.
-%Ainsi, dans chaque liste d'ordre, un ordre "turn" ne peut concerner qu'un seul switch. On cherche alors les ordres similaires entre les listes pour les supprimer de o2.
-%\\Par exemple :
-
-%\begin{center}
-%	\begin{tabular}{||c || c | c||}
-%		\hline
-%		tid & o$_1$ & o$_2$ \\ [0.5ex] 
-%		\hline\hline
-%		0 & \tuple{10d,{\color{blue}11v}} & \tuple{} \\ 
-%		1 & \tuple{} & \tuple{{\color{blue}12v},10d} \\
-%		\hline
-%		0 & \tuple{{\color{blue}10d},11v} & \tuple{} \\ 
-%		1 & \tuple{} & \tuple{{\color{blue}12v},10d} \\
-%		\hline
-%		0 & \tuple{10d,{\color{violet}11v}} & \tuple{} \\ 
-%		1 & \tuple{} & \tuple{12v,{\color{violet}10d}} \\
-%		\hline
-%		0 & \tuple{\underline{\color{violet}10d},11v} & \tuple{} \\ 
-%		1 & \tuple{} & \tuple{12v,\underline{\color{violet}10d}} \\
-%		\hline
-%		0 & \tuple{10d,11v} & \tuple{} \\ 
-%		1 & \tuple{} & \tuple{12v} \\
-%		\hline
-%	\end{tabular}
-%\end{center}
-%On convertie ensuite les ordres "turn" restant dans o1 en "initialisation" d'un aiguillage si ce dernier n'est pas déjà initialisé.
-%\\\textbf{Traiter les ressources critiques}\\
-%Pour cette étape, on cherche d'abord à identifier les ressources critiques. Avec une méthode similaire à celle vue précédemment :
-
-%\vspace{0.5cm}
-
-%\begin{center}
-%	\begin{tabular}{||c || c | c||} 
-%		\hline
-%		tid & o$_1$ & o$_2$ \\ [0.5ex] 
-%		\hline\hline
-%		0 & \tuple{4,3,{\color{red}8}} & \tuple{8} \\ 
-%		1 & \tuple{6} & \tuple{{\color{red}7},3,4,5} \\
-%		\hline
-%		0 & \tuple{4,{\color{red}3},8} & \tuple{8} \\ 
-%		1 & \tuple{6} & \tuple{{\color{red}7},3,4,5} \\
-%		\hline
-%		0 & \tuple{{\color{red}4},3,8} & \tuple{8} \\ 
-%		1 & \tuple{6} & \tuple{{\color{red}7},3,4,5} \\
-%		\hline
-%		
-%		0 & \tuple{4,3,{\color{violet}8}} & \tuple{8} \\
-%		1 & \tuple{6} & \tuple{7,{\color{violet}3},4,5} \\
-%		\hline
-%		0 & \tuple{4,\underline{\color{violet}3},8} & \tuple{8} \\ 
-%		1 & \tuple{6} & \tuple{7,\underline{\color{violet}3},4,5} \\
-%		\hline
-%
-%		0 & \tuple{4,3,{\color{blue}8}} & \tuple{8} \\
-%		1 & \tuple{6} & \tuple{7,3,{\color{blue}4},5} \\
-%		\hline
-%
-%		0 & \tuple{4,3,{\color{orange}8}} & \tuple{8} \\
-%		1 & \tuple{6} & \tuple{7,3,4,{\color{orange}5}} \\
-%		\hline
-%	\end{tabular}
-%\end{center}
-%\noindent
-%Dans notre exemple, on peut voir que 3 est la seule ressource critique, il faut donc traiter ce cas.
-%On va ajouter un ordre "att(3,valT)" à l'event précédent l'entrée de la ressource critique pour le train qui utilise la ressource en second.
-%On ajoute également un ordre "incr(3)" à l'event suivant la sortie de la ressource critique pour le train qui utilise la ressource en premier.
-%Si le train à besoin d'un "turn" pour entrer dans la ressources critique, alors on le décale dans un event du train ayant utilisé l'aiguillage le plus récemment.
-%\\\textbf{Mettre à jour les jetons}\\
-%Laissons de côté l'hypothèse que o1 et o2 sont élémentaires, il est alors possible que o1 contienne des ordres de type "att" et "incr". Il faut donc mettre à jour les valeurs
-%des tokens pour "att" et "incr" dans o2. Par exemple, si dans o1 on trouve les ordres : (att(3,1), incr(3)), alors dans o2 on va devoir transformer att(3,1) en att(3,2).
-%
-%\subsection{Assemblage}
-%L'assemblage est la partie la plus simple de cette fonction, il s'agit de concaténer les ordres des trains et des events.
-%Pas de technique intelligente, si les programmes du train 1 pour o1 et o2 sont "<L,[1,2]>" et "<L,[3,4]>", alors la concaténation donne "<L,[1,2]>,<L,[3,4]>".
-%Même chose pour les events, \tuple{\tuple{1,\tuple{}},\tuple{2,\tuple{turn(x,y)}}} et \tuple{\tuple{2,\tuple{att(3,1)}},\tuple{3,\tuple{}}} devient \tuple{\tuple{1,\tuple{}},\tuple{2,\tuple{turn(x,y),(att(3,1))}},\tuple{3,\tuple{}}}.
-%À partir de maintenant, nous ne manipulerons plus deux listes d'ordres, o1 et o2, mais une seule : o3. 
-%\\Aussi, on reprend l'initialisation des aiguillages de o1 pour o3.
-%
-%\subsection{Nettoyage}
-%Cette partie fait office de "finalisation". On va d'abord s'occuper de "regrouper" les ordres des trains. Notre exemple précédent "<L,[1,2]>,<L,[3,4]>", nous donne maintenant "<L,[1,2,3,4]>". 
-%On ajoute également un ordre "auth" pour les "turn" utilisés par des trains pour agir sur leur propre parcours. (les trains n'utilisent pas directement "turn", mais plus simple à expliquer de cette manière)
-%Enfin, on chercher le premier arrêt de chaque train pour assigner les feux au rouge.
-%
-%Maintenant que tous les éléments sont définis, nous pouvons nous intéresser à la vérification de notre modèle.
-%L'ultime but est de tester tous les chemins possibles sur notre modèle pour s'assurer qu'il est correct pour n'importe quel chemin.
-%Ce projet est ambitieux, nous allons donc nous concentrer sur la composition de deux chemins élémentaires, et vérifier que le modèle est correct pour ces cas.
-%
-
-\subsection{Experiments}
-\label{sec:experiments:4}
-
+\subsection{Experiments} 
+Parler des expériences
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -847,9 +720,6 @@ Our implementation, including both the TLA model and the Python composition is a
 The main limitation of our paper regards scaling our approach. While we tested extensively our implementation on small-scale systems (small network, few trains), we expect the number of state to explode on larger networks. We intend to perform larger tests in future work.
 
 \todo{On peut avoir des routages de n'importe où, donc on peut voir pour interfacer avec d'autres approches ?}
-
-%temporaire, histoire d'avoir le sommaire en tête
-%\includegraphics[scale=0.1]{img/sommaire_tableau.jpg}
 
 \paragraph{Acknowledgements} The authors would like to thank Sébastien Schmitt from CNRS who built the train model mentioned in the introduction. That gave us a concrete reason to think about routes, scheduling and proofs. 
 
