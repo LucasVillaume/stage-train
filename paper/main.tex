@@ -554,7 +554,6 @@ Finally, when the handler of the pending event has no action leftover, the regul
 \paragraph{Signal rules.}
 
 
-
 \paragraph{Guillaume rajoute la normalisation}
 
 %Rule application induce a relation between system state:  $S\reduces S'$ if $\gamma'$  if there is a rule for which $\gamma$ is the initial state and $\gamma'$ the conclusion. 
@@ -579,12 +578,8 @@ A system state $S = \redTuple{\guardT}{\emptyset}{\bufSig}{\stateTuple{\trainSeq
 	\item for any train $\tid{id}$, $\mathtt{dst}(S, \tid{id}) =  \mathtt{dst}(S', \tid{id})$. 
 \end{itemize}
 
-\subsection{Détecter les problèmes}
-Cette section est particulièrement importante, modéliser les problèmes que l'on peut rencontrer permet de les détecter.
-Cette phrase peut paraître évidente, mais elle est centrale dans notre méthodologie. Ici, nous pouvons faire face à deux problèmes : 
-les trains n'arrivent pas destination, c'est un deadlock, ou les trains partagent une même ressource, c'est un crash. 
-Point important, nos règles de transitions se basent sur l'interleaving, les trains ne peuvent donc pas se croiser. (($\triangle$,2) $\Rightarrow$ ($\triangle$,3) || ($O$,3) $\Rightarrow$ ($O$,2)).
-Le premier problème représente notre propriété de Liveness, les trains arrivent à destination, et le second représente notre propriété de Safety, les trains ne se crashent pas.
+%\subsection{Détecter les problèmes}
+%Cette section est particulièrement importante, modéliser les problèmes que l'on peut rencontrer permet de les détecter. Cette phrase peut paraître évidente, mais elle est centrale dans notre méthodologie. Ici, nous pouvons faire face à deux problèmes :  les trains n'arrivent pas destination, c'est un deadlock, ou les trains partagent une même ressource, c'est un crash.  Point important, nos règles de transitions se basent sur l'interleaving, les trains ne peuvent donc pas se croiser. (($\triangle$,2) $\Rightarrow$ ($\triangle$,3) || ($O$,3) $\Rightarrow$ ($O$,2)). Le premier problème représente notre propriété de Liveness, les trains arrivent à destination, et le second représente notre propriété de Safety, les trains ne se crashent pas.
 
 \section{Formalisation within TLA+}
 \label{sec:tla-formalisation}
@@ -649,9 +644,9 @@ where variables is the tuple of all variables. The intended meaning is that the 
 \section{Composition}
 \label{sec:composition}
 
-The main principle behind our scheduling process is based on the notion of route. A route for a train is a sequence $\vec{x} = x_1, \ldots, x_k$ of (contiguous) blocks and switches starting and ending on a block.   Two routes $\vec{x}$ and $\vec{y}$ have a critical resource if  $x_i = y_j$ for some $i,j$. A \emph{global routing}, denoted $X = (\vec{x}^{\tid{id}})_{\tid{id} \in \trains}$, is a route for each train. We denote by $k_{\tid{id}}$ the index last component of sequence $\vec{x}^\tid{id}$ for any $\tid{id}\in \trains$. 
+The main principle behind our scheduling process is based on the notion of route. A route for a train is a sequence $\vec{x} = x_1, \ldots, x_k$ of (contiguous) blocks and switches starting and ending on a block.  A \emph{global routing}, denoted $X = (\vec{x}^{\tid{id}})_{\tid{id} \in \trains}$, is a route for each train.  Two routes $\vec{x}$ and $\vec{y}$ have a critical resource if  $x_i = y_j$ for some $i,j$. We denote by $k_{\tid{id}}$ the index of the last component of sequence $\vec{x}^\tid{id}$ for any $\tid{id}\in \trains$. 
 
-Informally, a \emph{safe step} is a global routing such that there are no critical resources between two routes and there is a network configuration $\sigma$ such that  for each train $\tid{id}$, there is a direction according to which starting at $x_1^{\tid{id}}$, following that direction and given the configuration $\sigma$, one reaches $x_{k_{\tid{id}}}^{\tid{id}}$. Let us turn to the technical definition.   
+Informally, a \emph{safe step} is a global routing  such that there are no critical resources between two routes and there is a network configuration $\sigma$ such that  for each train $\tid{id}$, there is a direction according to which starting at $x_1^{\tid{id}}$, following that direction and given the configuration $\sigma$, one reaches $x_{k_{\tid{id}}}^{\tid{id}}$. Let us turn to the technical definition.   
 
 Given a route $\vec{x} = x_1, \ldots, x_k$, we say that $\vec{x}$ has a privileged pair denoted $\text{priv}(\vec{x}) = \langle d, \sigma\rangle \in \directions \times \Sigma$ whenever for any pair $i < j$ such that
 \begin{itemize}
@@ -673,7 +668,7 @@ Any global routing can be seen as the composition of safe steps and actually, th
 \subsection{Safe steps}
 \label{sec:experiments:4}
 
-To each safe step $X = (\vec{x}_i)_{i \in \trains}$, just below, we define the system state $S(X) = \redTuple{\guardI}{ \emptyList}{ \emptyList}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$. Informally, we set turnouts to their position according to $\sigma$ during the initial step  and we lock signals to red for each train's destination in its intended direction.  
+To each safe step $X = (\vec{x}_i)_{i \in \trains}$, just below, we define the system state $S(X) = \redTuple{\guardI}{ \emptyList}{ \emptyList}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$. $S(C)$ is next called a \emph{safe step state}. Informally, we set turnouts to their position according to $\sigma$ during the initial step  and we lock signals to red for each train's destination in its intended direction.  
 \begin{itemize}
 \item for each train $\tid{id}$, $\trainSeq[id] = \trainTuple{\tid{id}}{\bid{id}}{d}{\su{d}{x^{\tid{id}}_{k_{\tid{id}}}}}$ with $\langle d,\sigma\rangle = \text{priv}(\vec{x}^{\tid{id}})$,
 \item $R = \langle E,  \bid{id} \in \blocks \mapsto 0, \emptyset\rangle$, $E$ being defined just below,
@@ -716,19 +711,29 @@ Let $\text{priv}(\vec{x}^\tid{id}) = \langle d, \sigma\rangle$, then, $E( \tid{i
 
 \subsection{Safe steps composition}
 
-Two states $S$ and $S'$ are said to be \emph{compatible} whenever  for any train $\tid{id}$, we have $\mathtt{dst}(S, \tid{id})  =  \mathtt{src}(S', \tid{id})$. In other words, train must start in $S'$ at destination in $S$. We define the composition only compatible states. Actually, since we are interested by safe steps composition, we restrict our attention to their compositions.
+Two states $S$ and $S'$ are said to be \emph{compatible} whenever  for any train $\tid{id}$, we have $\mathtt{dst}(S, \tid{id})  =  \mathtt{src}(S', \tid{id})$. In other words, trains must start in $S'$ at destinations of $S$. We define the composition only compatible states. Actually, since we are interested by safe steps compositions, we restrict our attention to their compositions.
   
+So, we suppose we are given safe step states $S_1, \ldots, S_k$ corresponding to $X_1, \ldots, X_k$. To compute their composition $S_1 \cdot S_2 \cdots S_k$, we proceed by induction on $k$. For $k = 1$, we return $S_1$. For $k>0$, let $S = S_1 \cdots S_{k-1}$. Let $S = \langle \guardG, \bufTrain, \bufSig, \langle \Gamma, \regulator, \switches, \signals\rangle \rangle$. We set $S \cdot S_k = \langle \guardG, \bufTrain, \bufSig, \langle \Gamma', \regulator', \switches', \signals'\rangle \rangle$ as follows:
 
-we describe composition of a system state and a safe step. So, from the remaining of the section, we suppose $S$ and $S'$ be compatible state, $S'$ being a safe step. We aim to compute their composition $S''  = \redTuple{x}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regulator}{\switches}{\signals}}$.
+\begin{enumerate}
+\item for all train $\tid{id} \in \trains$, let $P_0 = S.\Gamma[\tid{id}].P$ and $P_k = S_k.\Gamma[\tid{id}].P$, then $\Gamma'[tid] = \Gamma[\tid{id}][ P \leftarrow P_0 \cdot P_k]$;
+\item $\sigma' = \sigma$,
+\item $F' = F$,
+\end{enumerate}
+
+For $1)$, in other words, we concatenates the train orders without changing its position, nor its direction. For $2)$, we start as we would do for $S$. The same for $3)$. 
+
+
+%we describe composition of a system state and a safe step. So, from the remaining of the section, we suppose $S$ and $S'$ be compatible state, $S'$ being a safe step. We aim to compute their composition $S''  = \redTuple{x}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regulator}{\switches}{\signals}}$.
 
 \paragraph{Train composition} For each train $\tid{id}$, the composition of $S$ and $S'$ is: $S''.\stateTuple[\tid{id}] = \langle S.\stateTuple[\tid{id}].pid$, 
 
 \subsection{Simplification}
 
 
-\subsection{Preparation}
+%\subsection{Preparation}
 
-The first step is the computation of critical resources. A block $\bid{id}$ is said to be critical if it occurs in both a train sequence in $S$ occurs an other train sequence in $S'$. A switch $\sid{id}$ is said to be critical if it occurs in one order of the regulator $S.R$ and in one order of $S'.R$. 
+%The first step is the computation of critical resources. A block $\bid{id}$ is said to be critical if it occurs in both a train sequence in $S$ occurs an other train sequence in $S'$. A switch $\sid{id}$ is said to be critical if it occurs in one order of the regulator $S.R$ and in one order of $S'.R$. 
 
 
 
