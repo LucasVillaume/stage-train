@@ -60,7 +60,7 @@
 \newcommand{\switches}{\ensuremath{\swFmt{\sigma}}}
 \newcommand{\networkConf}{\ensuremath{\swFmt{\Sigma}}}
 \newcommand{\nosuc}{\ensuremath{\swFmt{\bot}}}
-\newcommand{\updateSignals}[3]{\ensuremath{#1[\swFmt{#2}\leftarrow #3]}}
+\newcommand{\updateSwitch}[3]{\ensuremath{#1[\swFmt{#2}\leftarrow #3]}}
 
 %% Trains
 \definecolor{traincolor}{rgb}{0.2, 0.2, 0.6}
@@ -98,6 +98,10 @@
 \newcommand{\regConcat}[2]{#1 \cdot #2}
 \newcommand{\incrToken}[2]{\ensuremath{#1. {\tt incr}(\posFmt{#2})}}
 
+%% Intial actions & event.
+\newcommand{\initialHandler}[1]{\handlerOf{#1}{\star}}
+\newcommand{\sendred}[2]{\ensuremath{{\tt sendred}(#1, #2)}}
+
 %% Sequences
 \newcommand{\push}[2]{\ensuremath{\mathtt{push}(#1, #2)}}
 \newcommand{\pop}[1]{\ensuremath{\mathtt{pop}(#1)}}
@@ -111,6 +115,7 @@
 \newcommand{\signals}{\ensuremath{F}}
 \newcommand{\setSignalsTo}[2]{\signals.{\tt set\_to}(#1, #2)}
 \newcommand{\updateSfty}[4]{{\tt updateSfty}(\signals, #1, #2, #3, #4)}
+\newcommand{\updateSignal}[4]{\ensuremath{#1[\tuple{\swFmt{#2}, \dirFmt{#3}}\leftarrow #4]}}
 
 %% State
 \newcommand{\stateTuple}[4]{\tuple{#1, #2, #3, #4}}
@@ -318,6 +323,9 @@ Actions contained in a handler are of the four following kinds:
 	\item [\auth:] a shortcut for waiting on oneself
 \end{description}
 
+\paragraph{Initial actions.}
+In order to ensure the initial configuration of the network is correct, we execute initial actions prior to any train movement. For that, we add a special list of event handler \initialHandler{E}, containing a single handler containing setup actions. Those actions are either \turn{\sid{id}}{s} or \sendred{\bid{id}}{\dirFmt{d}}, a special action used only during initialisation which request signals to be initial \sigred.
+
 \paragraph{Model.}
 Overall, states of our model are tuples $\tuple{\trainSeq, \regulator, \switches, \signals}$ where $\trainSeq$ is a set of train tuples, $\regulator$ a regulator tuple, $\switches$ a network configuration (indicating trackworks states) and $\signals$ a signals state function. We suppose all train tuples in $\trainSeq$ have a different identifier. Notice that $\sucblock$ is not part of the state. Instead, the dynamics of the model (see below) is parameterised by $\sucblock$. Let $\modelSet$ be the set of all model states.
 
@@ -347,16 +355,16 @@ Essentially, this guard is the state machine shown in Figure~\ref{fig:state_mach
 	\begin{tikzpicture}
 		\node[] (zero) {};
 		\node[draw, below=of zero] (initial) {Initial state (\guardI)};
-		\node[draw, right=of initial] (trains) {Train movements (\guardT)};
-		\node[draw, above right=of trains] (signals1) {Signals update (\guardS)};
-		\node[draw, below right=of trains] (regulator) {Regulator reaction (\guardR)};		
+		\node[draw, below=of initial] (trains) {Train movements (\guardT)};
+		\node[draw, right=of initial] (signals) {Signals update (\guardS)};
+		\node[draw, right=of trains] (regulator) {Regulator reaction (\guardR)};		
 		
 		\draw[-stealth] (zero) to (initial);
-		\draw[-stealth] (initial) to (trains);
-		\draw[-stealth] (trains) to[bend right=20] (signals1);
-		\draw[-stealth] (signals1.west) to[bend right=20] (trains.north);
-		\draw[-stealth] (trains.south) to[bend right] (regulator.west);
-		\draw[-stealth] (regulator) to[bend right] (signals1);
+		\draw[-stealth] (initial) to (signals);
+		\draw[-stealth] (trains) to[bend right=10] (signals);
+		\draw[-stealth] (signals) to[bend right=10] (trains.north);
+		\draw[-stealth] (trains) to (regulator);
+		\draw[-stealth] (regulator) to (signals);
 	\end{tikzpicture}
 	\caption{State machine of the guard.}
 	\label{fig:state_machine_guard}
@@ -369,8 +377,43 @@ Similarly, the regulator communicates with signals with a \emph{signal buffer} \
 
 States of the system are 4-tuples from $\{\guardI, \guardR, \guardS, \guardT\} \times \bufTrainSet \times \bufSigSet \times \modelSet$. Our reduction relation is a binary relation on system states, noted $\reduces$: $S_1 \reduces S_2$ means that state $S_1$ can change to $S_2$ (note that this relation is not a function: $S_1$ can reduce to multiple states, due to non-determinism). We define $\reduces$ as the least relation induced by the inference rules presented hereafter.
 
+\paragraph{Initialisation rules.}
+Upon starting, we first set up the switches and the signals using rules \ruleRef{TurnInit} and \ruleRef{SigInit}.
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{TurnInit}]{
+		\head{\actionsOf{\head{\initialHandler{E}}}} = \turn{\sid{id}}{s}
+	}{
+		\redTuple{\guardI}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
+		\\\reduces
+		\redTuple{\guardI}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\initialHandler{E}}}{T}{W}}{\updateSwitch{\switches}{\sid{id}}{s}}{\signals}}
+	}
+\end{mathpar}
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{SigInit}]{
+		\head{\actionsOf{\head{\initialHandler{E}}}} = \sendred{\bid{id}}{\dirFmt{d}}
+	}{
+	\redTuple{\guardI}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
+	\\\reduces
+		\redTuple{\guardI}{\bufTrain}{\push{\bufSig}{\tuple{\bid{id}, \sigred}}}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\initialHandler{E}}}{T}{W}}{\switches}{\signals}}
+	}
+\end{mathpar}\todo{Est-ce qu'on a vraiment besoin de spécifier la direction ?}
+
+Finally, when initial actions are done, we start the system by switching the guard to state \guardS. Switching to that state instead of \guardT ensures signals perform requests of the initialisation step, as well as an first computation of the safety rules (see \ruleRef{SignalReq} and \ruleRef{SignalSfty} below for signals dynamics).
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{TurnInit}]{
+	\actionsOf{\head{\initialHandler{E}}} = \emptyList
+	}{
+		\redTuple{\guardI}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
+		\reduces
+		\redTuple{\guardS}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
+	}
+\end{mathpar}
+
 \paragraph{Train rules.}
-We first focus on rules that affect trains. The first rule is \ruleRef{Start}, which is used to change the direction of a train (e.g. to go from a stop to a given direction, or to change direction if the train has to backtrack). This rule can be triggered when the program of the train begins by \su{d^\prime}{N}. This order says that the train should got in direction $\dirFmt{d^\prime}$, and on that direction, it is expected to meet the sequence of block which ids are in $\posFmt{N}$.
+We now focus on rules that affect trains. The first rule is \ruleRef{Start}, which is used to change the direction of a train (e.g. to go from a stop to a given direction, or to change direction if the train has to backtrack). This rule can be triggered when the program of the train begins by \su{d^\prime}{N}. This order says that the train should got in direction $\dirFmt{d^\prime}$, and on that direction, it is expected to meet the sequence of block which ids are in $\posFmt{N}$.
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{Start}]{
@@ -448,7 +491,7 @@ Rule \ruleRef{Turn} triggers when a \turn{\sid{id}}{s} is encountered in the eve
 	}{
 	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regulator}{\switches}{\signals}}
 	\\\reduces
-	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regulator[E \leftarrow E[ \tid{id} \leftarrow \langle \bid{id}, A'\rangle] ] }{\updateSignals{\switches}{\sid{id}}{s}}{\signals}}
+	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regulator[E \leftarrow E[ \tid{id} \leftarrow \langle \bid{id}, A'\rangle] ] }{\updateSwitch{\switches}{\sid{id}}{s}}{\signals}}
 	}
 \end{mathpar}
 \todo{On ne peut pas résumer le régulateur à $R$, sinon $E$ n'est pas déclarée/n'apparait nulle part. Ou alors il faut préciser des notations comme $R.E$. On ne peut pas utiliser $R[E \leftarrow...]$ car $R$ n'est pas une fonction mais un tuple.}
