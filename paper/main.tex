@@ -189,28 +189,6 @@
 
 This contribution finds its origin in a cyber-warefare we are organising for students at the University of Lorraine concerned by cyber-security, see~\cite{CHE}. In the game-play, we have both IT infrastructures and physical systems, with connections between them. On the physical side, we built a small train network that tries to be a good model of real systems.  Our system manages customer informations, train regulation and finally the physical/infrastructure layer. Attackers can hit any of the three parts: disfiguring the website, changing a platform or blocking a signal. Defenders will protect their system, typically via a strict network policy.
 
-\medskip
-
-\begin{wrapfigure}[6]{r}{0.45\textwidth}
-\vspace{-6mm}
-\includegraphics[height=20mm]{TrainSchema.png}
-\end{wrapfigure}
-
-
-From an Information Technology (IT) point of view, our system is shaped as shown on the right. Switches are controlled by a raspberry (TURNOUT) running an OpenPLC program, signals are controlled by an other raspberry, SIGNAL, with access to turnout positions via modbus. Then, the SIGNAL PLC reads mouvement sensors  (not all links shown in the figure) to update the status of signals. Next to that, we have a third machine, the regulator: it is in charge of updating train routes (as required by the customer IT),  of the regulation of turnouts and finally it may lock some signal (turn it to "red"). All the network connections are done via a single switch. Connections from REGULATOR to TURNOUT and SIGNAL are done via modbus while the customer IT and the regulator exchanges  are based on TCP/IP.  To be complete, to activate train mouvements, we use the DCC protocol via an Arduino, but this part is strictly related to the fact we have a train model. 
-
-
-\begin{wrapfigure}[7]{r}{0.3\textwidth}
-\hspace{-10mm}
- \begin{minipage}{0.3\textwidth}
-        \centering
-        \vspace{-24mm}
-\includegraphics[height=50mm]{ZoomAffichage.png}
-    \end{minipage}
-\end{wrapfigure}
-
- The customer IT is deported from the infrastructure IT (thus the cloud).  It is itself composed of three machines: one for the station screens (on the right, after an attack), one for the databases and a final orchestrator. On the orchestrator, there are two main services: we have a web-service (with front and backend) and the general route scheduler.  Our model is completely automatic, no manual intervention is needed apart from minor electrical/mechanical problems that come with our scale model.
- 
 
 
 
@@ -243,20 +221,35 @@ For our last research problem, we show that TLA+ may be used to refine a regulat
 Over the last decades, we observe a general and increasing interest of formal methods for verification and validation of safety-critical systems, including railway networks.
 In \cite{Ferrari_Formal_2022}, Ferrari et al. present a survey of use cases of formal methods in railways development. They identify various phases of development phases where formal methods have been used, ranging from planning to maintenance via implementation, testing, etc., as well as most frequently studied subsystems (interlocking systems being the most formally verified component). In this paper, focus specifically on train \emph{routing}, i.e. finding correct train schedules (for some correctness criteria). This topic is related to that of interlocking (we prevent trains from using simultaneously some elements), but from the viewpoint of trains and their routes, while the viewpoint of interlocking is mostly trackworks.
 
-In~\cite{lusby_railway_2011}, Lusby et al.\ survey works on train routing. In this context, we can distinguish two problems: automated routing and routing verification. The former deals with automatically finding train routes satisfying some properties. Lusby et al.\ mention that solving this problem, in highly interconnected network, is not feasible in practice. In this paper, we address the second problem: verifying whether a train routing satisfies correctness criteria (without considering how it is obtained).
+In~\cite{lusby_railway_2011}, Lusby et al.\ survey works on train routing. In this context, we can distinguish two problems: automated routing and routing verification. The former deals with automatically finding train routes satisfying some properties. Lusby et al.\ mention that solving this problem, in highly interconnected network, is not feasible in practice. In this paper, we address the second problem: verifying whether a train routing satisfies correctness criteria (without considering how it is obtained). In particular, we are interested in formal verification of such routings.
 
-\paragraph{Related works.}
-
-\paragraph{N-scale model.}
 \begin{wrapfigure}[10]{r}{0.28\textwidth}
 	\begin{minipage}{0.28\textwidth}
 		\centering
 		\vspace{-8mm}
 		\includegraphics[height=30mm]{maquette.png}
-		\caption{The N-scale model.}
+		\caption{The model.}
+		\label{fig:maquette}
 	\end{minipage}
 \end{wrapfigure}
-We tested the work presented in this paper on a real-world N-scale train model. Our circuit has 8 blocks, 5 switches. Each block is bidirectional with a signal at each end. Blocks size goes from 25cm to 70cm. We operate three trains concurrently. Due to the size of the model, we reduced our signals  to "red" and "green" status, the trains being too close one from the other. Furthermore, in case of a red signal, we make the hypothesis that the train are able to stop before reaching the end of the block.
+
+\paragraph{Model.}
+Before delving further in the details, we introduce a real-world N-scale train model (\ref{fig:maquette}), which shaped our approach and was used to test our results. This model has 8 blocks, 5 switches. Each block is bidirectional with a signal at each end. Blocks size goes from 25cm to 70cm. We operate three trains concurrently. Due to the size of the model, we reduced our signals  to "red" and "green" status, the trains being too close to each other for a finer modelling of signals. Furthermore, in case of a red signal, we make the hypothesis that the train are able to stop before reaching the end of the block.
+
+\begin{wrapfigure}[8]{r}{0.45\textwidth}
+	\vspace{-6mm}
+	\includegraphics[height=20mm]{TrainSchema.png}
+	\caption{The computer infrastructure.}
+	\label{fig:computers}
+\end{wrapfigure}
+
+Switches and signals are controlled by two Raspberry-pi computers, which communicate so that signals are safe w.r.t. switches. A third computer, called the \emph{regulator}, manages the traffic. It can request switches updates, lock signals\footnote{The regulator can explicitly request a green signal to turn red, for traffic control. However, if the signal controller requires a signal to be red, for safety reasons, the regulator can not force it green.}, and route trains. To control trains, an Arduino board is used and simulates train drivers. The Arduino board communicates with the regulator to query states of signals, which would be seen by the driver in real life (see Fig. \ref{fig:computers}). 
+
+\paragraph{Contributions.}
+
+
+\paragraph{Related works.}
+
 
 \paragraph{Outline.}
 In Section~\ref{sec:model_configurations}, we introduce the main building blocks of our model: network infrastructure, trains and the regulator. In Section~\ref{sec:model_semantics}, we present the dynamic aspects of our system: how trains can move and how the regulator schedules them. We conclude this section by stating what we expect of correct networks. Then, in Section~\ref{sec:tla-formalisation}, we present a TLA+ implementation of our model, which we use to check network correctness: model checking a schedule \emph{certifies} its correctness. Our last contribution, in Section~\ref{sec:composition}, explains how to build large schedules by composing smaller ones. While we don't prove the correctness \emph{by construction} of composed schedules, we use the TLA+ implementation to certify, \emph{a posteriori}, the correctness of composed schedules.
