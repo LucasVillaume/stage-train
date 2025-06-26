@@ -34,6 +34,7 @@
 \newcommand{\forward}{\ensuremath{\mathtt{f}}}
 \newcommand{\backward}{\ensuremath{\mathtt{b}}\xspace}
 \newcommand{\sucblock}{{\mathtt{suc}}}
+\newcommand{\throughS}{{\mathtt{through}}}
 
 %% Modèle
 \newcommand{\modelSet}{\ensuremath{\mathbb{M}}}
@@ -753,15 +754,17 @@ $$
 
 Now, let us turn to the definition of $E$. For any train $\tid{i} \in \trains$, we define $A= (\emptyList)_{x \in \vec{x}^\tid{i} }$. Then, set  $E[\tid{i}] = \langle d(\tid{i}), A[x_1 \leftarrow \langle \incr{x_1^\tid{i}}] \rangle]$. 
 
-\paragraph{Experiments}  With TLA+, we checked that any safe step is actually (not surprisingly!) reliable.  On our network, one finds 58 368 safe steps, all being reliable. Checking all the path took XXX seconds on YYY. \todo{XXX= nombre de seconde, YYY = décrire la machine (processeur, RAM, etc)}
+\paragraph{Experiments}  With TLA+, we checked that any safe step is actually (not surprisingly!) reliable.  On our network, one finds 58 368 safe steps, all being reliable. Checking all the paths took XXX seconds on YYY. \todo{XXX= nombre de seconde, YYY = décrire la machine (processeur, RAM, etc)}
 
 \subsection{Safe steps composition}
 
 Two states $S$ and $S'$ are said to be \emph{compatible} whenever  for any train $\tid{i}$, we have $\mathtt{dst}(S, \tid{i})  =  \mathtt{src}(S', \tid{i})$. In other words, trains must start in $S'$ at destinations of $S$. We define the composition only compatible states. Actually, since we are interested by safe steps compositions, we restrict our attention to their compositions.
   
-So, we suppose we are given safe step states $S_1, \ldots, S_k$ corresponding to $X_1, \ldots, X_k$. To compute their composition $S_1 \cdot S_2 \cdots S_k$, we proceed by induction on $k$. For $k = 1$, we return $S_1$. For $k>0$, let $S = S_1 \cdots S_{k-1}$. Let $S = \langle \guardG, \bufTrain, \bufSig, \langle \Gamma, \regulator, \switches, \signals\rangle \rangle$. We set $S \cdot S_k = \langle \guardG, \bufTrain, \bufSig, \langle \Gamma', \regulator', \switches, \signals\rangle \rangle$ as follows. First,  for any train $\tid{i} \in \trains$, let $P_0 = S.\Gamma[\tid{i}].P$ and $P_k = S_k.\Gamma[\tid{i}].P$, then set $\Gamma'[\tid{i}] = \Gamma[\tid{i}][ P \leftarrow P_0 \cdot P_k]$. 
+So, we suppose we are given safe step states $S_1, \ldots, S_k$ corresponding to $X_1, \ldots, X_k$. To compute their composition $S_1 \cdot S_2 \cdots S_k$, we proceed by induction on $k$. For $k = 1$, we return $S_1$. For $k>0$, let $S = S_1 \cdots S_{k-1}  = \langle \guardG, \bufTrain, \bufSig, \langle \Gamma, \langle E, W, T\rangle, \switches, \signals\rangle \rangle$. We set $S \cdot S_k = \langle \guardG, \bufTrain, \bufSig, \langle \Gamma', \langle E', W, T\rangle, \switches', \signals\rangle \rangle$ as follows. 
 
-Second, to define $E'$, we start $E' = E$ and we enrich it as follows.  For each 
+First,  for any train $\tid{i} \in \trains$, let $P_0 = S.\Gamma[\tid{i}].P$ and $P_k = S_k.\Gamma[\tid{i}].P$, then set $\Gamma'[\tid{i}] = \Gamma[\tid{i}][ P \leftarrow P_0 \cdot P_k]$. 
+
+Second, we proceed by updates of $E$ and $\sigma$. At first, we set $E' = E$ and $\sigma' = \sigma$. Now, suppose that $\sigma_k$ is the network configuration coming with $X_k$. Let $\sigma_0 = \{ \langle \sid{i}, d_0, d_k \rangle \mid \sigma(\sid{i}) = d_0 \neq d_1 = \sigma_k(\sid{i})\}$. For each such triple $\langle \sid{i}, d_0, d_k\rangle$, either there is a step $j < k$, a train $\tid{m}$ such that $\sid{i} \in \throughS(x_n, d, s, x_{n+1})$ with $\vec{x}$ being the route of train $\tid{m}$ at step $X_j$, in which case we keep the quadruple with the highest $j$. If there is no such quadruple, set $\sigma' := \sigma'[ \sid \leftarrow d_k]$.  Then, set $E' := E'[ ....]$.   
 
 \subsection{Simplification}
 
