@@ -246,7 +246,12 @@ Before delving further in the details, we introduce a real-world N-scale train m
 Switches and signals are controlled by two Raspberry-pi computers, which communicate so that signals are safe w.r.t. switches. A third computer, called the \emph{regulator}, manages the traffic. It can request switches updates, lock signals\footnote{The regulator can explicitly request a green signal to turn red, for traffic control. However, if the signal controller requires a signal to be red, for safety reasons, the regulator can not force it green.}, and route trains. To control trains, an Arduino board is used and simulates train drivers. The Arduino board communicates with the regulator to query states of signals, which would be seen by the driver in real life (see Fig. \ref{fig:computers}). 
 
 \paragraph{Contributions.}
-
+Our main contributions are:
+\begin{itemize}
+	\item Building a formal model of train network. Contrary to most existing works, our model makes very few assumptions: tracks are not directed, we do not distinguish between tracks and stations (platforms are regular tracks).
+	\item Writing the TLA+ specification of our model. This specification allows to model check routings.
+	\item Defining a composition operator, allowing to build up large routes from smaller part. We use TLA+ to model check resulting composed routes.
+\end{itemize}
 
 \paragraph{Related works.}
 
@@ -259,7 +264,7 @@ In Section~\ref{sec:model_configurations}, we introduce the main building blocks
 % ############################# %
 
 
-\subsection{Notations}
+\paragraph{Notations.}
 
 Given some set $S$ and some $x \not\in S$, we denote by $S_x = S \cup \{ x\}$.  An other notation: given some function $f: X \to Y$, $x \in X$ and $y \in Y$, we denote by $f[x \leftarrow y]$, the function:
  $$f[x \leftarrow y] \triangleq \left\{  \begin{array}{ll} x &\mapsto y\\
