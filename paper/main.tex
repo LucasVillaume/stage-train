@@ -497,12 +497,11 @@ Rule \ruleRef{Turn} triggers when a \turn{\sid{id}}{s} is encountered in the eve
 		\and
 		\head{\handlerOf{E}{\tid{id}}} = \handler{\bid{id}}{\regConcat{\turn{\sid{id}}{s}}{A^\prime}}
 	}{
-	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regulator}{\switches}{\signals}}
+	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
 	\\\reduces
-	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regulator[E \leftarrow E[ \tid{id} \leftarrow \langle \bid{id}, A'\rangle] ] }{\updateSwitch{\switches}{\sid{id}}{s}}{\signals}}
+	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\handlerOf{E}{\tid{id}}}}{T}{W}}{\updateSwitch{\switches}{\sid{id}}{s}}{\signals}}
 	}
 \end{mathpar}
-\todo{On ne peut pas résumer le régulateur à $R$, sinon $E$ n'est pas déclarée/n'apparait nulle part. Ou alors il faut préciser des notations comme $R.E$. On ne peut pas utiliser $R[E \leftarrow...]$ car $R$ n'est pas une fonction mais un tuple.}
 
 Of course, trains can conflict. For instance, if two trains have to use the same track, one has to go first and the other has to wait until the track is free\footnote{For the sake of clarity in rule presentation, we call the train that has to wait the \emph{waiting train} (with id \tid{w}), and the train that goes first the \emph{releasing train} (with id \tid{r}). We call the \emph{critical block} the block to be used by both trains (with id \bid{\text{crit}}), and the \emph{source block} the block the waiting train waits on (with id \bid{\text{src}}).}. To schedule trains, we use a token system. Each block is assigned a token, which is an integer value. Trains can \emph{wait} until a token reaches a given value, and \emph{increment} a token after leaving a block. We introduce two pairs of rules for incrementing and waiting. The first pair deals with the case where the train waiting arrives before the token has the correct value, and the second pair deals with the (easier) case where the train releases the track (increments the associated token) before the next train arrives (and therefore does not need to wait).
 
@@ -791,6 +790,9 @@ Our implementation, including both the TLA model and the Python composition is a
 The main limitation of our paper regards scaling our approach. While we tested extensively our implementation on small-scale systems (small network, few trains), we expect the number of state to explode on larger networks. We intend to perform larger tests in future work.
 
 \todo{On peut avoir des routages de n'importe où, donc on peut voir pour interfacer avec d'autres approches ?}
+
+\todo{Temporiser}
+\todo{Réordonnancer}
 
 \paragraph{Acknowledgements} The authors would like to thank Sébastien Schmitt from CNRS who built the train model mentioned in the introduction. That gave us a concrete reason to think about routes, scheduling and proofs. 
 
