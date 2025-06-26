@@ -751,12 +751,7 @@ To each safe step $X = (\vec{x}^{\tid{i}})_{\tid{i} \in \trains}$ coming with a 
 \item for each train $\tid{i}$, $\trainSeq[\tid{i}] = \trainTuple{\tid{i}}{x_1^{\tid{i}}}{\dirStop}{\su{d(\tid{i})}{\vec{x}^{\tid{i}}}}$,
 \item $R = \langle E,  \bid{i} \in \blocks \mapsto 0, W\rangle$, $E$ being defined just below,
 \item $W = \{ \tuple{x_1^\tid{i}, x_1^\tid{i}, 1, \tid{i}}  \mid \tid{i} \in \trains \}$, 
-\item $F = \blocks \times \directions \to \{\sigred, \siggreen \}$: 
-$$\langle \bid{i}, d\rangle \mapsto \left \{ \begin{array}{ll}
-\sigred & \text{ if } \bid{i} = x_1^\tid{j}  \text{ for some }j \in \trains\\%  \\
-\siggreen & \text{otherwise}
-\end{array}\right.
-$$
+\item $F = \blocks \times \directions \to \{\sigred, \siggreen \}$ defined for $\bid{i} \in \blocks, d \in \directions$ by: $F(\langle \bid{i}, d\rangle) = \sigred$ if  $\bid{i} = x_1^\tid{j}$ for some $j\in \trains$, otherwise $F(\langle \bid{i}, d\rangle)  = \siggreen$. 
 \end{itemize}
 
 Now, let us turn to the definition of $E$. For any train $\tid{i} \in \trains$, we define $A= (\emptyList)_{x \in \vec{x}^\tid{i} }$. Then, set  $E[\tid{i}] = \langle d(\tid{i}), A[x_1 \leftarrow \langle \incr{x_1^\tid{i}}] \rangle]$. 
@@ -771,7 +766,7 @@ So, we suppose we are given safe step states $S_1, \ldots, S_k$ corresponding to
 
 First,  for any train $\tid{i} \in \trains$, let $P_0 = S.\Gamma[\tid{i}].P$ and $P_k = S_k.\Gamma[\tid{i}].P$, then set $\Gamma'[\tid{i}] = \Gamma[\tid{i}][ P \leftarrow P_0 \cdot P_k]$. 
 
-Second, we proceed by updates of $E$ and $\sigma$. At first, we set $E' = E$ and $\sigma' = \sigma$. Now, suppose that $\sigma_k$ is the network configuration coming with $X_k$. Let $\sigma_0 = \{ \langle \sid{i}, d_0, d_k \rangle \mid \sigma(\sid{i}) = d_0 \neq d_1 = \sigma_k(\sid{i})\}$. For each such triple $\langle \sid{i}, d_0, d_k\rangle$, either there is a step $j < k$, a train $\tid{m}$ such that $\sid{i} \in \throughS(x_n, d, s, x_{n+1})$ with $\vec{x}$ being the route of train $\tid{m}$ at step $X_j$, in which case we keep the quadruple with the highest $j$. If there is no such quadruple, set $\sigma' := \sigma'[ \sid \leftarrow d_k]$.  Then, set $E' := E'[ ....]$.   
+Second, we proceed by updates of $E$ and $\sigma$. At first, we set $E' = E$ and $\sigma' = \sigma$. Now, suppose that $\sigma_k$ is the network configuration coming with $X_k$. Let $\sigma_0 = \{ \sid{i} \mid \sigma(\sid{i}) \neq  \sigma_k(\sid{i})\}$. Given  $\sid{i} \in \turnouts$, suppose there is a step $j < k$, a train $\tid{m}$ such that $\sid{i} \in \throughS(x_n, d, \sigma_j, x_{n+1})$ with $\vec{x}$ being the route of train $\tid{m}$ at step $X_j$ and $\sigma_j$ the network configuration associated to $j$. Then, we keep the triple  $\langle j, \tid{m}, n\rangle$ with the highest value $j$. If there is no such triple, set $\sigma' := \sigma'[ \sid{i} \leftarrow \sigma_k(\sid{i})]$.  Otherwise, set $E' := E'[ ....]$.   
 
 \subsection{Simplification}
 
