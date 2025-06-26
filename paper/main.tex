@@ -160,7 +160,7 @@
 % If the paper title is too long for the running head, you can set
 % an abbreviated paper title here
 %
-\author{Lucas Villaume \and Guillaume Bonfante \and Martin Vassor  }
+\author{Lucas Villaume \and Guillaume Bonfante \and Martin Vassor}
 %
 \authorrunning{L. Villaume et al.}
 % First names are abbreviated in the running head.
@@ -176,11 +176,11 @@
 	% Problème
 	In this paper, our goal is to formally verify the correctness of train routes. More precisely, we verify the absence of deadlocks, the termination, and the absence of crashes.
 	% Approche
-	To address this question, we model train systems in TLA+. Our model includes trains, as well as switches, detection sensors and traffic lights. Both switches and traffic lights are controlled by a regulator upon train events. We provide trains and the regulator lists of event, which characterise the train scheduling, which is then checked using TLA+'s model checker.
+	To address this question, we model train systems on paper and in TLA+. Our model includes trains, as well as switches, detection sensors and traffic lights. Both switches and traffic lights are controlled by a regulator upon train events. We provide trains and the regulator with orders, characterising the schedule, which is then checked using TLA+'s model checker.
 	% Resultats
-	Our contributions are threefold: first, we provide a TLA+ specification which can be adapted to various train networks and schedules; second, we report tests we ran on the model on a non-trivial network, composed of 3 trains, 8 blocks and 5 switches; finally we show how to sequentially compose two schedules and to verify the result.
+	Our contributions are threefold: first, we provide formal model of railroad networks and schedules; second, we implement this model as a TLA+ specification and we report tests on checking schedules on a non-trivial network, composed of 3 trains, 8 blocks and 5 switches; finally we show how to sequentially compose schedules, which we check against our TLA+ specification.
 
-\keywords{First keyword  \and Second keyword \and Another keyword.}
+\keywords{Train routing \and Model checking \and Formal methods \and TLA+}
 \end{abstract}
 
 
