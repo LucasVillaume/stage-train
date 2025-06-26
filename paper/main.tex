@@ -749,10 +749,11 @@ Our implementation, including both the TLA model and the Python composition is a
 \paragraph{Limitations and future works.}
 The main limitation of our paper regards scaling our approach. While we tested extensively our implementation on small-scale systems (small network, few trains), we expect the number of state to explode on larger networks. We intend to perform larger tests in future work.
 
-\todo{On peut avoir des routages de n'importe où, donc on peut voir pour interfacer avec d'autres approches ?}
+Currently, our model does not include timing aspects. While we can characterise correctness properties, we lack the ability to specify \emph{quality of service} constraints. We intend to add time to our model, in order to be able to specify how fast trains ought to reach their destinations.
 
-\todo{Temporiser}
-\todo{Réordonnancer}
+Another aspect we did not explore is reordering trains. So far, train schedules are decided statically, which may lead to unwanted situations: e.g. a delayed train supposed to use a block first prevents other trains to use that block during the delay. Dynamic reordering of trains, while difficult to implement, could improve this situation. To a lesser extend, we could extend our model with alternatives: having a static schedule that allow multiple possible ordering, and deciding which is taken at runtime.
+
+\todo{On peut avoir des routages de n'importe où, donc on peut voir pour interfacer avec d'autres approches ?}
 
 \paragraph{Acknowledgements} The authors would like to thank Sébastien Schmitt from CNRS who built the train model mentioned in the introduction. That gave us a concrete reason to think about routes, scheduling and proofs. 
 
