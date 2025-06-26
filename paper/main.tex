@@ -154,7 +154,7 @@
 
 \begin{document}
 %
-\title{A formal approach but practical approach in train regulation}
+\title{Formal verification of train route planning}
 %
 %\titlerunning{Abbreviated paper title}
 % If the paper title is too long for the running head, you can set
@@ -239,6 +239,11 @@ Our second research question is the related to the following need. Suppose we wa
 For our last research problem, we show that TLA+ may be used to refine a regulation policy. In our first attempts, we had typically some deadlocks issues. We have been able to detect them via TLA+ and then to provide some correction. 
 
 \paragraph{Motivation.}
+
+Over the last decades, we observe a general and increasing interest of formal methods for verification and validation of safety-critical systems, including railway networks.
+In \cite{Ferrari_Formal_2022}, Ferrari et al. present a survey of use cases of formal methods in railways development. They identify various phases of development phases where formal methods have been used, ranging from planning to maintenance via implementation, testing, etc., as well as most frequently studied subsystems (interlocking systems being the most formally verified component). In this paper, focus specifically on train \emph{routing}, i.e. finding correct train schedules (for some correctness criteria). This topic is related to that of interlocking (we prevent trains from using simultaneously some elements), but from the viewpoint of trains and their routes, while the viewpoint of interlocking is mostly trackworks.
+
+In~\cite{lusby_railway_2011}, Lusby et al.\ survey works on train routing. In this context, we can distinguish two problems: automated routing and routing verification. The former deals with automatically finding train routes satisfying some properties. Lusby et al.\ mention that solving this problem, in highly interconnected network, is not feasible in practice. In this paper, we address the second problem: verifying whether a train routing satisfies correctness criteria (without considering how it is obtained).
 
 \paragraph{Related works.}
 
@@ -755,7 +760,9 @@ Another aspect we did not explore is reordering trains. So far, train schedules 
 
 \todo{On peut avoir des routages de n'importe où, donc on peut voir pour interfacer avec d'autres approches ?}
 
-\paragraph{Acknowledgements} The authors would like to thank Sébastien Schmitt from CNRS who built the train model mentioned in the introduction. That gave us a concrete reason to think about routes, scheduling and proofs. 
+\paragraph{Acknowledgements} The authors would like to thank Sébastien Schmitt from CNRS who built the train model mentioned in the introduction. That gave us a concrete reason to think about routes, scheduling and proofs.
+
+Experiments presented in this paper were carried out using the Grid'5000 testbed, supported by a scientific interest group hosted by Inria and including CNRS, RENATER and several Universities as well as other organizations (see \url{https://www.grid5000.fr}).
 
 \bibliographystyle{splncs04}
 \bibliography{refs}
