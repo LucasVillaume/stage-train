@@ -463,7 +463,7 @@ To execute a \wait{\bid{\text{crit}}}{n} order, the regulator stores the train i
 		\and
 		\head{\handlerOf{E}{\tid{w}}} = \handler{\bid{\text{src}}}{\regConcat{\wait{\bid{\text{crit}}}{n}}{A^\prime}}
 		\\
-		\tokenOf{\bid{\text{crit}}} \neq n
+		\tokenOf{\bid{\text{crit}}} < n
 	}{
 		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
 		\\\reduces
@@ -471,7 +471,7 @@ To execute a \wait{\bid{\text{crit}}}{n} order, the regulator stores the train i
 	}
 \end{mathpar}
 
-Then, when the releasing train frees the critical block, three effects happen simultaneously: first, the token of the critical block is incremented; second the train waiting for the incremented token is released (we remove the correspond tuple from the waiting set)\footnote{By construction, nothing prevents multiple trains to be waiting for the same value, thus resulting in a faulty system. However, our model checker ensures programs (including event handlers) are correct, thus detecting such case.}; finally signals are updated to let the waiting train go until its next waiting point. The predicate \nextWait{\cdot} looks-up the event handlers of a train (\tid{w} here) to find the next block (with id \bid{\text{stop}}) where the train is expected to wait.
+Then, when the releasing train frees the critical block, three effects happen simultaneously: first, the token of the critical block is incremented; second the train waiting for the incremented token is released (we remove the correspond tuple from the waiting set)\footnote{By construction, nothing prevents multiple trains to be waiting for the same value, thus resulting in a faulty system. However, our model checker ensures programs (including event handlers) are correct, thus detecting such case.}; finally signals are updated to let the waiting train go until its next waiting point\footnote{We simply need to set a new red light at the next waiting point, the current red light will be turned green by signal rules, see \ruleRef{SignalSfty}.}. The predicate \nextWait{\cdot} looks-up the event handlers of a train (\tid{w} here) to find the next block (with id \bid{\text{stop}}) where the train is expected to wait.
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{IncrAfter}] {
@@ -488,7 +488,7 @@ Then, when the releasing train frees the critical block, three effects happen si
 		{\begin{aligned}[t]
 			\langle&\guardR, 
 			\bufTrain,
-			\push{\bufSig}{\tuple{\bid{\text{stop}}, \sigred}, \tuple{\bid{\text{src}}, \siggreen}}, \\
+			\push{\bufSig}{\tuple{\bid{\text{stop}}, \sigred}}, \\
 			&\langle\trainSeq, \regTuple{\nextAct{\handlerOf{E}{\tid{r}}}}{\incrToken{T}{\bid{\text{crit}}}}{W\setminus\{w\}}, \switches, \signals\rangle\rangle
 		\end{aligned}}
 	}
@@ -518,13 +518,13 @@ Then, when the waiting train arrives, instead of stopping the train, the regulat
 		\and
 		\actionsOf{\head{\handlerOf{E}{\tid{w}}}} = \regConcat{\wait{\bid{\text{crit}}}{n}}{A^\prime}
 		\\
-		\tokenOf{\bid{\text{crit}}} = n
+		\tokenOf{\bid{\text{crit}}} \geq n
 		\and
 		\nextWait{\handlerOf{E}{\tid{w}}} = \bid{\text{stop}}
 	}{
 		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
 		\\\reduces
-		\redTuple{\guardR}{\bufTrain}{\push{\bufSig}{\tuple{\bid{\text{stop}}, \sigred}, \tuple{\bid{\text{src}}, \siggreen}}}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\handlerOf{E}{\tid{w}}}}{T}{W}}{\switches}{\signals}}
+		\redTuple{\guardR}{\bufTrain}{\push{\bufSig}{\tuple{\bid{\text{stop}}, \sigred}}}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\handlerOf{E}{\tid{w}}}}{T}{W}}{\switches}{\signals}}
 	}
 \end{mathpar}
 
@@ -540,7 +540,7 @@ We finally introduce rule \ruleRef{Auth}, which essentially allows on train to w
 	}{
 			\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
 			\\\reduces
-			\redTuple{\guardR}{\bufTrain}{\push{\bufSig}{\tuple{\bid{\text{stop}}, \sigred}, \tuple{\bid{\text{src}}, \siggreen}}}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\handlerOf{E}{\tid{id}}}}{T}{W}}{\switches}{\signals}}
+			\redTuple{\guardR}{\bufTrain}{\push{\bufSig}{\tuple{\bid{\text{stop}}, \sigred}}}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\handlerOf{E}{\tid{id}}}}{T}{W}}{\switches}{\signals}}
 	}
 \end{mathpar}
 Notice that here, contrary to incr/wait rules, we consider the tail of the event handlers of the train, since it is already waiting and we want the next waiting location.
