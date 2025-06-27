@@ -275,7 +275,6 @@ The network is then described as a triple $(\blocks, \turnouts, \sucblock)$ wher
 
 
 \paragraph{Signals.}
-%\todo{Est-ce qu'on met les signaux dans les agents ?}
 At each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $\signals: \blocks \times \directions \to \{ \sigred, \siggreen\}$. The signal status is determined by the network configuration and explicit locking requests. Given some signal status $\signals$, a block $\bid{i}$ and a direction $\dirFmt{d}$, $\signalF{\bid{i}}{d} = \sigred$ means the signal guarding the exit of block $\bid{i}$ in direction $\dirFmt{d}$ is red, and we expect trains not leaving that block going in this direction\footnote{Our semantics, presented in Section~\ref{sec:model_semantics}, ensure such behaviour.}. We note $\setSignalsTo{\bid{\text{tgt}}}{c}$ the signal state $\signals$ except signals of block \bid{\text{tgt}}, which are turned to color $c$: 
 $$(\setSignalsTo{\bid{\text{tgt}}}{c})(\bid{\text{from}}, \dirFmt{d}) = \begin{cases}
 	c & \text{if }\bid{\text{from}} = \bid{\text{tgt}}\\
@@ -342,8 +341,6 @@ We present now the dynamics of our model, that is the rules that govern how our 
 We enrich our model with three elements: a guard and two buffers. They ensure agents' autonomy. %, which goal is to schedule agents (for instance, it ensures the regulator acts atomically); and a communication buffer, which stores pending events until the regulator treats them. 
 We present those two new elements in the first subsection.
 The dynamics is described by means of a reduction relation, characterising the successive states of our model. We define this reduction relation using inference rules in the second subsection.
-
-%\todo{Expliquer le temps discret et le mix grand pas/petit pas.}
 
 \subsection{Scheduling and communications}
 
@@ -646,7 +643,7 @@ Init ==
         ...
 \end{minted}
 
-The representation of the network topology is also represented within TLA+. It takes the shape of a function that is precomputed via a python script (see XXX%\todo{Référence au schéma}). 
+The representation of the network topology is also represented within TLA+. It takes the shape of a function that is precomputed via a python script (see \texttt{to\_tla.py} in Fig.~\ref{fig:toolchain} on page~\pageref{fig:toolchain}).
 
 \subsection{The implementation of the dynamics}
 
@@ -679,7 +676,7 @@ The system is then represented by a formula:
 \begin{verbatim}
     Spec == Init /\  [][Next]_variables
 \end{verbatim}%Revoir la syntaxe au cas où / remplacer par le jolie tla2latex
-where variables is the tuple of all variables. The intended meaning is that the initial configuration is specified in \mintinline{C}{Init} and steps follow the \mintinline{C}{Next} formula.  Actually, presently, in our formal semantics, nothing forces a rule to be applied. As a consequence, an ongoing train may never reach its next block. Thanks to TLA+, we can ensure that a rule will eventually be applied (if it can be). Those are known as weak fairness conditions. Again, we specify it as follows. %\todo{WF condition?}
+where variables is the tuple of all variables. The intended meaning is that the initial configuration is specified in \mintinline{C}{Init} and steps follow the \mintinline{C}{Next} formula.  Actually, presently, in our formal semantics, nothing forces a rule to be applied. As a consequence, an ongoing train may never reach its next block. Thanks to TLA+, we can ensure that a rule will eventually be applied (if it can be). Those are known as weak fairness conditions. Again, we specify it as follows. \todo{WF condition?}
 
 
 \section{Composition}
@@ -711,7 +708,7 @@ To each safe step $X = (\vec{x}^{\tid{i}})_{\tid{i} \in \trains}$ coming with a 
 
 Now, let us turn to the definition of $E$. For any train $\tid{i} \in \trains$, we define $A= (\emptyList)_{x \in \vec{x}^\tid{i} }$. Then, set  $E[\tid{i}] = \langle d(\tid{i}), A[x_1 \leftarrow \langle \incr{x_1^\tid{i}}] \rangle]$. 
 
-\paragraph{Experiments}  With TLA+, we checked that any safe step is actually (not surprisingly!) reliable.  On our network, one finds 58 368 safe steps, all being reliable. Checking all the paths took XXX seconds on YYY. %\todo{XXX= nombre de seconde, YYY = décrire la machine (processeur, RAM, etc)}
+\paragraph{Experiments}  With TLA+, we checked that any safe step is actually (not surprisingly!) reliable.  On our network, one finds 58 368 safe steps, all being reliable. Checking all the paths took approximately 30 hours on an Linux desktop machine with an Intel i5-4590 (4-cores at 3.7GHz) and 8GB of memory.
 
 \subsection{Safe steps composition}
 
@@ -729,20 +726,57 @@ Consider now a block within a route of $X_k$: $x_{n-1}^\tid{i}, x_n^\tid{i}, x_{
 
 \subsection{Simplification}
 
-\subsection{Experiments} 
+\subsection{Experiments}
+
+\begin{figure}
+	\begin{tikzpicture}
+		\tikzstyle{programme} = [
+		draw=black,
+		]
+		\tikzstyle{fichier} = [
+		rounded corners,
+		draw=blue,
+		]
+		\tikzstyle{generated} = [
+		fill=blue!10,
+		]
+		\node[programme] (main) {main.py};
+		\node[fichier, below=of main] (json) {safe\_steps.json};
+		\node[programme, right = of main] (compose) {compose.py};
+		\node[programme, right=of compose] (to_tla) {to\_tla.py};
+		\node[fichier, below=of to_tla, generated] (compo) {route.tla};
+		\node[programme, right=of compo] (tlc) {tlc};
+		\node[fichier, above=of tlc] (model){model.tla};	
+		\node[fichier, above right=of tlc, generated] (out) {out.log};
+		\node[fichier, right=of tlc, generated] (err) {errors.log};
+		
+		\draw[stealth-] (json) to node[sloped, anchor=south] {uses} (main);
+		\draw[-stealth] (main) to node[sloped, anchor=south] {calls} (compose);
+		\draw[-stealth] (main) to[bend right] node[sloped, anchor=south] {calls} (to_tla);
+		\draw[-stealth] (to_tla) to node[anchor=west] {creates} (compo);
+		\draw[-stealth] (tlc) to node[sloped, anchor=south] {reads} (compo);
+		\draw[-stealth] (tlc) to node[sloped, anchor=south] {reads} (model);
+		\draw[-stealth] (tlc) to node[sloped, anchor=north] {creates} (err);
+		\draw[-stealth] (tlc) to node[sloped, anchor=south] {creates} (out);
+	\end{tikzpicture}
+	\caption{Overview of the toolchain. Black rectangles are programs. Blue rounded rectangles are files, included generated files filled in blue. The main script uses a json file with safe steps (c.f. Section~\ref{sec:composition}) to produce composed routes (calling the script \texttt{compose.py}). Routes are then converted in TLA with \texttt{to\_tla.py}, producing a file \texttt{route.tla}. \texttt{tlc}, a TLA model checker, then uses the route and the model to check for correctness, producing log files.}
+	\label{fig:toolchain}
+\end{figure}
+
+
 Parler des expériences
 
 \section{Conclusion}
 \label{sec:conclusion}
 
 \paragraph{Contributions.}
-This paper introduces three main contributions. First we presented a formal model for railway network. Our model simplifies multiple elements from real life networks, but nonetheless keeps non-trivial elements, such as trackworks and signals. Contrary to existing models, ours makes very few assumptions about the network: tracks are two ways and %\todo{...}
+This paper introduces three main contributions. First we presented a formal model for railway network. Our model simplifies multiple elements from real life networks, but nonetheless keeps non-trivial elements, such as trackworks and signals.
 
 Our second contribution is the implementation of our model in the TLA+ model checker. Our implementation allows to verify that routing schedules are free from deadlocks and crashes, and reaches correct destinations. We tested our implementation on various schedules on a small-scale network, where the computation time was found to be negligible. Our implementation takes approximately 500 lines of TLA+.
 
 Our third contribution is a composition operator. This operator allows to incrementally build routing schedules, which can then be tested using our TLA+ implementation. Our composition distinguishes safe steps: steps where no two trains use the same track. Our composition can append safe steps to arbitrary schedules, creating new schedules. We implemented our composition operator in Python and we tested it by model checking all schedules composed of two and three safe steps in our small-scale network. The computation time was found to be affordable for companies: checking all two-steps schedules took less than a day on a cluster, using 8 nodes of 18 cores.
 
-Our implementation, including both the TLA model and the Python composition is available on...%\todo{Donner le lien vers github ? }.
+Our implementation, including both the TLA model and the Python composition is available on...\todo{Donner le lien vers github ? }.
 
 \paragraph{Limitations and future works.}
 The main limitation of our paper regards scaling our approach. While we tested extensively our implementation on small-scale systems (small network, few trains), we expect the number of state to explode on larger networks. We intend to perform larger tests in future work.
@@ -750,8 +784,6 @@ The main limitation of our paper regards scaling our approach. While we tested e
 Currently, our model does not include timing aspects. While we can characterise correctness properties, we lack the ability to specify \emph{quality of service} constraints. We intend to add time to our model, in order to be able to specify how fast trains ought to reach their destinations.
 
 Another aspect we did not explore is reordering trains. So far, train schedules are decided statically, which may lead to unwanted situations: e.g. a delayed train supposed to use a block first prevents other trains to use that block during the delay. Dynamic reordering of trains, while difficult to implement, could improve this situation. To a lesser extend, we could extend our model with alternatives: having a static schedule that allow multiple possible ordering, and deciding which is taken at runtime.
-
-%\todo{On peut avoir des routages de n'importe où, donc on peut voir pour interfacer avec d'autres approches ?}
 
 \paragraph{Acknowledgements} The authors would like to thank Sébastien Schmitt from CNRS who built the train model mentioned in the introduction. That gave us a concrete reason to think about routes, scheduling and proofs.
 
