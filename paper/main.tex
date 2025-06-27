@@ -723,9 +723,11 @@ Consider some turnout $\sid{i}$ such that $\sid{i} \in \throughS(x_n, d, \sigma_
 Consider now a block within a route of $X_k$: $x_{n-1}^\tid{i}, x_n^\tid{i}, x_{n+1}^\tid{i}$. In case there is a route $y^\tid{m}$ within  $X_j$ such that\footnote{Again, we take the one with maximal value $j$ if there is a choice.} $y_{p-1}^\tid{m}, y_p^\tid{m}, y_{p+1}^\tid{m}$ with $x_n = y_p$ and $\tid{i} \neq \tid{m}$, we need to set a guard on the common resource $x_n = y_p$ that will be crossed by train $\tid{m}$ before train $\tid{i}$ will do it. We say that there is a conflict on $x_n$. We continue the process on $y_{p-1}^\tid{m}, y_p^\tid{m}, y_{p+1}^\tid{m}$, finding some subsequent conflicts. We do so up to the initial position. Call $n$ the number of conflicts met all along that process. Now, call $p$ the position within $E'$ corresponding to the position $x_{n-1}^\tid{i}$ and $q$ the position corresponding to $y_{p+1}^\tid{m}$. We append in $E'$ to $p$ the order $\wait{x_n}{n}$ and to $q$ the order $\incr{x_n}$.
 
 
-\paragraph{Optimisations. } We apply some optimisations on the orders. For instance, we remove orders that do not alternate: $\su{d}{\vec{b}} \cdot \su{d}{\vec{b}} \cdot P$ by $\su{d}{\vec{b} \cdot \vec{b'}} \cdot P$. In the same way,  we remove empty lists, singleton lists: if $Len(\vec{b}) \leq 1$, we replace $\su{d}{\vec{b}} \cdot P$ by $P$. We have few more heuristics that we do not show here due to lack of space. 
+\paragraph{Optimisations.} We apply some optimisations on the orders. For instance, we remove orders that do not alternate: $\su{d}{\vec{b}} \cdot \su{d}{\vec{b}} \cdot P$ by $\su{d}{\vec{b} \cdot \vec{b'}} \cdot P$. In the same way,  we remove empty lists, singleton lists: if $Len(\vec{b}) \leq 1$, we replace $\su{d}{\vec{b}} \cdot P$ by $P$. We have few more heuristics that we do not show here due to lack of space. 
 
-\paragraph{Experiments}  Parler des expériences
+\paragraph{Experiments.}
+We implemented a set of Python scripts which perform and model check the composition. The general architecture of our scripts is shown in Figure~\ref{fig:toolchain}. We ran this composition toolchain\footnote{Experiments were run on an earlier version of composition. Slight modifications have been introduced in the presentation above to ease the presentation.} on a cluster. Experiments were run on 8 nodes equipped with Intel Xeon Gold 5220 processors, each having 18 cores at 2.2GHz. It took less than 24h to verify all compositions of two safe steps.
+
 
 \begin{figure}
 	\begin{tikzpicture}
@@ -772,7 +774,7 @@ Our second contribution is the implementation of our model in the TLA+ model che
 
 Our third contribution is a composition operator. This operator allows to incrementally build routing schedules, which can then be tested using our TLA+ implementation. Our composition distinguishes safe steps: steps where no two trains use the same track. Our composition can append safe steps to arbitrary schedules, creating new schedules. We implemented our composition operator in Python and we tested it by model checking all schedules composed of two and three safe steps in our small-scale network. The computation time was found to be affordable for companies: checking all two-steps schedules took less than an hour on a cluster, using 8 nodes of 18 cores.
 
-Our implementation, including both the TLA model and the Python composition is available on...\todo{Donner le lien vers github ? }.
+Our implementation, including both the TLA model and the Python composition is available on \url{https://github.com/LucasVillaume/stage-train}.\todo{Remplacer Zenodo si on a le temps}.
 
 \paragraph{Limitations and future works.}
 The main limitation of our paper regards scaling our approach. While we tested extensively our implementation on small-scale systems (small network, few trains), we expect the number of state to explode on larger networks. We intend to perform larger tests in future work.
