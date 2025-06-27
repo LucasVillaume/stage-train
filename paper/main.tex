@@ -689,10 +689,11 @@ Next ==
         
 The system is then represented by a formula:
 \begin{verbatim}
-    Spec == Init /\  [][Next]_variables
+    Spec == Init /\ [][Next]_variables /\ WF_variables(Next)
 \end{verbatim}%Revoir la syntaxe au cas où / remplacer par le jolie tla2latex
-where variables is the tuple of all variables. The intended meaning is that the initial configuration is specified in \mintinline{C}{Init} and steps follow the \mintinline{C}{Next} formula.  Actually, presently, in our formal semantics, nothing forces a rule to be applied. As a consequence, an ongoing train may never reach its next block. Thanks to TLA+, we can ensure that a rule will eventually be applied (if it can be). Those are known as weak fairness conditions. Again, we specify it as follows. %\todo{WF condition?}
+where variables is the tuple of all variables. The intended meaning is that the initial configuration is specified in \mintinline{C}{Init} and steps follow the \mintinline{C}{Next} formula.  Without the weak fairness condition \mintinline{C}{WF_variables(Next)},  nothing forces a rule to be applied. As a consequence, an ongoing train could never reach its next block. The weak fairness condition prevents this incorrect simulation. 
 
+  
 
 \section{Composition}
 \label{sec:composition}
@@ -732,17 +733,16 @@ Two states $S$ and $S'$ are said to be \emph{compatible} whenever  for any train
 So, we suppose we are given safe step states $S_1, \ldots, S_k$ corresponding to $X_1, \ldots, X_k$, network configuration $\sigma_1, \ldots, \sigma_k$ and direction maps $d_1, \ldots, d_k$. To compute their composition $S_1 \cdot S_2 \cdots S_k$, we proceed by induction on $k$. For $k = 1$, we return $S_1$. For $k>0$, let $S = S_1 \cdots S_{k-1}  = \langle \guardG, \bufTrain, \bufSig, \langle \Gamma, \langle E, W, T\rangle, \switches, \signals\rangle \rangle$. We set $S \cdot S_k = \langle \guardG, \bufTrain, \bufSig, \langle \Gamma', \langle E', W, T\rangle, \switches', \signals\rangle \rangle$ as follows. 
 
 First,  for any train $\tid{i} \in \trains$, we append the orders of the train in $S_k$ to the corresponding ones in $S$. %let $P_0 = S.\Gamma[\tid{i}].P$ and $P_k = S_k.\Gamma[\tid{i}].P$, then set $\Gamma'[\tid{i}] = \Gamma[\tid{i}][ P \leftarrow P_0 \cdot P_k]$. 
-Second, we proceed by updates of $E$ and $\sigma$. At first, we set $E' = E$ and $\sigma' = \sigma$. We begin to append to $E'$, for any train, all the handlers within $S_k$.
+Second, we proceed by updates of $E$ and $\sigma$. At first, we set $E' = E$ and $\sigma' = \sigma$. We begin to append to $E'$, for any train, all the handlers within $S_k$. To each train $\tid{i}$, we had for its first step (within $X_k$, seen within the composition): an $\auth$ order in $E'[\tid]$. 
 
 Consider some turnout $\sid{i}$ such that $\sid{i} \in \throughS(x_n, d, \sigma_k, x_{n+1})$ with $\vec{x}$ the route corresponding to train $\tid{i}$ in $X_k$. In other words, the turnout is crossed by train $\tid{i}$ at step $n$ of $\vec{x}$ within $X_k$. Suppose there is a step $j < k$, a train $\tid{m}$ such that $\sid{i} \in \throughS(y_m, d', \sigma_j, y_{m+1})$ with $\vec{y}$ being the route of train $\tid{m}$ at step $X_j$. If $\sigma_j(\sid{i}) = \sigma_k(\sid{i})$, we skip this turnout. Otherwise, if $\tid{i} = \tid{m}$, call $p$ the position within $E'$ corresponding to block $x_{n+1}$, we append in $E'$ at that position the order $\auth$. Otherwise, call $p$ the position in the map $E'$ corresponding to the atoms related to the block $y_{m+1}$. We append to that position the order $\turn{\sid{i}}{d_k(\sid{i})})$. In other words, we append to the last step involving the turnout the order for the new position. 
 
 Consider now a block within a route of $X_k$: $x_{n-1}^\tid{i}, x_n^\tid{i}, x_{n+1}^\tid{i}$. In case there is a route $y^\tid{m}$ within  $X_j$ such that\footnote{Again, we take the one with maximal value $j$ if there is a choice.} $y_{p-1}^\tid{m}, y_p^\tid{m}, y_{p+1}^\tid{m}$ with $x_n = y_p$ and $\tid{i} \neq \tid{m}$, we need to set a guard on the common resource $x_n = y_p$ that will be crossed by train $\tid{m}$ before train $\tid{i}$ will do it. We say that there is a conflict on $x_n$. We continue the process on $y_{p-1}^\tid{m}, y_p^\tid{m}, y_{p+1}^\tid{m}$, finding some subsequent conflicts. We do so up to the initial position. Call $n$ the number of conflicts met all along that process. Now, call $p$ the position within $E'$ corresponding to the position $x_{n-1}^\tid{i}$ and $q$ the position corresponding to $y_{p+1}^\tid{m}$. We append in $E'$ to $p$ the order $\wait{x_n}{n}$ and to $q$ the order $\incr{x_n}$.
 
 
-\subsection{Simplification}
+\paragraph{Optimisations. } We apply some optimisations on the orders. For instance, we remove orders that do not alternate: $\su{d}{\vec{b}} \cdot \su{d}{\vec{b}} \cdot P$ by $\su{d}{\vec{b} \cdot \vec{b'}} \cdot P$. In the same way,  we remove empty lists, singleton lists: if $Len(\vec{b}) \leq 1$, we replace $\su{d}{\vec{b}} \cdot P$ by $P$. We have few more heuristics that we do not show here due to lack of space. 
 
-\subsection{Experiments} 
-Parler des expériences
+\paragraph{Experiments}  Parler des expériences
 
 \section{Conclusion}
 \label{sec:conclusion}
