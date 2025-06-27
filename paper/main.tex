@@ -323,9 +323,9 @@ The regulator is in charge of the execution of the routing. It is characterised 
 \paragraph{Regulator's event handlers.}
 
 Train events are handled by the regulator. Upon such events, the regulator can take actions such as turning a switch, allowing or blocking a train, etc. The regulator is equipped with a routing program. This routing program contains, for each train, a list of handlers. A handler is a tuple $\tuple{\bid{i}, A}$, where $\bid{i}$ is the position the train occupies when triggering the event, and $A$ is the list of orders associated with that event. For a given train, the first handler of the list is the set of actions that have to be executed on the train's first event, second handler for the second event, and so on.
-Given a routing program $E$, we note $\handlerOf{E}{\tid{i}}$ the list of handlers of train $\tid{i}$, $\head{\handlerOf{E}{\tid{i}}} = \handlerOf{E}{\tid{i}}[1]$ the first handler of the list. Given a handler $h = \tuple{\bid{i}, a \cdot A}$, let  $\actionsOf{h} \triangleq a$, $\blockOf{h} \triangleq \bid{i}$ and $\nextAct{h} \triangleq \tuple{\bid{i}, A}$.  %(resp. \blockOf{h}) the list of action (resp. the block id) of $h$.
+Given a routing program $E$, we note $\handlerOf{E}{\tid{i}}$ the list of handlers of train $\tid{i}$, $\head{\handlerOf{E}{\tid{i}}} = \handlerOf{E}{\tid{i}}[1]$ the first handler of the list. Given a handler $h = \tuple{\bid{i}, A}$, let  $\actionsOf{h} \triangleq A$, $\blockOf{h} \triangleq \bid{i}$. When $h = \tuple{\bid{i}, a \cdot A}$ is the head of a sequence $H = h \cdot H'$,  $\nextAct{H} \triangleq \tuple{\bid{i}, A} \cdot H'$. %}{} \triangleq H'$ .  %(resp. \blockOf{h}) the list of action (resp. the block id) of $h$.
 % We note $\nextAct{\handlerOf{E}{\tid{i}}}$ the routing program $E$ where the first event handler of train $\tid{i}$ is replaced with $\handler{\blockOf{\head{\handlerOf{E}{\tid{i}}}}}{\buftail{\actionsOf{\head{\handlerOf{E}{\tid{i}}}}}}$, i.e. where the first action of the first handler of train \tid{i} is removed.
- We note $\popHandlerHead{E}{\tid{i}}$ the routing program $E$ where the first event handler of train \tid{i} is removed, i.e. where $\handlerOf{E}{\tid{i}}$ is replaced by $\buftail{\handlerOf{E}{\tid{i}}}$.
+% We note $\popHandlerHead{E}{\tid{i}}$ the routing program $E$ where the first event handler of train \tid{i} is removed, i.e. where $\handlerOf{E}{\tid{i}}$ is replaced by $\buftail{\handlerOf{E}{\tid{i}}}$.
 
 Actions contained in a handler are of the four following kinds:
 \begin{description}
@@ -457,14 +457,14 @@ When the regulator reacts to a train event, it executes atomically all rules ass
 	}
 \end{mathpar}
 
-Then, the regulator lookup the first event on the buffer, and executes all the rules in the event handler associated with this event. All actions are treated in order, and when the list of remaining actions is empty, the handling terminates and the event is removed of the buffer. We introduce 6 reduction rules for the 4 possible kinds of orders (\incr{\bid{i}} and \wait{\bid{i}}{i} have two rules).
+Then, the regulator lookup the first event on the buffer, and executes all the rules in the event handler associated with this event. All actions are treated in order, and when the list of remaining actions is empty, the handling terminates and the event is removed of the buffer. We introduce 6 reduction rules for the 4 possible kinds of orders (\incr{\bid{i}} and \wait{\bid{i}}{n} have two rules).
 
 Rule \ruleRef{Turn} triggers when a \turn{\sid{i}}{s} is encountered in the event handler. It updates the state of the targeted switch.
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{Turn}]{
 		\bufhead{\bufTrain} = \tid{i}
 		\and
-		\head{\handlerOf{E}{\tid{i}}} = \handler{\bid{i}}{\regConcat{\turn{\sid{i}}{s}}{A^\prime}}
+		\actionsOf{\head{\handlerOf{E}{\tid{i}}}} = \regConcat{\turn{\sid{i}}{s}}{A^\prime}
 	}{
 	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}}{\switches}{\signals}}
 	\\\reduces
