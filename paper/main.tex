@@ -6,7 +6,7 @@
 \usepackage{tikz}
 \usepackage{wrapfig}
 \usepackage{package/mathpartir}
-\usepackage{todonotes}
+\usepackage[disable]{todonotes}
 \usepackage{xspace}
 
 \usepackage{package/regles}
@@ -192,9 +192,9 @@
 \paragraph{Motivation.}
 
 Over the last decades, we observe a general and increasing interest of formal methods for verification and validation of safety-critical systems, including railway networks.
-In \cite{Ferrari_Formal_2022}, Ferrari et al. present a survey of use cases of formal methods in railways development. They identify various phases of development phases where formal methods have been used, ranging from planning to maintenance via implementation, testing, etc., as well as most frequently studied subsystems (interlocking systems being the most formally verified component). In this paper, focus specifically on train \emph{routing}, i.e. finding correct train schedules (for some correctness criteria). This topic is related to that of interlocking (we prevent trains from using simultaneously some elements), but from the viewpoint of trains and their routes, while the viewpoint of interlocking is mostly trackworks.
+Ferrari et al.~\cite{Ferrari_Formal_2022} present a survey of use cases of formal methods in railways development. They identify various phases of development phases where formal methods have been used, ranging from planning to maintenance via implementation, testing, etc., as well as most frequently studied subsystems (interlocking systems being the most formally verified component). We focus specifically on train \emph{routing}, i.e. finding correct train schedules (for some correctness criteria). This topic is related to that of interlocking (we prevent trains from using simultaneously some elements), but from the viewpoint of trains and their routes, while the viewpoint of interlocking is mostly trackworks.
 
-In~\cite{lusby_railway_2011}, Lusby et al.\ survey works on train routing. In this context, we can distinguish two problems: automated routing and routing verification. The former deals with automatically finding train routes satisfying some properties. Lusby et al.\ mention that solving this problem, in highly interconnected network, is not feasible in practice. In this paper, we address the second problem: verifying whether a train routing satisfies correctness criteria (without considering how it is obtained). In particular, we are interested in formal verification of such routings.
+Lusby et al.~\cite{lusby_railway_2011} survey works on train routing. In this context, we distinguish two problems: automated routing and routing verification. The former deals with automatically finding train routes satisfying some properties. Lusby et al.\ mention that solving this problem, in highly interconnected network, is not feasible in practice. In this paper, we address the second problem: verifying whether a train routing satisfies correctness criteria (without considering how it is obtained). In particular, we are interested in formal verification of such routings.
 
 \begin{wrapfigure}[10]{r}{0.28\textwidth}
 	\begin{minipage}{0.28\textwidth}
@@ -221,18 +221,13 @@ Switches and signals are controlled by two Raspberry-pi computers, which communi
 
 \paragraph{Approach.}
 
-To ensure the correctness of routes, we first formally model our system. Informally, our network is constituted of blocks, which can be used in both ways. Trains are given a list of orders, instructing them to go on one direction up to a certain block (modelling a form of odometer-based clearance), then changing direction, etc.. Beside these orders, trains respect signals they meet along the way. A regulator is in charge of setting traffic lights. We assume each block is equipped with reliable captors so that upon entering a block, an event is generated. The regulator react to those events asynchronously (to model lag). Regulator's reactions are used to update signals to release trains. Signals and captors are the only communications between trains and the regulator, and trains do not communicate directly with each other. Informally, our model is close to a multi-agent system or to communicating automata. 
+To ensure the correctness of routes, we model our system. Informally, our network is constituted of blocks, which can be used in both ways. Trains are given a list of orders, instructing them to go on one direction up to a certain block (i.e.\ a form of odometer-based clearance), then changing direction, etc.. Beside these orders, trains respect signals they meet along the way. We model only green and red signals, and we assume trains are able to stop when encountering a red light. A regulator is in charge of setting traffic lights. We assume each block is equipped with reliable captors so that upon entering a block, an event is generated. The regulator react to those events asynchronously (to model lag). Regulator's reactions are used to update signals to release trains. Signals and captors are the only communications between trains and the regulator, and trains do not communicate directly with each other. Informally, our model is close to a multi-agent system or to communicating automata. 
 After defining this model, we use TLA+~\cite{Lamport}, a specification tool and model checker suited for distributed systems, to model-check routes (i.e. combinations of train orders and regulator event handlers). 
 
-In the second part of this paper, we then write a compositional route generator, which aggregates individual conflict-free segments into general routes. We implement this compositional generator in a Python program, and we test it against our model checker.
+Then, we write a compositional route generator, which aggregates individual conflict-free segments into general routes. We implement this compositional generator in a Python program, and we test it against our model checker.
 
 \paragraph{Contributions.}
-Our main contributions are:
-\begin{itemize}
-	\item Building a formal model of train network. Contrary to most existing works, our model makes very few assumptions: tracks are not directed, we do not distinguish between tracks and stations (platforms are regular tracks).
-	\item Writing the TLA+ specification of our model. This specification allows to model check routings.
-	\item Defining a composition operator, allowing to build up large routes from smaller part. We use TLA+ to model check resulting composed routes.
-\end{itemize}
+Our main contributions are: (I) Building a formal model of train network. Our model makes few assumptions: tracks are not directed and we do not distinguish between tracks and stations (platforms are regular tracks). (II) Writing the TLA+ specification of our model. This specification allows to model check routings. (III) Defining a composition operator, allowing to incrementally build large routes. We use TLA+ to model check resulting composed routes.
 
 \paragraph{Related works.}
 
@@ -246,7 +241,7 @@ One of the main challenges of both interlocking and route planning verification 
 Finally, while most works focus on the safety of railway systems, we are seeing an increasing amount of works formally analysing the security of such systems in the context of cyberattacks. As a matter of fact, this contribution finds its origin in a cyber-warefare game organised for students at the University of Lorraine, see~\cite{CHE}. \cite{poorhadi_automating_2023} presents a interesting work modelling systems under cyber attacks in Event-B, helping designers to identify effects of attacks.
 
 \paragraph{Outline.}
-In Section~\ref{sec:model_configurations}, we introduce the main building blocks of our model: network infrastructure, trains and the regulator. In Section~\ref{sec:model_semantics}, we present the dynamic aspects of our system: how trains can move and how the regulator schedules them. We conclude this section by stating what we expect of correct networks. Then, in Section~\ref{sec:tla-formalisation}, we present a TLA+ implementation of our model, which we use to check network correctness: model checking a schedule \emph{certifies} its correctness. Our last contribution, in Section~\ref{sec:composition}, explains how to build large schedules by composing smaller ones. While we don't prove the correctness \emph{by construction} of composed schedules, we use the TLA+ implementation to certify, \emph{a posteriori}, the correctness of composed schedules.
+In Section~\ref{sec:model_configurations}, we introduce the foundations of our model: network infrastructure, trains and the regulator. In Section~\ref{sec:model_semantics}, we present dynamic aspects: how trains can move and how the regulator schedules them. We conclude this section by stating route correctness criteria. Then, in Section~\ref{sec:tla-formalisation}, we present a TLA+ implementation of our model, which we use to check network correctness: model checking a schedule \emph{certifies} its correctness. Our last contribution, in Section~\ref{sec:composition}, explains how to build large schedules by composing smaller ones. While we don't prove the correctness \emph{by construction} of composed schedules, we use the TLA+ implementation to certify, \emph{a posteriori}, the correctness of composed schedules.
 
 % ############################# %
 % Espace réservé aux encadrants %
@@ -255,39 +250,33 @@ In Section~\ref{sec:model_configurations}, we introduce the main building blocks
 
 \paragraph{Notations.}
 
-Given some function $f: X \to Y$, $x \in X$ and $y \in Y$, we denote by $f[x \leftarrow y]$ the function from $X$ to $Y$ verifying $f[x \leftarrow y](x) = y$ and for any $z \neq x$, $f[x \leftarrow y](z) = f(z)$.
+Given some function $f: X \to Y$, $x \in X$ and $y \in Y$, we denote by $f[x \leftarrow y]$ the function from $X$ to $Y$ verifying $f[x \leftarrow y](x) = y$ and for any $z \neq x$, $f[x \leftarrow y](z) = f(z)$. When using lists or sequence, we use common operations such as pushing/popping an element, retrieving the head/tail, etc. We also use indexed notations (e.g. $l[1]$).
 
 \section{Model configurations}
 \label{sec:model_configurations}
 
-In this section, we present configurations of our model, i.e. how we represent, at a given point in time, the state of our network. The dynamic rules of train routing are then presented in the following section.
-
-Our model has $k+1$ agents corresponding to the $k$ trains and the Regulator. Those agents take place on an infrastructure consisting of a track network equipped with signals. We first present the infrastructure model, then the agents.
+In this section, we present configurations of our model, i.e. how we represent, at a given point in time, the state of our network. 
+Our model has $k$ trains and one regulator, taking place on an infrastructure consisting of a track network equipped with signals. We first present the infrastructure model, then the agents.
 
 \subsection{Infrastructure}
 
 \paragraph{The network.} 
 
-We suppose that the train network can be described as follows. First, we consider a set of $n$ blocks: $\blocks = \{ \bid{1}, \bid{2}, \ldots, \bid{n}\}$. Blocks are oriented: there is a $\dirForward$ (forward) end and a $\dirBackward$ (backward) one. Let $\directions = \{\dirForward, \dirBackward\}$ be the set of directions.  Second, we consider a set of $m$ trackworks\footnote{For the sake of simplicity, in this paper, we only consider switches. Our work can  be extended to crossings and double slip switches (e.g. crossings have only one internal state and double slip switches have four states).}: $\turnouts = \{\sid{1}, \ldots, \sid{m}\}$. Trackworks are characterized by an internal state: switches can be in direct or deviate position (next denoted '\direct' and '\deviate'). Let $\internalState$ denotes the set of internal states. A \emph{network configuration} is given by a function $\sigma: \turnouts \to \internalState$. Let $\networkConf$ denotes the set of all network configurations. For instance, for two turnouts $\theta = \{\sid{1}, \sid{2}\}$, the function $\sid{1} \mapsto \deviate, \sid{2} \mapsto \direct$ states that switch $\sid{1}$ is in deviate position while \sid{2} is in direct one.
+The train network is described as follows. We consider a set of $n$ blocks: $\blocks = \{ \bid{1}, \bid{2}, \ldots, \bid{n}\}$. Blocks are oriented: there is a $\dirForward$ (forward) end and a $\dirBackward$ (backward) one. Let $\directions = \{\dirForward, \dirBackward\}$ be the set of directions.  Then, we consider a set of $m$ trackworks\footnote{For the sake of simplicity, in this paper, we only consider switches. Our work can  be extended to crossings and double slip switches (e.g. crossings have only one internal state and double slip switches have four states).}: $\turnouts = \{\sid{1}, \ldots, \sid{m}\}$. Trackworks are characterized by an internal state: switches can be in direct or deviate position (next denoted '\direct' and '\deviate'). A \emph{network configuration} is a function $\sigma: \turnouts \to \{\direct, \deviate\}$. Let $\networkConf$ denotes the set of all network configurations. For instance, for two turnouts $\sid{1}$ and $\sid{2}$, the function $\sid{1} \mapsto \deviate, \sid{2} \mapsto \direct$ states that switch $\sid{1}$ (resp. $\sid{2}$) is deviate (resp. direct).
 % The latter function is also described via an array  $[\deviate, \direct]$ giving states in trackwork order.
 
 The network is then described as a triple $(\blocks, \turnouts, \sucblock)$ where $\sucblock$ is a partial function indicating the following block given a starting position, a direction and a network configuration: $\sucblock: \blocks\times \directions \times \networkConf \to \blocks$. We note $\suc{\bid{i}}{d}{\switches} = \nosuc$ when it is undefined. From an abstract point of view, the topology of the network reduces to that data.  
 
 
 \paragraph{Signals.}
-At each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $\signals: \blocks \times \directions \to \{ \sigred, \siggreen\}$. The signal status is determined by the network configuration and explicit locking requests. Given some signal status $\signals$, a block $\bid{i}$ and a direction $\dirFmt{d}$, $\signalF{\bid{i}}{d} = \sigred$ means the signal guarding the exit of block $\bid{i}$ in direction $\dirFmt{d}$ is red, and we expect trains not leaving that block going in this direction\footnote{Our semantics, presented in Section~\ref{sec:model_semantics}, ensure such behaviour.}. We note $\setSignalsTo{\bid{\text{tgt}}}{c}$ the signal state $\signals$ except signals of block \bid{\text{tgt}}, which are turned to color $c$: 
-$$(\setSignalsTo{\bid{\text{tgt}}}{c})(\bid{\text{from}}, \dirFmt{d}) = \begin{cases}
-	c & \text{if }\bid{\text{from}} = \bid{\text{tgt}}\\
-	\signalF{\bid{\text{from}}}{d} & \text{otherwise}
-\end{cases}$$
-
+At each end of the blocks, there is a signal whose state is \sigred (red) or \siggreen (green). In other words, the status of signals is described by a function $\signals: \blocks \times \directions \to \{ \sigred, \siggreen\}$. The signal status is determined by the network configuration and explicit locking requests. Given some signal status $\signals$, a block $\bid{i}$ and a direction $\dirFmt{d}$, $\signalF{\bid{i}}{d} = \sigred$ means the signal guarding the exit of block $\bid{i}$ in direction $\dirFmt{d}$ is red, and we expect trains not leaving that block going in this direction\footnote{Our semantics, presented in Section~\ref{sec:model_semantics}, ensure such behaviour.}. We note $\setSignalsTo{\bid{\text{tgt}}}{c}$ the signal state $\signals$ except signals of block \bid{\text{tgt}}, which are turned to color $c$: $(\setSignalsTo{\bid{\text{tgt}}}{c})(\bid{\text{from}}, \dirFmt{d})$ returns $c$ if $\bid{\text{from}} = \bid{\text{tgt}}$, and $\signalF{\bid{\text{from}}}{d}$ otherwise.
 
 \subsection{Agents}
 \paragraph{Trains.}
 We now present the train model. We consider a set of $k$ trains. 
 Each train is characterised by an identifier, a position, a direction, and a list of orders. 
 \begin{itemize}
-	\item Train identifiers form a set  $\trains = \{\tid{1}, \ldots, \tid{k}\}$, each train having its own identifier.
+	\item Each train has its own identifier, which form the set $\trains = \{\tid{1}, \ldots, \tid{k}\}$.
 	\item The position is the index of the block currently occupied by the train.
 	\item The direction (taken from $\directions_\dirStop = \{\dirBackward, \dirForward, \dirStop\}$) indicates the direction the train is ordered to go towards, where \dirStop indicates the train has no direction order at the moment. The direction represents the current move order, but does not mean the train is actually moving: it can be blocked at a signal.
 	\item Orders are a (possibly empty) sequence of orders $\su{d}{\bid{1}\dots\bid{n}}$ ($\dirFmt{d} \in \directions$, $\bid{i} \in \blocks^\star$). Such order states that the train direction is set to $\dirFmt{d}$ and that the train will use blocks $\bid{1}\dots\bid{n}$. An empty sequence is denoted $\emptyTrainProg$. We intend successive \su{d_i}{...} orders of the list to alternate directions \dirForward{} and \dirBackward{}. Two successive orders with the same direction can easily be merged into a single one.
@@ -313,8 +302,7 @@ Train events are handled by the regulator. Upon such events, the regulator can t
 Given a routing program $E$, we note $\handlerOf{E}{\tid{i}}$ the list of handlers of train $\tid{i}$, $\head{\handlerOf{E}{\tid{i}}} = \handlerOf{E}{\tid{i}}[1]$ the first handler of the list. Given a handler $h = \tuple{\bid{i}, A}$, let  $\actionsOf{h} \triangleq A$, $\blockOf{h} \triangleq \bid{i}$. When $h = \tuple{\bid{i}, a \cdot A}$ is the head of a sequence $H = h \cdot H'$,  $\nextAct{H} \triangleq \tuple{\bid{i}, A} \cdot H'$. %}{} \triangleq H'$ .  %(resp. \blockOf{h}) the list of action (resp. the block id) of $h$.
 % We note $\nextAct{\handlerOf{E}{\tid{i}}}$ the routing program $E$ where the first event handler of train $\tid{i}$ is replaced with $\handler{\blockOf{\head{\handlerOf{E}{\tid{i}}}}}{\buftail{\actionsOf{\head{\handlerOf{E}{\tid{i}}}}}}$, i.e. where the first action of the first handler of train \tid{i} is removed.
 % We note $\popHandlerHead{E}{\tid{i}}$ the routing program $E$ where the first event handler of train \tid{i} is removed, i.e. where $\handlerOf{E}{\tid{i}}$ is replaced by $\buftail{\handlerOf{E}{\tid{i}}}$.
-
-Actions contained in a handler are of the four following kinds:
+Regulator actions contained in a handler are of the four following kinds:
 \begin{description}
 	\item [\wait{\bid{i}}{n}:] the train waits until the token of block \bid{i} reaches value $n$
 	\item [\incr{\bid{i}}:] this increments the token $\bid{i}$ in $T$, thus releasing a train waiting
@@ -323,17 +311,11 @@ Actions contained in a handler are of the four following kinds:
 \end{description}
 
 \paragraph{Model.}
-Overall, states of our model are tuples $\tuple{\trainSeq, \regulator, \switches, \signals}$ where $\trainSeq$ is a set of train tuples, $\regulator$ a regulator tuple, $\switches$ a network configuration (indicating trackworks states) and $\signals$ a signals state function.
+States of our model are tuples $\tuple{\trainSeq, \regulator, \switches, \signals}$ where $\trainSeq$ is a set of train tuples, $\regulator$ a regulator tuple, $\switches$ a network configuration and $\signals$ a signals state function.
 % We suppose all train tuples in $\trainSeq$ have a different identifier. 
  Notice that $\sucblock$ is not part of the state. Instead, the dynamics of the model (see below) is parameterised by $\sucblock$. Let $\modelSet$ be the set of all model states.
 
-\paragraph{Network hypothesis, events, and conventions.}
-On the tracks, we suppose there are sensors to detect the presence of trains. More precisely, we suppose that ---by means of the sensors--- the position of every train is known at any time. A \emph{position event} is when a train move from one block to an other one. 
-
-Train speed are not modeled, and we consider trains can always stop within their current block if they have to (e.g. if there outgoing signal of a block is \sigred, we assume the train can stop in time).
-
-
-\section{Model Semantics/Model dynamics}
+\section{Model dynamics}
 \label{sec:model_semantics}
 
 %In the previous section, we introduced our model. In this section, 
@@ -344,26 +326,26 @@ The dynamics is described by means of a reduction relation, characterising the s
 
 \subsection{Scheduling and communications}
 
-In our dynamic rules, we distinguish three kinds of rules: one kind for trains, one kind for the regulator, and one kind for  signals. We intend the signals' and regulator's reactions to be executed atomically. On the other hand, trains evolve much slower. To reflect this behaviour in our rules, we introduce a \emph{guard}. While, in our rules, the reaction of the regulator can take several steps, to implement atomic reaction, the guard blocks the rest of the system. Similarly, upon any train movement or regulator reaction, signals can be updated. In practice, such update happens instantly. To mimick this reaction of signal w.r.t. other events, the guard is in charge of blocking the system until signals are up-to-date.
+In our dynamic rules, we distinguish three kinds of rules: one kind for trains, one kind for the regulator, and one kind for  signals. We intend the signals' and regulator's reactions to be executed atomically. On the other hand, trains evolve much slower. To reflect this behaviour in our rules, we introduce a \emph{guard}. While, in our rules, the reaction of the regulator can take several steps, to implement atomic reaction, the guard blocks the rest of the system. Similarly, upon any train movement or regulator reaction, signals can be updated. In practice, such update happens instantly. To mimick this reaction of signal w.r.t. other events, the guard is in charge of blocking the system until signals are up-to-date. Thus the guard has three states from $Q = \{\guardR, \guardS, \guardT\}$.
 
-Essentially, this guard is the state machine shown in Figure~\ref{fig:state_machine_guard}. The three guard states are $Q = \{\guardR, \guardS, \guardT\}$.
-\begin{figure}
-	\centering
-	\begin{tikzpicture}
-		\node[draw] (trains) {Train movements (\guardT)};
-		\node[left=.5cm of trains.west] (zero) {};
-		\node[draw, right=of trains] (regulator) {Regulator reaction (\guardR)};
-		\node[draw, right=of regulator] (signals) {Signals update (\guardS)};
-		
-		\draw[-stealth] (zero) to (trains);
-		\draw[-stealth] (trains) to[bend right=10] (signals);
-		\draw[-stealth] (signals) to[bend right=10] (trains);
-		\draw[-stealth] (trains) to (regulator);
-		\draw[-stealth] (regulator) to (signals);
-	\end{tikzpicture}
-	\caption{State machine of the guard.}
-	\label{fig:state_machine_guard}
-\end{figure}
+%Essentially, this guard is the state machine shown in Figure~\ref{fig:state_machine_guard}. The three guard states are $Q = \{\guardR, \guardS, \guardT\}$.
+%\begin{figure}
+%	\centering
+%	\begin{tikzpicture}
+%		\node[draw] (trains) {Train movements (\guardT)};
+%		\node[left=.5cm of trains.west] (zero) {};
+%		\node[draw, right=of trains] (regulator) {Regulator reaction (\guardR)};
+%		\node[draw, right=of regulator] (signals) {Signals update (\guardS)};
+%		
+%		\draw[-stealth] (zero) to (trains);
+%		\draw[-stealth] (trains) to[bend right=10] (signals);
+%		\draw[-stealth] (signals) to[bend right=10] (trains);
+%		\draw[-stealth] (trains) to (regulator);
+%		\draw[-stealth] (regulator) to (signals);
+%	\end{tikzpicture}
+%	\caption{State machine of the guard.}
+%	\label{fig:state_machine_guard}
+%\end{figure}
 
 In our model, a train event represents a train going from one block to another. Train events are not dealt with instantly by the regulator (e.g. two train events can happen before the regulator begins to react to the first one). To characterise this behaviour, train events are stored in a buffer until the regulator uses them. When such thing happens, the train sends a message with its identifier to the regulator. A \emph{train buffer} \bufTrain is a sequence of such events, i.e. of train identifiers.
 Similarly, the regulator communicates with signals with a \emph{signal buffer} \bufSig, which is a list of tuples $\tuple{\bid{i}, c}$, indicating that both signals of block $\bid{i}$ should be turned to value $c$. Let \bufTrainSet (resp. \bufSigSet) denote the set of train (resp. signal) buffers.
@@ -681,44 +663,44 @@ where variables is the tuple of all variables. The intended meaning is that the 
 \section{Composition}
 \label{sec:composition}
 
-The main principle behind our scheduling process is based on the notion of route. A route for a train is a sequence $\vec{x} = x_1, \ldots, x_k$ of blocks such that, for each $i < k$, there is a network configuration $\sigma$  and a direction $d$ with $\sucblock(x_i, d, \sigma) = x_{i+1}$.  The values $d$ and $\sigma$ are the witness of the transition. A \emph{global routing}, denoted $X = (\vec{x}^{\tid{i}})_{\tid{i} \in \trains}$, is a route for each train.  Two routes $\vec{x}$ and $\vec{y}$ have a critical resource if  $x_i = y_j$ for some $i,j$. We denote by $k_{\tid{i}}$ the index of the last component of sequence $\vec{x}^\tid{i}$ for any $\tid{i}\in \trains$. 
+The main principle behind our scheduling process is based on the notion of route. A route for a train is a sequence $\vec{x} = x_1, \ldots, x_k$ of blocks such that, for each $i < k$, there is a network configuration $\switches$  and a direction $\dirFmt{d}$ with $\sucblock(x_i, \dirFmt{d}, \switches) = x_{i+1}$.  The values $\dirFmt{d}$ and $\switches$ are the witness of the transition. A \emph{global routing}, denoted $X = (\vec{x}^{\tid{i}})_{\tid{i} \in \trains}$, is a route for each train.  Two routes $\vec{x}$ and $\vec{y}$ have a critical resource if  $x_i = y_j$ for some $i,j$. We denote by $k_{\tid{i}}$ the index of the last component of sequence $\vec{x}^\tid{i}$ for any $\tid{i}\in \trains$. 
 
-A \emph{safe step} is a global routing  coming with a network configuration $\sigma$ and a direction map $d: \trains \to \directions$ such that:
+A \emph{safe step} is a global routing  coming with a network configuration $\switches$ and a direction map $d_m: \trains \to \directions$ such that:
 \begin{itemize}
 \item there are no critical resources between any two routes,
-\item $\sigma$ and $d(\tid{i})$ are witnesses of all transitions in $\vec{x}^\tid{i}$. 
+\item $\switches$ and $d_m(\tid{i})$ are witnesses of all transitions in $\vec{x}^\tid{i}$. 
 \item for any $\tid{i} \in \trains$, any component $x_j^\tid{i}$ with $j \leq k_{\tid{i}}$ occurs only once in $\vec{x}^{\tid{i}}$,
 \end{itemize}
 
 Any global routing can be seen as the composition of safe steps and actually, that provides a scheduling algorithm. We say that a sequence of blocks indexed by trains $\vec{\bid{}}_{\tid{i} \in \trains}$ is \emph{separate} if there are no two trains $\tid{i} \neq \tid{id'}$ with $\vec{\bid{}}[\tid{i}] = \vec{\bid{}}[\tid{id'}]$. This notion induces a graph: let $G = \langle V, E\rangle$ with $V$ the set of separate positions and $E$ the set of safe steps between them.  Then, to compute global routes, we look for a path in the graph from the source to the target. The  $A^*$ algorithm we implemented is proving highly effective. This strategy has a main advantage, it is quite flexible with respect to new events. Suppose that at some point a train is blocked, we may recompute safe steps for the other trains, possibly releasing a deadlock. 
 
- But, that being said, we are now turned to the transformation of safe steps into system states, that is train orders and regulator rules. And then, to compose those system states into global routes. Last introductory words, in this section, we must know which switches are crossed by some train between two blocks $\bid{i}$ and $\bid{j}$, possibly depending on the network configuration $\sigma$ and the train direction $d$. This set is denoted $\throughS(\bid{i}, d, \sigma, \bid{j})$. 
+But, that being said, we are now turned to the transformation of safe steps into system states, that is train orders and regulator rules. And then, to compose those system states into global routes. Last introductory words, in this section, we must know which switches are crossed by some train between two blocks $\bid{i}$ and $\bid{j}$, possibly depending on the network configuration $\switches$ and the train direction $\dirFmt{d}$. This set is denoted $\throughS(\bid{i}, \dirFmt{d}, \switches, \bid{j})$. 
 
 \subsection{Safe steps}
 \label{sec:experiments:4}
 
-To each safe step $X = (\vec{x}^{\tid{i}})_{\tid{i} \in \trains}$ coming with a network configuration $\sigma$ and a direction map $d$, just below, we define the system state $S(X) = \redTuple{\guardI}{ \emptyList}{ \emptyList}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$, next called a \emph{safe step state}. Informally, we set turnouts to their position according to $\sigma$ during the initial step  and we lock signals to red for each train's destination according to $d$. 
+To each safe step $X = (\vec{x}^{\tid{i}})_{\tid{i} \in \trains}$ coming with a network configuration $\switches$ and a direction map $d_m$, just below, we define the system state $S(X) = \redTuple{\guardI}{ \emptyList}{ \emptyList}{\stateTuple{\trainSeq{}}{\regulator}{\switches}{\signals}}$, next called a \emph{safe step state}. Informally, we set turnouts to their position according to $\switches$ during the initial step  and we lock signals to red for each train's destination according to $d_m$. 
 \begin{itemize}
 \item for each train $\tid{i}$, $\trainSeq[\tid{i}] = \trainTuple{\tid{i}}{x_1^{\tid{i}}}{\dirStop}{\su{d(\tid{i})}{\vec{x}^{\tid{i}}}}$,
 \item $R = \langle E,  \bid{i} \in \blocks \mapsto 0, W\rangle$, $E$ being defined just below,
 \item $W = \{ \tuple{x_1^\tid{i}, x_1^\tid{i}, 1, \tid{i}}  \mid \tid{i} \in \trains \}$, 
-\item $F = \blocks \times \directions \to \{\sigred, \siggreen \}$ defined for $\bid{i} \in \blocks, d \in \directions$ by: $F(\langle \bid{i}, d\rangle) = \sigred$ if  $\bid{i} = x_1^\tid{j}$ for some $j\in \trains$, otherwise $F(\langle \bid{i}, d\rangle)  = \siggreen$. 
+\item $F = \blocks \times \directions \to \{\sigred, \siggreen \}$ defined for $\bid{i} \in \blocks, \dirFmt{d} \in \directions$ by: $F(\langle \bid{i}, \dirFmt{d}\rangle) = \sigred$ if  $\bid{i} = x_1^\tid{j}$ for some $j\in \trains$, otherwise $F(\langle \bid{i}, \dirFmt{d}\rangle)  = \siggreen$. 
 \end{itemize}
 
-Now, let us turn to the definition of $E$. For any train $\tid{i} \in \trains$, we define $A= (\emptyList)_{x \in \vec{x}^\tid{i} }$. Then, set  $E[\tid{i}] = \langle d(\tid{i}), A[x_1 \leftarrow \langle \incr{x_1^\tid{i}}] \rangle]$. 
+Now, let us turn to the definition of $E$. For any train $\tid{i} \in \trains$, we define $A= (\emptyList)_{x \in \vec{x}^\tid{i} }$. Then, set  $E[\tid{i}] = \langle d_m(\tid{i}), A[x_1 \leftarrow \langle \incr{x_1^\tid{i}}] \rangle]$. 
 
-\paragraph{Experiments}  With TLA+, we checked that the 58 368 safe steps are actually (not surprisingly!) correct. Checking all the paths took approximately 30 hours on an Linux desktop machine with an Intel i5-4590 (4-cores at 3.7GHz) and 8GB of memory.
+\paragraph{Experiments}  With TLA+, we checked that the 58 368 safe steps are actually correct. Checking all the paths took approximately 30 hours on an Linux desktop machine with an Intel i5-4590 (4-cores at 3.7GHz) and 8GB of memory.
 
 \subsection{Safe steps composition}
 
-Two states $S$ and $S'$ are said to be \emph{compatible} whenever  for any train $\tid{i}$, we have $\mathtt{dst}(S, \tid{i})  =  \mathtt{src}(S', \tid{i})$. In other words, trains must start in $S'$ at destinations of $S$. We define the composition only compatible states. Actually, since we are interested by safe steps compositions, we restrict our attention to their compositions.
+Two states $S$ and $S'$ are said to be \emph{compatible} whenever  for any train $\tid{i}$, we have $\mathtt{dst}(S, \tid{i})  =  \mathtt{src}(S', \tid{i})$. In other words, trains must start in $S'$ at destinations of $S$. We define composition only on compatible states. Also, since we are interested by safe steps compositions, we restrict our attention to their compositions.
   
-So, we suppose we are given safe step states $S_1, \ldots, S_k$ corresponding to $X_1, \ldots, X_k$, network configuration $\sigma_1, \ldots, \sigma_k$ and direction maps $d_1, \ldots, d_k$. To compute their composition $S_1 \cdot S_2 \cdots S_k$, we proceed by induction on $k$. For $k = 1$, we return $S_1$. For $k>0$, let $S = S_1 \cdots S_{k-1}  = \langle \guardG, \bufTrain, \bufSig, \langle \Gamma, \langle E, W, T\rangle, \switches, \signals\rangle \rangle$. We set $S \cdot S_k = \langle \guardG, \bufTrain, \bufSig, \langle \Gamma', \langle E', W, T\rangle, \switches', \signals\rangle \rangle$ as follows. 
+So, we suppose we are given safe step states $S_1, \ldots, S_k$ corresponding to $X_1, \ldots, X_k$, network configuration $\switches_1, \ldots, \switches_k$ and direction maps $d_{m1}, \ldots, d_{mk}$. To compute their composition $S_1 \cdot S_2 \cdots S_k$, we proceed by induction on $k$. For $k = 1$, we return $S_1$. For $k>0$, let $S = S_1 \cdots S_{k-1}  = \langle \guardG, \bufTrain, \bufSig, \langle \Gamma, \langle E, W, T\rangle, \switches, \signals\rangle \rangle$. We set $S \cdot S_k = \langle \guardG, \bufTrain, \bufSig, \langle \Gamma', \langle E', W, T\rangle, \switches', \signals\rangle \rangle$ as follows. 
 
 First,  for any train $\tid{i} \in \trains$, we append the orders of the train in $S_k$ to the corresponding ones in $S$. %let $P_0 = S.\Gamma[\tid{i}].P$ and $P_k = S_k.\Gamma[\tid{i}].P$, then set $\Gamma'[\tid{i}] = \Gamma[\tid{i}][ P \leftarrow P_0 \cdot P_k]$. 
-Second, we proceed by updates of $E$ and $\sigma$. At first, we set $E' = E$ and $\sigma' = \sigma$. We begin to append to $E'$, for any train, all the handlers within $S_k$. To each train $\tid{i}$, we had for its first step (within $X_k$, seen within the composition): an $\auth$ order in $E'[\tid]$. 
+Second, we proceed by updates of $E$ and $\switches$. At first, we set $E' = E$ and $\switches' = \switches$. We begin to append to $E'$, for any train, all the handlers within $S_k$. To each train $\tid{i}$, we had for its first step (within $X_k$, seen within the composition): an $\auth$ order in $E'[\tid{i}]$. 
 
-Consider some turnout $\sid{i}$ such that $\sid{i} \in \throughS(x_n, d, \sigma_k, x_{n+1})$ with $\vec{x}$ the route corresponding to train $\tid{i}$ in $X_k$. In other words, the turnout is crossed by train $\tid{i}$ at step $n$ of $\vec{x}$ within $X_k$. Suppose there is a step $j < k$, a train $\tid{m}$ such that $\sid{i} \in \throughS(y_m, d', \sigma_j, y_{m+1})$ with $\vec{y}$ being the route of train $\tid{m}$ at step $X_j$. If $\sigma_j(\sid{i}) = \sigma_k(\sid{i})$, we skip this turnout. Otherwise, if $\tid{i} = \tid{m}$, call $p$ the position within $E'$ corresponding to block $x_{n+1}$, we append in $E'$ at that position the order $\auth$. Otherwise, call $p$ the position in the map $E'$ corresponding to the atoms related to the block $y_{m+1}$. We append to that position the order $\turn{\sid{i}}{d_k(\sid{i})})$. In other words, we append to the last step involving the turnout the order for the new position. 
+Consider some turnout $\sid{i}$ such that $\sid{i} \in \throughS(x_n, d_{mk}(\tid{i}), \switches_k, x_{n+1})$ with $\vec{x}$ the route corresponding to train $\tid{i}$ in $X_k$. In other words, the turnout is crossed by train $\tid{i}$ at step $n$ of $\vec{x}$ within $X_k$. Suppose there is a step $j < k$, a train $\tid{m}$ such that $\sid{i} \in \throughS(y_m, d_{mj}(\tid{m}), \switches_j, y_{m+1})$ with $\vec{y}$ being the route of train $\tid{m}$ at step $X_j$. If $\switches_j(\sid{i}) = \switches_k(\sid{i})$, we skip this turnout. Otherwise, if $\tid{i} = \tid{m}$, call $p$ the position within $E'$ corresponding to block $x_{n+1}$, we append in $E'$ at that position the order $\auth$. Otherwise, call $p$ the position in the map $E'$ corresponding to the atoms related to the block $y_{m+1}$. We append to that position the order $\turn{\sid{i}}{d_{mk}(\sid{i})})$. In other words, we append to the last step involving the turnout the order for the new position. 
 
 Consider now a block within a route of $X_k$: $x_{n-1}^\tid{i}, x_n^\tid{i}, x_{n+1}^\tid{i}$. In case there is a route $y^\tid{m}$ within  $X_j$ such that\footnote{Again, we take the one with maximal value $j$ if there is a choice.} $y_{p-1}^\tid{m}, y_p^\tid{m}, y_{p+1}^\tid{m}$ with $x_n = y_p$ and $\tid{i} \neq \tid{m}$, we need to set a guard on the common resource $x_n = y_p$ that will be crossed by train $\tid{m}$ before train $\tid{i}$ will do it. We say that there is a conflict on $x_n$. We continue the process on $y_{p-1}^\tid{m}, y_p^\tid{m}, y_{p+1}^\tid{m}$, finding some subsequent conflicts. We do so up to the initial position. Call $n$ the number of conflicts met all along that process. Now, call $p$ the position within $E'$ corresponding to the position $x_{n-1}^\tid{i}$ and $q$ the position corresponding to $y_{p+1}^\tid{m}$. We append in $E'$ to $p$ the order $\wait{x_n}{n}$ and to $q$ the order $\incr{x_n}$.
 
@@ -773,7 +755,6 @@ This paper introduces three main contributions. First we presented a formal mode
 Our second contribution is the implementation of our model in the TLA+ model checker. Our implementation allows to verify that routing schedules are free from deadlocks and crashes, and reaches correct destinations. We tested our implementation on various schedules on a small-scale network, where the computation time was found to be negligible. Our implementation takes approximately 500 lines of TLA+.
 
 Our third contribution is a composition operator. This operator allows to incrementally build routing schedules, which can then be tested using our TLA+ implementation. Our composition distinguishes safe steps: steps where no two trains use the same track. Our composition can append safe steps to arbitrary schedules, creating new schedules. We implemented our composition operator in Python and we tested it by model checking all schedules composed of two and three safe steps in our small-scale network. The computation time was found to be affordable for companies: checking all two-steps schedules took less than an hour on a cluster, using 8 nodes of 18 cores.
-
 Our implementation, including both the TLA model and the Python composition is available on \url{https://github.com/LucasVillaume/stage-train}.\todo{Remplacer Zenodo si on a le temps}.
 
 \paragraph{Limitations and future works.}
