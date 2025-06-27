@@ -188,35 +188,6 @@
 \section{Introduction}
 \label{sec:introduction}
 
-This contribution finds its origin in a cyber-warefare we are organising for students at the University of Lorraine concerned by cyber-security, see~\cite{CHE}. In the game-play, we have both IT infrastructures and physical systems, with connections between them. On the physical side, we built a small train network that tries to be a good model of real systems.  Our system manages customer informations, train regulation and finally the physical/infrastructure layer. Attackers can hit any of the three parts: disfiguring the website, changing a platform or blocking a signal. Defenders will protect their system, typically via a strict network policy.
-
-
-
-
-\paragraph{Routing trains.}
-\todo{Ajouter: tout est automatique}
-Routes are computed on the fly. The schedule is renewed every "day"\footnote{We use a time scale factor: one of our "day" corresponds to 20 minutes in real time.}  and we introduce some randomness in the process: beyond some routine daily planning, some trains are inserted/deleted, some trains departure/destination may change, and so on. We simulate also delays. Finally, in our model, we distinguish freight and  passengers routes giving priority to the latter. Routes are recomputed each time a train has finished its duty. The general motivation of this paper is to propose a lightweight scheduling solution that is adapted to the fully automatic control, that takes into account the distributed nature of the system, that is reliable and does not suffer from interlocking.  
- 
-We can now describe in more detail the working assumptions we are making about planning.  First, we have sensors on the rails at the two ends of each block. Accordingly,  we can catch train entrances within blocks. We make the hypothesis that this task is performed without errors. Second, the switches can be swapped from one position to the other, again, we suppose it is done without fault. Our method could cope such issues, but we leave that for future work. 
- 
-  Third, for trains, we have a simple policy.  According to its plan, a train may start in some direction (Forward/Backward) up to some final position. Then, once started, the train will run according to the signals: when green, it (re-)starts, when red, it stops.  We do not make hypotheses on the durations of travels, but once a train is running, it will reach in finite time the next block. Trains run in parallel independently. One train may enter a block, while an other is crossing some switch and the third one is breaking. There is no communications between the trains.
-
-Fourth,  the regulator is capable of reading train block entrance events, requiring some switch swap and finally locking (that is make sure a signal is red)/unlocking some signal. We consider that those latter operations can be carried out without delay. Finally, the regulator may append some new duty to a train. To sum up, to control the train mouvements, the regulator can only lock/unlock signals. Naturally, a signal intended to block train $T_1$ may block $T_2$ if not set at the right time.   
- 
- Parler de la stratégie, du modèle générale. All these operations are done by what we call  \emph{orders}. Roughly speaking, trains Orders have the shape "Start in direction Until position". Regulator orders are: \todo{en parler}. 
- 
- 
- To sum up, the regulation policy can be seen as an asynchronous distributed system. The N trains and the regulator are independent agents. That led us to TLA+, a framework introduced by Leslie Lamport for these kind of problems~\cite{Lamport}.  
- 
-\todo{ Comparaison avec les travaux antérieurs / lit review}
- 
- 
-Due to the distributed nature of the regulation, building a safe policy can be very tricky. We want to show in this paper that tools from formal methods are very useful in this respect.  In this paper, we describe in  a first step the formalisation process. We go up to a TLA+ specification that will allow us checking two properties of route orchestration: safety and liveness. This is our first research question. 
-
-Our second research question is the related to the following need. Suppose we want to append a new duty once a train reached its destination. This can be formalised as a composition problem (how to compose/concatenate some routes with some others). We describe such a composition procedure and then, again, we check that the routes are both safe and deadlock free. 
-
-For our last research problem, we show that TLA+ may be used to refine a regulation policy. In our first attempts, we had typically some deadlocks issues. We have been able to detect them via TLA+ and then to provide some correction. 
-
 \paragraph{Motivation.}
 
 Over the last decades, we observe a general and increasing interest of formal methods for verification and validation of safety-critical systems, including railway networks.
@@ -246,6 +217,13 @@ Before delving further in the details, we introduce a real-world N-scale train m
 
 Switches and signals are controlled by two Raspberry-pi computers, which communicate so that signals are safe w.r.t. switches. A third computer, called the \emph{regulator}, manages the traffic. It can request switches updates, lock signals\footnote{The regulator can explicitly request a green signal to turn red, for traffic control. However, if the signal controller requires a signal to be red, for safety reasons, the regulator can not force it green.}, and route trains. To control trains, an Arduino board is used and simulates train drivers. The Arduino board communicates with the regulator to query states of signals, which would be seen by the driver in real life (see Fig. \ref{fig:computers}). 
 
+\paragraph{Approach.}
+
+To ensure the correctness of routes, we first formally model our system. Informally, our network is constituted of blocks, which can be used in both ways. Trains are given a list of orders, instructing them to go on one direction up to a certain block (modelling a form of odometer-based clearance), then changing direction, etc.. Beside these orders, trains respect signals they meet along the way. A regulator is in charge of setting traffic lights. We assume each block is equipped with reliable captors so that upon entering a block, an event is generated. The regulator react to those events asynchronously (to model lag). Regulator's reactions are used to update signals to release trains. Signals and captors are the only communications between trains and the regulator, and trains do not communicate directly with each other. Informally, our model is close to a multi-agent system or to communicating automata. 
+After defining this model, we use TLA+~\cite{Lamport}, a specification tool and model checker suited for distributed systems, to model-check routes (i.e. combinations of train orders and regulator event handlers). 
+
+In the second part of this paper, we then write a compositional route generator, which aggregates individual conflict-free segments into general routes. We implement this compositional generator in a Python program, and we test it against our model checker.
+
 \paragraph{Contributions.}
 Our main contributions are:
 \begin{itemize}
@@ -256,6 +234,14 @@ Our main contributions are:
 
 \paragraph{Related works.}
 
+% Tools
+As mentioned above, various works use formal methods for train systems. According to \cite{Ferrari_Formal_2022}, most works related to formal methods in railway systems use a combination of modelling and formal verification, e.g. model checking, used in approximately half of the works. The prime modelling language is B, used in 15\% of the works, well known for its industrial successes, e.g.\ for the development of the automated metro line 14 in Paris~\cite{butler_first_2020}. Ferrari et al.\ do not mention a single work using TLA+ for railway systems.
+
+% Interlocking
+One of the main challenges of both interlocking and route planning verification is composition: i.e. finding ways to cut a large problem into smaller parts, that are more easily solved, and which solutions are then assembled. \cite{haxthausen_automated_2023} propose a formally verified composition method for interlockings, using the RAISE Specification Language and a C++ implementation.
+
+% Safety/Security
+Finally, while most works focus on the safety of railway systems, we are seeing an increasing amount of works formally analysing the security of such systems in the context of cyberattacks. As a matter of fact, this contribution finds its origin in a cyber-warefare game organised for students at the University of Lorraine, see~\cite{CHE}. \cite{poorhadi_automating_2023} presents a interesting work modelling systems under cyber attacks in Event-B, helping designers to identify effects of attacks.
 
 \paragraph{Outline.}
 In Section~\ref{sec:model_configurations}, we introduce the main building blocks of our model: network infrastructure, trains and the regulator. In Section~\ref{sec:model_semantics}, we present the dynamic aspects of our system: how trains can move and how the regulator schedules them. We conclude this section by stating what we expect of correct networks. Then, in Section~\ref{sec:tla-formalisation}, we present a TLA+ implementation of our model, which we use to check network correctness: model checking a schedule \emph{certifies} its correctness. Our last contribution, in Section~\ref{sec:composition}, explains how to build large schedules by composing smaller ones. While we don't prove the correctness \emph{by construction} of composed schedules, we use the TLA+ implementation to certify, \emph{a posteriori}, the correctness of composed schedules.
