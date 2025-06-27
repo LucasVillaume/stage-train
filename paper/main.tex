@@ -703,7 +703,7 @@ A \emph{safe step} is a global routing  coming with a network configuration $\si
 
 Any global routing can be seen as the composition of safe steps and actually, that provides a scheduling algorithm. We say that a sequence of blocks indexed by trains $\vec{\bid{}}_{\tid{i} \in \trains}$ is \emph{separate} if there are no two trains $\tid{i} \neq \tid{id'}$ with $\vec{\bid{}}[\tid{i}] = \vec{\bid{}}[\tid{id'}]$. This notion induces a graph: let $G = \langle V, E\rangle$ with $V$ the set of separate positions and $E$ the set of safe steps between them.  Then, to compute global routes, we look for a path in the graph from the source to the target. The  $A^*$ algorithm we implemented is proving highly effective. This strategy has a main advantage, it is quite flexible with respect to new events. Suppose that at some point a train is blocked, we may recompute safe steps for the other trains, possibly releasing a deadlock. 
 
- But, that being said, we are now turned to the transformation of safe steps into system states, that is train orders and regulator rules. And then, to compose those system states into global routes. 
+ But, that being said, we are now turned to the transformation of safe steps into system states, that is train orders and regulator rules. And then, to compose those system states into global routes. Last introductory words, in this section, we must know which switches are crossed by some train between two blocks $\bid{i}$ and $\bid{j}$, possibly depending on the network configuration $\sigma$ and the train direction $d$. This set is denoted $\throughS(\bid{i}, d, \sigma, \bid{j})$. 
 
 \subsection{Safe steps}
 \label{sec:experiments:4}
