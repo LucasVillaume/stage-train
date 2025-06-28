@@ -710,6 +710,7 @@ Consider now a block within a route of $X_k$: $x_{n-1}^\tid{i}, x_n^\tid{i}, x_{
 \paragraph{Experiments.}
 We implemented a set of Python scripts which perform and model check the composition. The general architecture of our scripts is shown in Figure~\ref{fig:toolchain}. We ran this composition toolchain\footnote{Experiments were run on an earlier version of composition. Slight modifications have been introduced in the presentation above to ease the presentation.} on a cluster. Experiments were run on 8 nodes equipped with Intel Xeon Gold 5220 processors, each having 18 cores at 2.2GHz. It took less than 24h to verify all compositions of two safe steps.
 
+We also tested about 10000 composition of three safe steps, which all succeeded\footnote{10.791 compositions were tested on the cluster, 91 failed. We suspect the failures are due to the cluster environment. The 91 cases turned out to be correct after double checking on a personal computer.}.
 
 \begin{figure}
 	\begin{tikzpicture}
@@ -755,7 +756,7 @@ This paper introduces three main contributions. First we presented a formal mode
 Our second contribution is the implementation of our model in the TLA+ model checker. Our implementation allows to verify that routing schedules are free from deadlocks and crashes, and reaches correct destinations. We tested our implementation on various schedules on a small-scale network, where the computation time was found to be negligible. Our implementation takes approximately 500 lines of TLA+.
 
 Our third contribution is a composition operator. This operator allows to incrementally build routing schedules, which can then be tested using our TLA+ implementation. Our composition distinguishes safe steps: steps where no two trains use the same track. Our composition can append safe steps to arbitrary schedules, creating new schedules. We implemented our composition operator in Python and we tested it by model checking all schedules composed of two and three safe steps in our small-scale network. The computation time was found to be affordable for companies: checking all two-steps schedules took less than an hour on a cluster, using 8 nodes of 18 cores.
-Our implementation, including both the TLA model and the Python composition is available on \url{https://doi.org/10.5281/zenodo.15761521}.\todo{Remplacer Zenodo si on a le temps}.
+Our implementation, including both the TLA model and the Python composition is available on \url{https://doi.org/10.5281/zenodo.15761521}.
 
 \paragraph{Limitations and future works.}
 The main limitation of our paper regards scaling our approach. While we tested extensively our implementation on small-scale systems (small network, few trains), we expect the number of state to explode on larger networks. We intend to perform larger tests in future work.
