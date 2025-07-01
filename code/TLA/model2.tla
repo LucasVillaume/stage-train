@@ -1,7 +1,7 @@
 ----------------------------- MODULE model2 -----------------------------
 
 
-EXTENDS Integers, TLC, Sequences\*, scenario_m2 (*
+EXTENDS Integers, TLC, Sequences, scenario_m2 (*
 VARIABLE gamma, reg, sigma, feux, meta, rule 
 
 
@@ -26,8 +26,8 @@ train2 == [
 
 \* Régulateur
 events == <<
-        << <<1,<<>>>>, <<2,<<>>>>, <<3,<<<<"turn",1,"v">>,<<"incr",2>>>>>> >>,
-        << <<4,<<<<"att",2,1>>>>>>, <<2,<<>>>>, <<1,<<>>>> >>
+        << <<1,<<<<"incr",1>>>>>>, <<2,<<>>>>, <<3,<<<<"turn",1,"v">>,<<"incr",2>>>>>> >>,
+        << <<4,<<<<"incr",4>>,<<"att",2,1>>>>>>, <<2,<<>>>>, <<1,<<>>>> >>
      >>
 
 token == [x \in 1..nbCanton |-> 0]
@@ -53,11 +53,11 @@ Init ==
     /\ reg = [
             E |-> events,
             J |-> token,
-            W |-> {}
+            W |-> {<<1,1,1,1>>,<<2,4,4,1>>}
        ]
     /\ sigma = switch
-    /\ feux = [traffic_lights EXCEPT ![3,"L"] = "R",
-                                     ![3,"R"] = "R",
+    /\ feux = [traffic_lights EXCEPT ![1,"L"] = "R",
+                                     ![1,"R"] = "R",
                                      ![4,"L"] = "R",
                                      ![4,"R"] = "R"]
     /\ meta = [
@@ -66,9 +66,9 @@ Init ==
        ]
     /\ rule = "" \* Mesure de débug, pas présent dans le modèle
 
-\* *)
-\*Init == Init_S4
-\*Suiv(pos, dir, S) == Suiv_S4(pos, dir, S)
+\*)
+Init == Init_S4
+Suiv(pos, dir, S) == Suiv_S4(pos, dir, S)
 
 
 \* Utilitaire
@@ -88,7 +88,7 @@ NextAttTurn(id, evs) == \*evs : séquence d'events pour un train / evCourante : 
         res == SelectSeq(evs,IsAttTurnInSeq)
     IN
         IF Len(res) /= 0 THEN res[1][1] \*Il existe un prochain attendre
-        ELSE evs[Len(evs)][1] \*Il n'existe pas de prochain attendre (aller à la fin)
+        ELSE -1\*evs[Len(evs)][1] \*Il n'existe pas de prochain attendre (aller à la fin)
 
 IsWaiting(W, block, tvalue) == \E seq \in W : seq[3] = block /\ seq[4] = tvalue
 
@@ -207,11 +207,13 @@ Until_cons(T) ==
         /\ UNCHANGED feux
         /\ UNCHANGED sigma
         /\ meta' = [meta EXCEPT !.garde.state = "update"] \*"focus"]
+                                \*!.msg[1] = Append(meta.msg[1],<<id,nextC>>)]
         /\ rule' = "until_cons"
         /\ UNCHANGED reg
 
 
         \* Regulateur
+        
 
 StartEvent == \*Simuler une approche grands pas
     LET
@@ -246,7 +248,7 @@ Turn ==
         /\ reg' = [reg EXCEPT !.E[id][1][2] = Tail(event[2])]
         /\ sigma' = [sigma EXCEPT ![numAig] = order[3]]
         /\ UNCHANGED feux
-        /\ UNCHANGED meta \*' = [meta EXCEPT !.nextG = "update"]
+        /\ UNCHANGED meta
 
 Att_bf == 
     LET
@@ -292,7 +294,7 @@ Att_af ==
         /\ reg' = [reg EXCEPT !.E[id][1][2] = Tail(event[2])]
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">>, <<pos,"V">> >>]
+        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">> >>]\*, <<pos,"V">> >>]
 
 Incr_bf ==
     LET
@@ -342,7 +344,7 @@ Incr_af ==
                               !.E[id][1][2] = Tail(event[2])]
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">>, <<pos,"V">> >>] \*si tous marche bien, inutile plus tard
+        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">> >>]\*, <<pos,"V">> >>] \*si tous marche bien, inutile plus tard
                \*                 !.nextG = "update"]
 
 
@@ -364,7 +366,7 @@ Auth ==
         /\ reg' = [reg EXCEPT !.E[id][1][2] = Tail(event[2])]
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">>, <<pos,"V">> >>] \*si tous marche bien, inutile plus tard
+        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">> >>]\*, <<pos,"V">> >>] \*si tous marche bien, inutile plus tard
                \*                 !.nextG = "update"]
 
 
@@ -388,6 +390,7 @@ EndEvent ==
 
 
         \* Feu
+
 
 ReqUpdate ==
     LET
@@ -469,5 +472,5 @@ Eval ==  \E seq \in set : seq[1] = 2 \*SelectSeq(<< <<8,<<<<"">>, <<"">>, <<" ">
 
 =============================================================================
 \* Modification History
-\* Last modified Thu Jun 19 10:36:17 CEST 2025 by lucas
+\* Last modified Mon Jun 30 14:14:02 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas

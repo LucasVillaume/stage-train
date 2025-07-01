@@ -27,7 +27,6 @@ Suiv(pos, dir, S) ==   IF pos = 1 /\ dir = "L" /\ S[1] = "d" /\ S[2] = "v" THEN 
 
 \* Utilitaire
 
-
 Min(S) == CHOOSE x \in S : \A y \in S : x =< y
 
 Max(S) == CHOOSE x \in S : \A y \in S : x >= y
@@ -43,14 +42,14 @@ NextAttTurn(id, evs) == \*evs : séquence d'events pour un train / evCourante : 
         res == SelectSeq(evs,IsAttTurnInSeq)
     IN
         IF Len(res) /= 0 THEN res[1][1] \*Il existe un prochain attendre
-        ELSE evs[Len(evs)][1] \*Il n'existe pas de prochain attendre (aller à la fin)
+        ELSE -1\*evs[Len(evs)][1] \*Il n'existe pas de prochain attendre (aller à la fin)
 
 IsWaiting(W, block, tvalue) == \E seq \in W : seq[3] = block /\ seq[4] = tvalue
 
-getWaiting(W, block, tvalue) == CHOOSE seq \in W : seq[3] = block /\ seq[4] = tvalue        
-        
-reversedGetWaiting(W, tid) == CHOOSE seq \in W : seq[1] = tid    
+getWaiting(W, block, tvalue) == CHOOSE seq \in W : seq[3] = block /\ seq[4] = tvalue  
 
+reversedGetWaiting(W, tid) == CHOOSE seq \in W : seq[1] = tid      
+        
 RequestUpdate(req,F) == [ f \in DOMAIN F |-> IF f[1] = req[1] THEN req[2] ELSE F[f] ]
 
 FindLock(W,E) ==
@@ -65,7 +64,6 @@ FindLock(W,E) ==
         ELSE \* se déplace
             NextAttTurn(x,E[x])
     ]        
-    
 
         
 UpdateS(S,W,E) == \*S pour Signals
@@ -168,6 +166,7 @@ Until_cons(T) ==
 
 
         \* Regulateur
+        
 
 StartEvent == \*Simuler une approche grands pas
     LET
@@ -202,7 +201,7 @@ Turn ==
         /\ reg' = [reg EXCEPT !.E[id][1][2] = Tail(event[2])]
         /\ sigma' = [sigma EXCEPT ![numAig] = order[3]]
         /\ UNCHANGED feux
-        /\ UNCHANGED meta \*' = [meta EXCEPT !.nextG = "update"]
+        /\ UNCHANGED meta
 
 Att_bf == 
     LET
@@ -217,7 +216,7 @@ Att_bf ==
         /\ Len(meta.msg[1]) /= 0
         /\ Len(event[2]) > 0
         /\ order[1] = "att"
-        /\ reg.J[jet] /= val
+        /\ reg.J[jet] < val
         /\ UNCHANGED gamma
         /\ rule' = "att_bf"
         /\ reg' = [reg EXCEPT !.W = reg.W \union {<<id,pos,jet,val>>},
@@ -242,13 +241,13 @@ Att_af ==
         /\ Len(meta.msg[1]) /= 0
         /\ Len(event[2]) > 0
         /\ order[1] = "att"
-        /\ reg.J[jet] = val
+        /\ reg.J[jet] >= val
         /\ UNCHANGED gamma
         /\ rule' = "att_af"
         /\ reg' = [reg EXCEPT !.E[id][1][2] = Tail(event[2])]
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">>, <<pos,"V">> >>]
+        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">> >>]\*, <<pos,"V">> >>]
 
 Incr_bf ==
     LET
@@ -298,7 +297,7 @@ Incr_af ==
                               !.E[id][1][2] = Tail(event[2])]
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">>, <<pos,"V">> >>] \*si tous marche bien, inutile plus tard
+        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">> >>]\*, <<pos,"V">> >>] \*si tous marche bien, inutile plus tard
                \*                 !.nextG = "update"]
 
 
@@ -320,7 +319,7 @@ Auth ==
         /\ reg' = [reg EXCEPT !.E[id][1][2] = Tail(event[2])]
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">>, <<pos,"V">> >>] \*si tous marche bien, inutile plus tard
+        /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">> >>]\*, <<pos,"V">> >>] \*si tous marche bien, inutile plus tard
                \*                 !.nextG = "update"]
 
 
@@ -344,6 +343,7 @@ EndEvent ==
 
 
         \* Feu
+
 
 ReqUpdate ==
     LET

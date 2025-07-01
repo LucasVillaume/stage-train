@@ -23,7 +23,7 @@ def eventTraitement(event, troncons):
         event[i] = [troncons[i], event[i]]
     return event
 
-def trajet2model(trajet):
+def trajet2model(trajet,troncons):
     model = "----------------------------- MODULE composition -----------------------------\n\n"+\
              "EXTENDS Integers, TLC, Sequences\n"+\
              "VARIABLE gamma, reg, sigma, feux, meta, rule\n\n"
@@ -43,12 +43,13 @@ def trajet2model(trajet):
                  f"\tdir |-> \"*\",\n"+\
                  f"\tprog |-> {progTraitement(trajet.trains[i].prog)}\n]\n"
         
-        mevents += f"    {eventTraitement(trajet.events[i], trajet.trains[i].troncons)}"
+        mevents += f"    {eventTraitement(trajet.events[i], troncons[i])}"
         mevents += ",\n" if i < len(trajet.trains) - 1 else "\n"
 
-        tl += f'\t\t\t![{trajet.first_stop[i]},"L"] = "R",\n\t\t\t![{trajet.first_stop[i]},"R"] = "R"'
-        tl += f",\n" if i < len(trajet.trains) - 1 else ""
-
+        stop = [x[1] for x in trajet.wait_list if x[0] == trajet.trains[i].id][0]
+        tl += f'\t\t\t![{stop},"L"] = "R",\n\t\t\t![{stop},"R"] = "R"'
+        tl += f",\n" if i < len(trajet.trains) - 1 else "" 
+    
     mevents += ">>\n\n"
     mevents = mevents.replace("[", "<<").replace("]", ">>").replace("(", "<<").replace(")", ">>").replace("'", '"')
 
@@ -68,6 +69,11 @@ def trajet2model(trajet):
     switch += ">>\n\n"
     model +=  switch
 
+    wait = "{"
+    for w in trajet.wait_list:
+        wait += f"<<{w[0]+1},{int(w[1])},{int(w[2])},{w[3]}>>"
+        wait += ", " if w != trajet.wait_list[-1] else ""
+    wait += "}"
 
     #Init
     init = "Init ==\n" + \
@@ -75,7 +81,7 @@ def trajet2model(trajet):
             f"    /\\ reg = [\n"+\
             "\t\tE |-> events,\n"+\
             "\t\tJ |-> token,\n"+\
-            "\t\tW |-> {}\n    \t]\n"+\
+            f"\t\tW |-> {wait}\n    \t]\n"+\
             f"    /\\ sigma = switch\n"+\
             f"    /\\ feux = [traffic_lights EXCEPT \n{tl}]\n"+\
             f"    /\\ meta = [\n" + \

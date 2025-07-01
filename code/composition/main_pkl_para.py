@@ -1,4 +1,4 @@
-from composer import compose, createProgram, build_troncons
+from composer import compose, createProgram, build_troncons, Trajet, Train
 from TLAModel import trajet2model
 from math import ceil
 from multiprocessing import Process, Array, Value, Event
@@ -11,22 +11,16 @@ import random
 import signal
 import os
 import sys
-
-
-######## Constants ########
-NBPROCESS = 1
-TIMEOUT = 10 # real timeout is TIMEOUT * SLEEPTIME
-SLEEPTIME = 3600 #in seconds, 1 hour by default
-
-
-
+import pickle
 
 
 etats = dict()
 with open("graph_simple.json", "r") as file:
     etats = json.load(file)
 
-
+save_etats = dict()
+with open("graph_simple.json", "r") as file:
+    save_etats = json.load(file)
 
 def handler(signum, frame):
     global term_event
@@ -38,17 +32,25 @@ def ignore_sigint():
 
 
 def setup(e1, e2, e3, dir="model"):
-    p1 = etats[e1][e2].split("__")
-    p2 = etats[e2][e3].split("__")
+    p1 = save_etats[e1][e2].split("__")
+    p2 = save_etats[e2][e3].split("__")
 
     o1 = createProgram(e1, e2, p1)
     o2 = createProgram(e2, e3, p2)
-    o3 = compose(o1, o2)
+    o3 = compose(o1, o2, True)
 
     model = trajet2model(o3, build_troncons(o3.trains))
     with open(f"{dir}/composition.tla", "w") as file:
         file.write(model)
 
+def setupComplex(comp, e2, e3, dir="model"):
+    p2 = save_etats[e2][e3].split("__")
+    o2 = createProgram(e2, e3, p2)
+    o3 = compose(comp, o2)
+
+    model = trajet2model(o3, build_troncons(o3.trains))
+    with open(f"{dir}/composition.tla", "w") as file:
+        file.write(model)
 
 def check(etat1, etat2, etat3):
     pos = []
@@ -61,7 +63,7 @@ def check(etat1, etat2, etat3):
             #non conforme pour l'analyse TLA
             #A -> B -> C : A != B mais A == C
             #ça implique X(RL) -> X* -> X(RL) ou X* -> X(RL) -> X*
-            return False    
+            return False
 
     for i in range(len(pos[1])):
         if "*" in pos[1][i] and pos[1][i] != pos[2][i]:
@@ -69,10 +71,25 @@ def check(etat1, etat2, etat3):
             return False
     return True
 
+def checkComplexe(etat1, etat2, etat3):
+    pos = []
+    pos.append(re.findall(r"\d+[LR*]", etat1))
+    pos.append(re.findall(r"\d+[LR*]", etat2))
+    pos.append(re.findall(r"\d+[LR*]", etat3))
 
+    for i in range(len(pos[0])):
+        if "*" in pos[2][i] and pos[1][i] != pos[2][i]:
+            #non conforme pour l'analyse TLA
+            return False
+
+    for i in range(len(pos[1])):
+        if "*" in pos[1][i] and pos[1][i] != pos[2][i]:
+            #non conforme pour l'analyse TLA
+            return False
+    return True
 
 def execution(dir="model"):
-    command = ["java", "-jar", f"model/tla2tools.jar", "-noGenerateSpecTE", "-config", f"model/compo.cfg", f"{dir}/model2.tla"]
+    command = ["java", "-jar", f"model/tla2tools.jar", "-noGenerateSpecTE", "-workers", "2","-config", f"model/compo.cfg", f"{dir}/model2.tla"]
     if dir != "model":
         command.insert(4,"-metadir")
         command.insert(5, dir+"/tmp")
@@ -94,7 +111,6 @@ def execution(dir="model"):
 
 def analyse(data=None, dir=None, term_event=None, tab=None):
 
-    print(f"Taille du graph : {len(etats)} états")
     if data is None:
         data = etats
 
@@ -103,24 +119,27 @@ def analyse(data=None, dir=None, term_event=None, tab=None):
 
     while len(data) > 0 and not term_event.is_set():
         etat1 = random.choice(list(data.keys()))
-        for etat2 in etats[etat1].keys():
-            for etat3 in etats[etat2].keys():
+        for pkl in data[etat1]:
+            with open(f"model/pickle/{pkl}", "rb") as file:
+                tmp = file.read()
+                complex = pickle.loads(tmp)
+            for etat3 in save_etats[etat1].keys():
                 try:
-                    if check(etat1, etat2, etat3):
+                    if checkComplexe(complex.posInitial, etat1, etat3):
                         t = time.time()
                         if dir is None:
-                            setup(etat1, etat2, etat3)
+                            setupComplex(complex, etat1, etat3)
                             execution()
                         else:
-                            setup(etat1, etat2, etat3, dir)
+                            setupComplex(complex, etat1, etat3, dir)
                             execution(dir)
                         cpt += 1
                         """ if tab is None:
                             print(f"Execution {cpt} : {etat1} -> {etat2} -> {etat3} en {time.time() - t:.2f} secondes")
                         else:
                             tab[1] += 1"""
-                        with open("model/succes.log", "a") as file:
-                            file.write(f"{etat1} -> {etat2} -> {etat3} en {time.time() - t:.2f} secondes\n")
+                        with open(f"{dir}/succes.log", "a") as file:
+                            file.write(f"{complex.posInitial} -> {etat1} -> {etat3} en {time.time() - t:.2f} secondes\n")
                 except Exception as e:
                     total_erreurs += 1
                     """ if tab is None:
@@ -128,14 +147,14 @@ def analyse(data=None, dir=None, term_event=None, tab=None):
                     else:
                         tab[0] += 1
                         print(f"Erreur entre {etat1}, {etat2} et {etat3}: {e} / Nombre total d'erreurs: {tab[1]}") """
-                    with open("model/errors.log","a") as error_file:
-                        error_file.write(f"Erreur {etat1} -> {etat2} -> {etat3} : {e}\n")
-                    exit(1)
+                    with open(f"{dir}/errors.log","a") as error_file:
+                        error_file.write(f"Erreur {complex.posInitial} -> {etat1} -> {etat3} : {e}\n")
+
         with open(f"{dir}/progress.log", "a") as progress_file:
             progress_file.write(etat1 + "\n")
         data.pop(etat1)
 
-    print(f"Travail terminé. Sauvegarde en cours...")
+    #print(f"Travail terminé. Sauvegarde en cours...")
     save_path = "model/save_etats.json"
     if dir is not None:
         save_path = f"{dir}/save_etats.json"
@@ -156,8 +175,8 @@ def affichage(array, term):
 
 def manager(pid):
     """ Contrôle la durée de l'expérience """
-    for i in range(TIMEOUT):
-        time.sleep(SLEEPTIME) # Laisser le temps aux processus de s'exécuter
+    for i in range(10):
+        time.sleep(3600) # Laisser le temps aux processus de s'exécuter
     os.kill(pid, signal.SIGINT)
 
 
@@ -180,7 +199,7 @@ if __name__ == "__main__":
     nodeData = etats    
 
     if len(sys.argv) > 1:
-        with open(f"model/gs_{sys.argv[1]}.json","r") as file:
+        with open(f"model/gp_{sys.argv[1]}.json","r") as file:
             nodeData = json.load(file)
 
 
@@ -189,10 +208,8 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     term_event = Event()
 
-    divided = divide_dict(nodeData, NBPROCESS)
-    
-    for d in divided:
-        print(f"Nombre d'états dans le dictionnaire : {len(d)}")
+    divided = divide_dict(nodeData, 5)
+
 
     d_procs = divided
     procs = []

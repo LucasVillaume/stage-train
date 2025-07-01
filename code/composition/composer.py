@@ -2,6 +2,7 @@ import json
 import re
 import copy
 from TLAModel import trajet2model
+import pickle
 
 
 maquette = {
@@ -364,8 +365,7 @@ class Train:
         self.dep = depart
         self.arr = arrivee
         self.prog = []
-        #self.last_crit = [0]*nb_trains #position du dernier critique
-        #self.offset_crit = [0]*nb_trains
+        self.last_crit = [0]*nb_trains #position du dernier critique
         self.troncons = []
 
     def __str__(self):
@@ -376,23 +376,27 @@ class Trajet:
         self.trains = trains
         self.events = events
         # "numAiguillage" : ("état", "free") / free à False si l'aiguillage doit être ainsi dans l'état initial
-        #self.switch_init = {"9": ("d",True), "10": ("d",True), "11": ("d",True), "12": ("d",True), "13": ("d",True)}
-        #self.histo_switch = {"9": [], "10": [], "11": [], "12": [], "13": []} #pour l'historique des aiguillages
+        self.switch_init = {"9": ("d",True), "10": ("d",True), "11": ("d",True), "12": ("d",True), "13": ("d",True)}
+        self.histo_switch = {"9": [], "10": [], "11": [], "12": [], "13": []} #pour l'historique des aiguillages
+        self.wait_list = [] # liste d'attente pour les trains
+        self.posInitial = ""
+        self.posFinal = ""
         #self.tokens = [0]*9 #un token par canton
-        #self.first_stop = self.firstStop()
+        #self.first_stop = [] #(id,pos)
 
-    def firstStop(self):
+    """ def firstStop(self):
         first_stop = [-1]*len(self.trains)
         for i in range(len(self.trains)):
             first_stop[i] = self.trains[i].troncons[-1]
-        return first_stop
+        return first_stop """
 
     def __str__(self):
         string = ""
         for i in range(len(self.trains)):
             string += f"{str(self.trains[i])}\n"
             string += f"  Events : {self.events[i]}\n"
-        return string + f"Events init : {self.events[-1]}"
+        string += f"Histo switch : {self.histo_switch}\nWaiting list : {self.wait_list}\nposInitial : {self.posInitial} | posFinal : {self.posFinal}\n"
+        return string
 
 
 
@@ -449,46 +453,47 @@ def createProgram(start, end, paths, nb_trains=3):
                     if s+1 < len(steps): #TODO Super sale donc voir pour arranger
                         if (int(steps[s][:-1]) in [9,10] and int(steps[s+1][:-1]) in [9,10]):
                             events[tr].pop() #supprime le dernier event
-    #assigne les troncons
+
     for i in range(len(trains)):
-        getTroncons(trains[i], events[i], maquette)
-    
+        getTroncons(trains[i], events[i], maquette) 
+       
     #construit le programme des trains
     for i in range(nb_trains):
         if trains[i].arr[1] != "*":
             trains[i].prog.append(("SU",trains[i].arr[1],trains[i].troncons[1:]))
 
-
     final_events = copy.deepcopy(events)
-    final_events.append([])  # Ajoute event d'initialisation
+    histo_aiguillages = {"9": [], "10": [], "11": [], "12": [], "13": []}
+    switch_init = {"9": ("d",True), "10": ("d",True), "11": ("d",True), "12": ("d",True), "13": ("d",True)} 
 
     for i in range(len(events)):
         for j in range(len(events[i])):
             if len(events[i][j]) > 0:
                 final_events[i][j] = []
                 for order in events[i][j]:
-                    init_order = (order[0], order[1], order[2], (i,j)) #i: train / j: numEvent
-                    final_events[-1].append(init_order)
+                    histo_aiguillages[order[1]].append((order[2], i, j))
+                    switch_init[order[1]] = (order[2], False) # met à jour l'état de l'aiguillage
 
     sillon = Trajet(trains, final_events)
+    sillon.histo_switch = histo_aiguillages
+    sillon.switch_init = switch_init
+
+    for train in sillon.trains:
+        sillon.wait_list.append((train.id, train.dep[0], train.dep[0], 1)) # ajoute le train à la liste d'attente
+        sillon.events[train.id][0].append(("incr", int(train.dep[0])))
+    sillon.posInitial = start
+    sillon.posFinal = end
     return sillon
 
 
-
-def build_histo(o1):
-    histo_switch = {"9": [], "10": [], "11": [], "12": [], "13": []}
-
-    for event in o1.events[-1]:
-            if event[0] == "turn":
-                histo_switch[event[1]].append((event[2],event[3][0], event[3][1]))
-
+def build_token(o1):
     tokens = [0]*9 #un token par canton
     offset = [0]*len(o1.trains) #offset pour les trains
     wait_list = []
     train_list = [x for x in range(len(o1.trains))]
     run_events = copy.deepcopy(o1.events)
 
-    while len(train_list) > 0:
+    while len(train_list) > 0: #Possible d'optimiser largement -> pas besoin de suivre l'execution, juste compter les incr
         current = train_list.pop(0)
         flag = False
         i = 0
@@ -516,15 +521,13 @@ def build_histo(o1):
                     elif order[0] == "auth": 
                         continue
                     elif order[0] == "turn":
-                        histo_switch[order[1]].append((order[2], current, i+offset[current]))
+                        continue
             offset_tmp += 1
             i += 1
             if flag:
                 offset[current] += offset_tmp
         run_events[current] = cpy_events
-            
-
-    return histo_switch,tokens
+    return tokens
 
 
 def build_troncons(trains):
@@ -537,6 +540,22 @@ def build_troncons(trains):
                 if troncons[train.id][-1] != tro:
                     troncons[train.id].append(tro)
     return troncons
+
+
+def findCritical(t1, troncons_o1, t2, troncons_o2, o1):
+    crit = []
+
+    for i in range(len(troncons_o2[t2.id])):
+        endT1 = t1.last_crit[t2.id]
+        for j in range(len(troncons_o1[t1.id])-1, endT1-1, -1):
+            if troncons_o2[t2.id][i] == troncons_o1[t1.id][j]:
+                crit.append(troncons_o2[t2.id][i])
+                t1.last_crit[t2.id] = j
+                t2.last_crit[t1.id] = i
+                break
+    return crit
+
+
 
 def last_index(lst, value):
     """Retourne le dernier index de value dans lst, ou -1 si value n'est pas dans lst."""
@@ -551,31 +570,35 @@ def search_prec_histo(histo, switch, train, numEv):
             return histo[switch][i]
 
 
-def compose(o1,o2):
-    histo_o1, tokens_o1 = build_histo(o1)
-    histo_o2, _ = build_histo(o2)
+def compose(o1,o2,save=False):
+    tokens_o1 = build_token(o1)
+    histo_o1 = o1.histo_switch
+    histo_o2 = o2.histo_switch
 
     troncons_o1 = build_troncons(o1.trains)
     troncons_o2 = build_troncons(o2.trains)
 
+    #supprime les att du début dans o2
+    for i in range(len(o2.trains)):
+        o2.events[i][0] = []
+
     #simplifier les turns
     for aig, hist in histo_o2.items():
         for i in range(len(hist)):
-            if len(histo_o1[aig][i]) > 0:
+            if len(histo_o1[aig]) > 0: #init
                 if histo_o1[aig][-1][0] != hist[i][0]: #different
                     train = hist[i][1]
                     event = hist[i][2]
                     o2.events[train][event].append(("turn", aig, hist[i][0]))
-                else: #similaire
-                    histo_o2[aig].pop(i) #TODO: faire ça proprement (pas dangereux mais quand même)
             else: #pas d'init
-                o1.events[-1].append(aig[i])
+                o1.switch_init[aig] = (histo_o2[aig][i][0], False) #met à jour l'état de l'aiguillage
 
     #fusionne les historiques
     histo_o3 = copy.deepcopy(histo_o1)
     for aig, hist in histo_o2.items():
         if aig in histo_o3:
-            histo_o3[aig] += hist
+            for init in hist:
+                histo_o3[aig].append((init[0], init[1], init[2]+len(o1.events[init[1]])-1))
         else:
             histo_o3[aig] = hist
 
@@ -588,7 +611,6 @@ def compose(o1,o2):
                         index_incr = last_index(troncons_o1[i], troncons_o2[j][t])+1
                         index_att = t-1
                         sec_crit = troncons_o2[j][t]
-                        
                         tokens_o1[int(sec_crit)] += 1
                         o1.events[i][index_incr].append(("incr", sec_crit))
                         o2.events[j][index_att].append(("att", sec_crit, tokens_o1[int(sec_crit)]))
@@ -596,15 +618,16 @@ def compose(o1,o2):
                             cpy_events = copy.deepcopy(o2.events[j][index_att])
                             for order in cpy_events:
                                 if order[0] == "turn":
-                                    prec = search_prec_histo(histo_o3, order[1], j, index_att)
+                                    prec = search_prec_histo(histo_o3, order[1], j, index_att+len(o1.events[j])-1)
                                     if prec is not None:
                                         _, train, event = prec
+                                        event += 1
                                     else:
                                         train = i
                                         event = index_incr
-                                    o1.events[train][event+1].append(("turn", order[1], order[2]))
+                                    o1.events[train][event].append(("turn", order[1], order[2]))
                                     o2.events[j][index_att].remove(order)
-                                    histo_o3[order[1]][-1] = (order[2], train, event+1) #met à jour l'historique
+                                    #histo_o3[order[1]][-1] = (order[2], train, event+1) #met à jour l'historique
     
 
     #ajout des auth
@@ -613,15 +636,17 @@ def compose(o1,o2):
             for o in range(len(o2.events[e][n])):
                 if o2.events[e][n][o][0] == "turn":
                     o2.events[e][n].append(["auth"])
+    
+    for t in range(len(o2.trains)):
+        o2.events[t][0].append(["auth"])
 
-    print(f"o3 histo_switch : {histo_o3}")
 
     #fusion des événements
     o3_events = copy.deepcopy(o1.events)
     for i in range(len(o2.trains)):
         o3_events[i][-1] += o2.events[i][0]
         o3_events[i] += o2.events[i][1:]
-
+    
     #fusion des trains
     o3_trains = copy.deepcopy(o1.trains)
     for t in range(len(o2.trains)):
@@ -629,9 +654,27 @@ def compose(o1,o2):
         o3_trains[t].arr = o2.trains[t].arr
     
     o3 = Trajet(o3_trains, o3_events)
+    o3.switch_init = o1.switch_init
+    o3.histo_switch = histo_o3
+    o3.wait_list = o1.wait_list
+    o3.posInitial = o1.posInitial
+    o3.posFinal = o2.posFinal
+    
     optimisation(o3)
-
+    if save:
+        filename = f"model/pickle/{o3.posInitial.replace('*', 'o')}-{o3.posFinal.replace('*', 'o')}.pkl"
+        with open(filename, "wb") as file:
+            file.write(pickle.dumps(o3))
     return o3
+
+
+def majTokens(o1, token, value):
+    for t in range(len(o1.trains)):
+        for e in range(len(o1.events[t])):
+            for o in range(len(o1.events[t][e])):
+                if o1.events[t][e][o][0] == "att" and o1.events[t][e][o][1] == token:
+                    if o1.events[t][e][o][2] > value:
+                        o1.events[t][e][o] = ("att", token, value-1)                         
 
 
 def optimisation(o1):
@@ -647,27 +690,53 @@ def optimisation(o1):
                 prog_tmp.remove(o1.trains[i].prog[j])
                 offset += 1
         o1.trains[i].prog = prog_tmp
-
-    #mettre feux rouge
-    troncons = build_troncons(o1.trains)
-    for t in range(len(o1.trains)):
-        found = False
-        for e in range(len(o1.events[t])):
-            for order in o1.events[t][e]:
-                if order[0] == "att" or order[0] == "auth":
-                    o1.events[-1].append(("sendred",troncons[t][e],"L"))
-                    o1.events[-1].append(("sendred",troncons[t][e],"R"))
-                    found = True
-                    break
-            if found:
-                break
-        if not found:
-            o1.events[-1].append(("sendred",troncons[t][-1],"L"))
-            o1.events[-1].append(("sendred",troncons[t][-1],"R"))
     
+    #supprimer les doublons
+    """ for t in range(len(o1.trains)):
+        for e in range(len(o1.events[t])):
+            orders_cpy = copy.deepcopy(o1.events[t][e])
+            rmv = []
+            for o in range(len(o1.events[t][e])):
+                if o1.events[t][e][o][0] == "att":
+                    for p in range(len(o1.events[t][e])):
+                        if o != p and o1.events[t][e][p][0] == "att" and o1.events[t][e][p][1] == o1.events[t][e][o][1]:
+                            orders_cpy.remove(o1.events[t][e][p])
+                            majTokens(o1, o1.events[t][e][p][1], o1.events[t][e][p][2])
+                if o1.events[t][e][o][0] == "incr":
+                    for p in range(len(o1.events[t][e])):
+                        if o != p and o1.events[t][e][p][0] == "incr" and o1.events[t][e][p][1] == o1.events[t][e][o][1]:
+                            rmv.append(o1.events[t][e][p])
+            for elem in rmv:
+                orders_cpy.remove(elem)
+            o1.events[t][e] = orders_cpy """
 
 
+import subprocess
 
+
+def verifTMP(e1,e2, e3):
+    s6 = etats[f"{e2} -> {e3}"].split("__")
+    o6 = createProgram(e2, e3, s6)
+    #print(f"o6\n{o6}")
+    #o7 = compose(o5, o6)
+
+    with open(f"model/pickle/{e1.replace("*","o")}-{e2.replace("*","o")}.pkl", "rb") as file:
+        tmp = file.read()
+        saved = pickle.loads(tmp)
+    #print(f"saved\n{saved}")
+    o7 = compose(saved, o6)
+    
+    #print(f"o7\n{o7}")
+    #print(f"o7 switch historique : {o7.histo_switch}")
+
+    with open("model/composition.tla", "w") as file:
+        file.write(trajet2model(o7, build_troncons(o7.trains)))
+
+    command = ["java", "-jar", f"model/tla2tools.jar", "-config", f"model/compo.cfg", f"model/model2.tla"]
+    f = open(f"model/out.log", "w")
+    p = subprocess.Popen(command, stdout=f, stderr=f)
+    p.wait()
+    f.close()
 
 
 if __name__ == "__main__":
@@ -678,68 +747,46 @@ if __name__ == "__main__":
 
     s4_1 = etats["N4L5R2* -> N8L7R2*"].split("__")
     o1 = createProgram("N4L5R2*", "N8L7R2*",s4_1) 
-    """o1.events[0] = [[],[],[("att", "2", 1)],[],[("turn", "9", "v")]]
-    o1.events[1] = [[("turn","13","v"),("incr","4")],[("att","3","1")],[],[],[("turn", "9", "d"),("incr","2")]]
-    o1.events[2] = [[("att","4","1")],[],[("turn","11","d"),("incr","3")],[],[]]"""
     s4_2 = etats["N8L7R2* -> N8*4R2*"].split("__")
     o2 = createProgram("N8L7R2*", "N8*4R2*",s4_2)
     print(f"o1\n{o1}")
-    print(f"o1 histo_switch : {build_histo(o1)}\n")
     print(f"o2\n{o2}")
-    print(f"o2 histo_switch : {build_histo(o2)}\n")
     o3 = compose(o1, o2)
     print(f"\no3\n{o3}")
-    """preparation(o1, o2)
-    o3 = assemblage(o1, o2)
-    nettoyage(o3)
-    print(f"o3\n{o3}")
-    print(f"o3 switch_init : {o3.switch_init}")
-    print(f"o3 switch historique : {o3.histo_switch}")
 
-
-    s5 = etats["N8*4R2* -> N8R4*2*"].split("__")
+    """s5 = etats["N8*4R2* -> N8R4*2*"].split("__")
     o4 = createProgram("N8*4R2*", "N8R4*2*", s5)
     print(f"o4\n{o4}")
     o5 = compose(o3, o4)
     print(f"o5\n{o5}")
     print(f"o5 switch historique : {o5.histo_switch}")
+    """
+
+    
+    """ cpt = 0
+    with open("allErrors.log", "r") as file:
+        for line in file:
+            cpt += 1
+            chemin = re.findall(r"N(?:[1-8][LR\*]){3} -> N(?:[1-8][LR\*]){3} -> N(?:[1-8][LR\*]){3}", line)[0]
+            
+            #state =  "N5R8R4R -> N3R2*6* -> N1R2*6*"
+            e = chemin.split(" -> ")
+            verifTMP(e[0], e[1], e[2]) """
 
 
-    s6 = etats["N8R4*2* -> N3R4*2*"].split("__")
-    o6 = createProgram("N8R4*2*", "N3R4*2*", s6)
+    """ s6 = etats["N2*8*7R -> N2*8*6R"].split("__")
+    o6 = createProgram("N2*8*7R", "N2*8*6R", s6)
     print(f"o6\n{o6}")
-    o7 = compose(o5, o6)
+    #o7 = compose(o5, o6)
+
+    with open(f"model/pickle/N5R8R4R-N2o8o7R.pkl", "rb") as file:
+        tmp = file.read()
+        saved = pickle.loads(tmp)
+    print(f"saved\n{saved}")
+    o7 = compose(saved, o6)
+    
     print(f"o7\n{o7}")
-    print(f"o7 switch historique : {o7.histo_switch}") """
+    print(f"o7 switch historique : {o7.histo_switch}")
 
-    """ s1 = etats["N2L7L6L -> N3L5L4L"].split("__")
-    o1 = createProgram("N2L7L6L", "N3L5L4L", s1)
-    s2 = etats["N3L5L4L -> N6L5*4*"].split("__")
-    o2 = createProgram("N3L5L4L", "N6L5*4*", s2)
-    print(f"o1\n{o1}")
-    print(f"o2\n{o2}")
-    o3 = compose(o1, o2)
-    print(f"o3\n{o3}")
-    print(f"o3 switch_init : {o3.switch_init}") """
-
-    """ s1 = etats["N2L7L6L -> N2*5L3L"].split("__")
-    o1 = createProgram("N2L7L6L", "N2*5L3L", s1)
-    s2 = etats["N2*5L3L -> N2*4L8L"].split("__")
-    o2 = createProgram("N2*5L3L", "N2*4L8L", s2)
-    print(f"o1\n{o1}")
-    print(f"o2\n{o2}")
-    o3 = compose(o1, o2)
-    print(f"o3\n{o3}")
-    print(f"o3 switch_init : {o3.switch_init}") """
-
-    """s1 = etats["N2L7L6L -> N8L5L4L"].split("__")
-    o1 = createProgram("N2L7L6L", "N8L5L4L", s1)
-    s2 = etats["N8L5L4L -> N8*5*7L"].split("__")
-    o2 = createProgram("N8L5L4L", "N8*5*7L", s2)
-    print(f"o1\n{o1}")
-    print(f"o2\n{o2}")
-    o3 = compose(o1, o2)
-    print(f"o3\n{o3}")
-    print(f"o3 switch_init : {o3.switch_init}") """
-
-
+    with open("model/composition.tla", "w") as file:
+        file.write(trajet2model(o7, build_troncons(o7.trains))) """
