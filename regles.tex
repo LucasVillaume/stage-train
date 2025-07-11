@@ -10,6 +10,19 @@
 
 
 
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{wrapfig}
+\usepackage[disable]{todonotes}
+\usepackage{xspace}
+\usepackage{ amssymb }
+\usepackage{minted}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{package/formal-grammar}
+
 \title{Modèle 2}
 \author{}
 
@@ -33,6 +46,151 @@
         \end{array}
     \end{math}
 }
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Macro du papier %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newcommand{\ruleFmt}[1]{\textsc{(#1)}}
+\newcommand{\ruleDef}[1]{\hypertarget{#1}{\ruleFmt{#1}}}
+\newcommand{\ruleRef}[1]{\hyperlink{#1}{\ruleFmt{#1}}}
+
+\newcommand{\Nat}{{\mbox{$\mathbb{N}$}}}
+\newcommand{\tuple}[1]{\ensuremath{\langle #1\rangle}}
+
+\newcommand{\directions}{\dirFmt{\mathsf{D}}}
+\newcommand{\internalState}{{\mathcal{I}}}
+
+% Je suis assez d'avis de distinguer la direction des blocks et des trains
+\newcommand{\forward}{\ensuremath{\mathtt{f}}}
+\newcommand{\backward}{\ensuremath{\mathtt{b}}\xspace}
+\newcommand{\sucblock}{{\mathtt{suc}}}
+\newcommand{\throughS}{{\mathtt{through}}}
+
+%% Modèle
+\newcommand{\modelSet}{\ensuremath{\mathbb{M}}}
+
+%% Train directions
+\definecolor{dircolor}{rgb}{1.0, 0.13, 0.32}
+\newcommand{\dirFmt}[1]{{\color{dircolor} #1}}
+\newcommand{\dirForward}{\ensuremath{\dirFmt{\forward}}\xspace}
+\newcommand{\dirBackward}{\ensuremath{\dirFmt{\backward}}\xspace}
+\newcommand{\dirStop}{\ensuremath{\dirFmt{\star}}\xspace}
+
+%% Positions
+\definecolor{poscolor}{rgb}{0.6, 0.45, 0.32}
+\newcommand{\posFmt}[1]{{\color{poscolor}{#1}}}
+\newcommand{\blocks}{{\posFmt{\mathsf{B}}}}
+\newcommand{\bid}[1]{\ensuremath{\posFmt{b_{#1}}}}
+\newcommand{\suc}[3]{\ensuremath{\sucblock(\posFmt{#1}, \dirFmt{#2}, \swFmt{#3})}}
+
+% Sensors
+\definecolor{senscolor}{RGB}{238,146,17}
+\newcommand{\sensFmt}[1]{{\color{senscolor}{#1}}}
+\newcommand{\sensid}[2]{\ensuremath{\sensFmt{c_{#1}^{#2}}}}
+\newcommand{\sensors}{{\mathtt{sensors}}}
+\newcommand{\trigSensors}[3]{\ensuremath{\sensors(\posFmt{#1}, \dirFmt{#2}, \swFmt{#3})}}
+\newcommand{\sensorsRes}[2]{\ensuremath{\sensFmt{#1},\sensFmt{#2}}}
+\newcommand{\sensTid}[2]{\ensuremath{\mathtt{getTid}(#1, #2)}}
+
+%% Switches
+\definecolor{swcolor}{rgb}{0.4, 0.23, 0.56}
+\newcommand{\swFmt}[1]{{\color{swcolor}{#1}}}
+\newcommand{\sid}[1]{\ensuremath{\swFmt{s_{#1}}}}
+\newcommand{\turnouts}{\swFmt{\mathsf{\Theta}}}
+\newcommand{\switches}{\ensuremath{\swFmt{\sigma}}}
+\newcommand{\networkConf}{\ensuremath{\swFmt{\Sigma}}}
+\newcommand{\nosuc}{\ensuremath{\swFmt{\bot}}}
+\newcommand{\updateSwitch}[3]{\ensuremath{#1[\swFmt{#2}\leftarrow #3]}}
+
+%% Trains
+\definecolor{traincolor}{rgb}{0.2, 0.2, 0.6}
+\newcommand{\trainFmt}[1]{{\color{traincolor} #1}}
+\newcommand{\trainTuple}[4]{\langle \trainFmt{#1}, \posFmt{#2}, \dirFmt{#3}, #4 \rangle}
+\newcommand{\trainSeq}{\ensuremath{\trainFmt{\Gamma}}\xspace}
+\newcommand{\trains}{{\trainFmt{\mathsf{T}}}}
+\newcommand{\tid}[1]{\ensuremath{\trainFmt{t_{#1}}}}
+
+%% Train program
+\newcommand{\su}[2]{{\mbox{$\mathtt{startuntil}(\dirFmt{#1}, \posFmt{#2})$}}\xspace}
+\newcommand{\start}[1]{{\mbox{$\mathtt{start}(\dirFmt{#1})$}}\xspace}
+\newcommand{\until}[1]{{\mbox{$\mathtt{until}(\posFmt{#1})$}}\xspace}
+\newcommand{\trainConcat}[2]{#1 \cdot #2}
+\newcommand{\emptyTrainProg}{\varepsilon}
+
+%% Regulator
+\newcommand{\handlerOf}[2]{\ensuremath{#1[\sensFmt{#2}]}}
+\newcommand{\popHandlerHead}[2]{\ensuremath{{\tt pop}(#1[\sensFmt{#2}])}}
+\newcommand{\substHandlerHead}[3]{\ensuremath{#1[\sensFmt{#2} \leftarrow #3]}}
+\newcommand{\actionsOf}[1]{\ensuremath{#1.{\tt act}}}
+\newcommand{\blockOf}[1]{\ensuremath{#1.{\tt block}}}
+\newcommand{\handler}[2]{\tuple{#1, #2}}
+\newcommand{\nextAct}[1]{\ensuremath{#1.{\tt cont}}}
+
+%% Regulator's Program
+\newcommand{\regTuple}[5]{\tuple{#1, #2, #3, #4, #5}}
+\newcommand{\evGuard}[2]{\ensuremath{\mathtt{ev}(\trainFmt{#1}, #2)}}
+\newcommand{\ev}[3]{\evGuard{#1}{#2}: #3}
+\newcommand{\incr}[1]{{\mbox{\ensuremath{\mathtt{incr}(\posFmt{#1})}}}\xspace}
+\newcommand{\turn}[2]{{\mbox{\ensuremath{\mathtt{turn}(#1, #2)}}}\xspace}
+\newcommand{\auth}{{\mbox{\ensuremath{\mathtt{auth}}}}\xspace}
+\newcommand{\tokens}{\ensuremath{T}}
+\newcommand{\tokenOf}[1]{\ensuremath{T(\posFmt{#1})}}
+\newcommand{\regulator}{\ensuremath{R}}
+\newcommand{\wait}[2]{{\mbox{\ensuremath{\mathtt{wait}(\posFmt{#1}, #2)}}}\xspace}
+\newcommand{\regConcat}[2]{#1 \cdot #2}
+\newcommand{\incrToken}[2]{\ensuremath{#1. {\tt incr}(\posFmt{#2})}}
+
+%% Intial actions & event.
+\newcommand{\initialHandler}[1]{\handlerOf{#1}{\star}}
+\newcommand{\sendred}[2]{\ensuremath{{\tt sendred}(#1, #2)}}
+
+%% Sequences
+\newcommand{\push}[2]{\ensuremath{\mathtt{push}(#1, #2)}}
+\newcommand{\pop}[1]{\ensuremath{\mathtt{pop}(#1)}}
+
+%% Signals
+\newcommand{\sigred}{{\mbox{${\color{red!50!black}\mathtt{r}}$}}\xspace}
+\newcommand{\siggreen}{{\mbox{${\color{green!50!black}\mathtt{g}}$}}\xspace}
+\newcommand{\deviate}{{\mbox{$\mathtt{v}$}}\xspace}
+\newcommand{\direct}{{\mbox{$\mathtt{d}$}}\xspace}
+\newcommand{\signalF}[2]{\ensuremath{\signals(\posFmt{#1}, \dirFmt{#2})}}
+\newcommand{\signals}{\ensuremath{F}}
+\newcommand{\setSignalsTo}[2]{\signals.{\tt set\_to}(#1, #2)}
+\newcommand{\updateSfty}[4]{{\tt updateSfty}(\signals, #1, #2, #3, #4)}
+\newcommand{\updateSignal}[4]{\ensuremath{#1[\tuple{\swFmt{#2}, \dirFmt{#3}}\leftarrow #4]}}
+
+%% State
+\newcommand{\stateTuple}[4]{\tuple{#1, #2, #3, #4}}
+
+%% Guard
+\definecolor{guardcolor}{rgb}{0.53, 0.66, 0.42}
+\newcommand{\guardFmt}[1]{{\color{guardcolor} \ensuremath{\mathtt{#1}}}}
+\newcommand{\guardT}{\guardFmt{T}}
+\newcommand{\guardS}{\guardFmt{S}}
+\newcommand{\guardR}{\guardFmt{R}}
+\newcommand{\guardG}{\guardFmt{G}}
+\newcommand{\guardI}{\guardFmt{I}}
+%% Buffer
+\newcommand{\bufferFmt}[1]{#1}
+\newcommand{\head}[1]{\ensuremath{{\tt hd}(#1)}}
+\newcommand{\buflen}[1]{\ensuremath{{\tt len}(\bufferFmt{#1})}}
+\newcommand{\bufhead}[1]{\head{\bufferFmt{#1}}}
+\newcommand{\buftail}[1]{\ensuremath{{\tt tl}(\bufferFmt{#1})}}
+\newcommand{\emptyList}{\ensuremath{\varepsilon}}
+\newcommand{\bufTrainSet}{\ensuremath{\bufferFmt{\mathbb{B}_t}}\xspace}
+\newcommand{\bufSigSet}{\ensuremath{\bufferFmt{\mathbb{B}_s}}\xspace}
+\newcommand{\bufTrain}{\ensuremath{\bufferFmt{B_t}}\xspace}
+\newcommand{\bufSig}{\ensuremath{\bufferFmt{B_s}}\xspace}
+
+
+%% Reduction relation
+\newcommand{\reduces}{\ensuremath{\rightarrow}}
+\newcommand{\redTuple}[4]{\ensuremath{\tuple{#1, \bufferFmt{#2}, \bufferFmt{#3}, #4}}}
+
+%% Rule predicates
+\newcommand{\requestS}[3]{\ensuremath{{\tt RequestS}(\trainFmt{#1}, \posFmt{#2}, #3)}}
+\newcommand{\nextWait}[1]{\ensuremath{{\tt NextWait}(#1)}}
+\newcommand{\stalk}[3]{\ensuremath{{\tt Stalk}(#1, \swFmt{#2}, \sensFmt{#3})}}
 
 
 
@@ -109,121 +267,224 @@ M = (B,G) où :
 
 \end{grammar}
 
+
+
 %%%%%% Règles %%%%%%
+
+
 
 \newpage
 \section{Règles}
-
-\subsection{Système}
-
-\inferrule
-    {\alpha \xRightarrow{\text{!e}} \alpha' \\ \beta \xRightarrow{\text{?e}} \beta' }
-    {\alpha||\beta \Rightarrow \alpha' || \beta' }
-\vspace{0.5cm}
 
 \subsection{Actions sur le train}
 
 \noindent
 
-Start : 
-\inferrule
-    { dir \neq D \\ M.G.S = "none"}
-    {\trainfull{tid}{pid}{dir}{\concat{SU(D,[\concat{n}{N'}])}{P'}}, M \\ \xRightarrow{\text{!ev(tid,pid)}} \\ \trainfull{tid}{pid}{D}{\concat{SU(D,[\concat{n}{N'}])}{P'}}, M}
-\vspace{0.5cm}
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{Start}]{
+		P = \trainConcat{\start{d}}{P^\prime}
+	}{
+		\hspace{3mm} \redTuple{\guardT}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{m}}{\bid{i}}{\dirStop}{P}\}}{\regulator}{\switches}{\signals}} \\
+		\reduces
+		\redTuple{\guardT}{\push{\bufTrain}{\sensid{\dirFmt{d}}{\bid{i}}}}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{m}}{\bid{i}}{d}{P}\}}{\regulator}{\switches}{\signals}}
+    }
+\end{mathpar}
 
 
-Stop :
-\inferrule
-    { P = \varepsilon \\ dir \neq * \\ M.G.S = "none"}
-    {\trainfull{tid}{pid}{dir}{P},M \\ \xRightarrow{\text{!ev(tid,pid)}} \\ \trainfull{tid}{pid}{*}{P},M}
-\vspace{0.5cm}
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{Stop}]{
+		\dirFmt{d} \neq \dirStop
+	}{
+	\hspace{4mm}  \redTuple{\guardT}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{m}}{\bid{i}}{d}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}} \\
+	\reduces
+	\redTuple{\guardT}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{m}}{\bid{i}}{\dirStop}{\emptyTrainProg}\}}{\regulator}{\switches}{\signals}}
+	}
+\end{mathpar}
 
-\noindent
-Pour les deux prochaines règles, on espère que les valeurs de $n$ et de $s$ sont égales, sinon ça annonce des problèmes futurs.
-\vspace{0.5cm}
 
-Until :
-    \inferrule
-    { suiv(pid, D, \Sigma) = s \\ s \neq \varepsilon \\  S[(pid,dir)] = V \\ M.G.S = "none"}
-    {\trainfull{tid}{pid}{D}{\concat{SU(D,[\concat{n}{N'}])}{P'}},S,\Sigma,(B,G) \\ \xRightarrow{\text{!ev(tid,s)}} \\ \trainfull{tid}{s}{D}{\concat{SU(D,[N'])}{P'}},S,\Sigma,(B,\maj{G.S}{"update"})}
-\vspace{0.5cm}
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{Until}] {
+		\suc{\bid{i}}{d}{\switches} = \bid{j} \neq \nosuc
+		\and
+		\signalF{\bid{i}}{d} = \siggreen
+		\and
+		\posFmt{N} = \bid{j} \cdot \posFmt{N'}
+		\\
+		\posFmt{N'} \neq \emptyList
+	}{
+		\redTuple{\guardT}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{m}}{\bid{i}}{d}{\trainConcat{\until{\posFmt{N}}}{P}}\}}{\regulator}{\switches}{\signals}} \\
+		\reduces		
+		\redTuple{\guardS}{\push{\bufTrain}{\tuple{\sensid{\dirFmt{\neg d}}{\bid{j}},\sensid{\dirFmt{d}}{\bid{j}}}}}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{m}}{\bid{j}}{d}{\trainConcat{\until{\posFmt{N'}}}{P}}\}}{\regulator}{\switches}{\signals}}
+	}
+\end{mathpar}
 
-Until$_{cons}$ :
-    \inferrule
-        { suiv(pid, D, \Sigma) = s \\ s \neq \varepsilon \\  S[(pid,dir)] = V \\ G.S = "none"}
-        {\trainfull{tid}{pid}{D}{\concat{SU(D,[\concat{n}{\varepsilon}])}{P'}},S,\Sigma,(B,G) \\ \Rightarrow \\ \trainfull{tid}{s}{D}{P'},S,\Sigma,(B,\maj{G.S}{"update"})}
-\vspace{0.5cm}
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{UntilNext}] {
+		\suc{\bid{i}}{d}{\switches} = \bid{j} \neq \nosuc
+		\and
+		\signalF{\bid{i}}{d}{\switches} = \siggreen
+		\and
+		\posFmt{N} = \bid{j} \cdot \emptyList
+	}{
+		\redTuple{\guardT}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{m}}{\bid{i}}{d}{\trainConcat{\until{\posFmt{N}}}{P}}\}}{\regulator}{\switches}{\signals}} \\
+		\reduces		
+		\redTuple{\guardS}{\push{\bufTrain}{\tuple{\sensid{\dirFmt{\neg d}}{\bid{j}},\sensid{\dirFmt{d}}{\bid{j}}}}}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTuple{\tid{m}}{\bid{j}}{d}{P}\}}{\regulator}{\switches}{\signals}}
+	}
+\end{mathpar}
+
 
 \subsection{Actions sur le régulateur : simulation grands pas avec une approche petits pas}
 
 \noindent
 
-Recv :
-\inferrule
-    { len(B) = x}
-    {(B,G) \\ \xRightarrow{\text{?ev(tid,pid)}} \\ (\majtab{B}{x+1}{(tid,pid)},G)}
-\vspace{0.5cm}
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{StartEvent}] {
+		\buflen{\bufTrain} \neq  0
+		\and
+		\bufhead{\bufTrain} = \sensid{\dirFmt{D}}{\bid{i}}
+		\and
+		\stalk{H}{\signals}{\sensid{\dirFmt{D}}{\bid{i}}} = H^\prime
+	}{
+		\redTuple{\guardT}{\bufTrain}{\bufSig}{R.H} \reduces \redTuple{\guardR}{\bufTrain}{\bufSig}{R.H^\prime}
+	}
+\end{mathpar}
 
-StarEvent :
-\inferrule
-    { len(B) \neq 0 \\ G.S = "none" }
-    {(B,G) \\ \Rightarrow \\ (B,\maj{G.S}{"event"})}
-\vspace{0.5cm}
 
-Incr$_{bf}$ : %incr qui arrive avant un att
-\inferrule
-    { Head(B) = (tid, pid) \\ T[j] = x \\ W[(j, x+1)] = \varepsilon \\ G.S = "event" }
-    {\reg{E[tid] \owns \concat{incr(j)}{P'}}{T}{W},(B,G) \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{\majtab{T}{j}{x+1}}{W},(B,G)}
-\vspace{0.5cm}
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{IncrBefore}] {
+		\bufhead{\bufTrain} = \sensid{\dirFmt{D}}{\bid{i}}
+        \and
+		\actionsOf{\head{\handlerOf{E}{\sensid{\dirFmt{D}}{\bid{i}}}}} = \regConcat{\incr{\bid{\text{crit}}}}{A^\prime}
+		\\
+		\neg\exists \bid{\text{src}}, \tid{w} \text{ s.t. } \tuple{\bid{\text{src}}, \bid{\text{crit}}, \tokenOf{\bid{\text{crit}}} + 1, \tid{w}} \in W
+	}{
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}{H}{C}}{\switches}{\signals}}
+		\\\reduces
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\handlerOf{E}{\sensid{\dirFmt{D}}{\bid{i}}}}}{\incrToken{T}{\bid{\text{crit}}}}{W}{H}{C}}{\switches}{\signals}}
+	}
+\end{mathpar}
 
-Incr$_{af}$ : %incr qui arrive après un att
-\inferrule
-    { Head(B) = (tid, pid) \\ T[j] = x \\ getId(W, j, x+1) = wid \\ getPos(W,wid) = wpod \\ RequestS(wid,wpos,E) = req \\ G.S = "event"}
-    {\reg{E[tid] \owns \concat{incr(j)}{P'}}{T}{W}, (B,G) \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{\majtab{T}{j}{x+1}}{Remove(W,(wid,wpos,j,x))},(B,\maj{G.R}{req})}
-\vspace{0.5cm}
 
-Att$_{bf}$ : %att qui arrive avant un incr
-\inferrule
-    { Head(B) = (tid, pid) \\ T[j] = x \\ x \neq y \\ G.S = "event" }
-    {\reg{E[tid] \owns \concat{att(j,y)}{P'}}{T}{W}, (B,G) \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{T}{{Append(W,(tid,pid,j,y))}},(B,G)}
-\vspace{0.5cm}
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{IncrAfter}] {
+		\bufhead{\bufTrain} = \sensid{\dirFmt{D}}{\bid{i}}
+		\and
+		\actionsOf{\head{\handlerOf{E}{\sensid{\dirFmt{D}}{\bid{i}}}}} = \regConcat{\incr{\bid{\text{crit}}}}{A^\prime}
+		\\
+		\exists \bid{\text{src}}, \tid{w} \text{ s.t. } w = \tuple{\bid{\text{src}}, \bid{\text{crit}}, \tokenOf{\bid{\text{crit}}} + 1, \tid{w}} \in W
+		\\
+		\head{\handlerOf{C}{\tid{w}}} = \bid{\text{stop}}
+	}{
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}{H}{C}}{\switches}{\signals}}
+		\\\reduces
+		{\begin{aligned}[t]
+			\langle&\guardR, 
+			\bufTrain,
+			\push{\bufSig}{\tuple{\bid{\text{stop}}, \sigred}}, \\
+			&\langle\trainSeq, \regTuple{\nextAct{\handlerOf{E}{\sensid{\dirFmt{D}}{\bid{i}}}}}{\incrToken{T}{\bid{\text{crit}}}}{W\setminus\{w\}}{H}{C}, \switches, \signals\rangle\rangle
+		\end{aligned}}
+	}
+\end{mathpar}
 
-Att$_{af}$ : %att qui arrive après un incr
-\inferrule
-    { Head(B) = (tid, pid) \\ T[j] = x \\ RequestS(tid,pid,E) = req \\ G.S = "event" }
-    {\reg{E[tid] \owns \concat{att(j,x)}{P'}}{T}{W},(B,G) \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{T}{Remove(W,(tid,pid,j,x))},(B,\maj{G.R}{req})}
-\vspace{0.5cm}
 
-Turn : 
-\inferrule
-    { Head(B) = (tid, pid) \\ G.S = "event"}
-    {\reg{E[tid] \owns \concat{turn(sid,state)}{P'}}{T}{W},(B,G),\Sigma \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{T}{W},(B,G),\majtab{\Sigma}{sid}{state}}
-\vspace{0.5cm}
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{WaitBefore}] {
+		\bufhead{\bufTrain} = \sensid{\dirFmt{D}}{\bid{src}}
+		\and
+        \sensTid{H}{\sensid{\dirFmt{D}}{\bid{i}}} = \tid{w}
+		\\
+		\head{\handlerOf{E}{\sensid{\dirFmt{D}}{\bid{src}}}} = \regConcat{\wait{\bid{\text{crit}}}{n}}{A^\prime}
+		\and
+		\tokenOf{\bid{\text{crit}}} < n
+	}{
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}{H}{C}}{\switches}{\signals}}
+		\\\reduces
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\handlerOf{E}{\sensid{\dirFmt{D}}{\bid{src}}}}}{T}{W\cup\tuple{\bid{\text{src}}, \bid{\text{crit}}, n, \tid{w}}}{H}{\pop{\handlerOf{C}{\tid{w}}}}}{\switches}{\signals}}
+	}
+\end{mathpar}
 
-Auth : 
-\inferrule
-    { Head(B) = (tid, pid) \\ RequestS(tid,pid,E) = req \\ G.S = "event"}
-    {\reg{E[tid] \owns \concat{auth}{P'}}{T}{W},(B,G) \\ \Rightarrow \\ \reg{\majtab{E}{t_{id}}{P'}}{T},(B,\maj{G.R}{req})}
-\vspace{0.5cm}
 
-EndEvent :
-\inferrule
-    { Head(B) = (tid, pid) \\ E[t_{id}] = \varepsilon \\ G.S = "event" }
-    {\reg{E}{T}{W},({\concat{m}{B'}},G) \\ \Rightarrow \\ \reg{E}{T}{W},({B'},\maj{G.S}{"update"})}
-\vspace{0.5cm}
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{WaitAfter}] {
+		\bufhead{\bufTrain} = \sensid{\dirFmt{D}}{\bid{i}}
+		\and
+        \sensTid{H}{\sensid{\dirFmt{D}}{\bid{i}}} = \tid{w}
+		\\
+		\actionsOf{\head{\handlerOf{E}{\tid{w}}}} = \regConcat{\wait{\bid{\text{crit}}}{n}}{A^\prime}
+		\\
+		\tokenOf{\bid{\text{crit}}} \geq n
+		\and
+		\head{\handlerOf{C}{\tid{w}}} = \bid{\text{stop}}
+	}{
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}{H}{C}}{\switches}{\signals}}
+		\\\reduces
+		\redTuple{\guardR}{\bufTrain}{\push{\bufSig}{\tuple{\bid{\text{stop}}, \sigred}}}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\handlerOf{E}{\sensid{\dirFmt{D}}{\bid{i}}}}}{T}{W}{H}{\pop{\handlerOf{C}{\tid{w}}}}}{\switches}{\signals}}
+	}
+\end{mathpar}
+
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{Turn}]{
+		\bufhead{\bufTrain} = \sensid{\dirFmt{D}}{\bid{i}}
+		\and
+		\actionsOf{\head{\handlerOf{E}{\sensid{\dirFmt{D}}{\bid{i}}}}} = \regConcat{\turn{\sid{i}}{s}}{A^\prime}
+	}{
+	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}{H}{C}}{\switches}{\signals}}
+	\\\reduces
+	\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\handlerOf{E}{\sensid{\dirFmt{D}}{\bid{i}}}}}{T}{W}{H}{C}}{\updateSwitch{\switches}{\sid{i}}{s}}{\signals}}
+	}
+\end{mathpar}
+
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{Auth}] {
+		\bufhead{\bufTrain} = \sensid{\dirFmt{D}}{\bid{i}}
+		\and
+        \sensTid{H}{\sensid{\dirFmt{D}}{\bid{i}}} = \tid{i}
+		\\
+		\bufhead{E[\sensid{\dirFmt{D}}{\bid{i}}]} = \regConcat{\auth}{A^\prime}
+		\\
+		\head{\handlerOf{C}{\tid{i}}} = \bid{\text{stop}}
+	}{
+			\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}{H}{C}}{\switches}{\signals}}
+			\\\reduces
+			\redTuple{\guardR}{\bufTrain}{\push{\bufSig}{\tuple{\bid{\text{stop}}, \sigred}}}{\stateTuple{\trainSeq}{\regTuple{\nextAct{\handlerOf{E}{\sensid{\dirFmt{D}}{\bid{i}}}}}{T}{W}{H}{C}}{\switches}{\signals}}
+	}
+\end{mathpar}
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{EndEvent}]{
+		\bufhead{\bufTrain} = \sensid{\dirFmt{D}}{\bid{i}}
+		\and
+		\actionsOf{\head{\handlerOf{E}{\sensid{\dirFmt{D}}{\bid{i}}}}} = \emptyList
+	}{
+		\redTuple{\guardR}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{\tuple{E, T, W}}{\switches}{\signals}}
+		\\\reduces
+		\redTuple{\guardS}{\buftail{\bufTrain}}{\bufSig}{\stateTuple{\trainSeq}{\tuple{\popHandlerHead{E}{\sensid{\dirFmt{D}}{\bid{i}}}, T, W}}{\switches}{\signals}}
+	}
+\end{mathpar}
 
 \subsection{Actions sur les feux de signalisation}
 
-ReqUpdate :
-\inferrule
-    { G.S = "update" }
-    {(B,G.R = \concat{req}{Rq'}),S \\ \Rightarrow \\ (B,G.R = Rq'),S}
-\vspace{0.5cm}
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{SignalReq}]{
+		\head{\bufSig} = \tuple{\bid{i}, c}
+	}{
+		\redTuple{\guardS}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq}{R}{\switches}{\signals}}
+		\\\reduces
+		\redTuple{\guardS}{\bufTrain}{\buftail{\bufSig}}{\stateTuple{\trainSeq}{R}{\switches}{\setSignalsTo{\bid{i}}{c}}}
+	}
+\end{mathpar}
 
-Update :
-\inferrule
-    { G.S = "update" \\ G.R = \varepsilon \\ S' = UpdateAllS(S,R.W,R.E) }
-    {R,(B,G),S \\ \Rightarrow \\ R,(B,G.S = "none"),S'}
-\vspace{0.5cm}
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{SignalSfty}] {
+		\signals^\prime = \updateSfty{W}{E}{\trainSeq}{\switches}
+	}{
+		\redTuple{\guardS}{\bufTrain}{\emptyList}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}{H}{C}}{\switches}{\signals}}
+		\\\reduces
+		\redTuple{\guardT}{\bufTrain}{\emptyList}{\stateTuple{\trainSeq}{\regTuple{E}{T}{W}{H}{C}}{\switches}{\signals^\prime}}
+	}
+\end{mathpar}
 
 \end{document}

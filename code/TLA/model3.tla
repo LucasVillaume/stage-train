@@ -382,8 +382,7 @@ Incr_af ==
         /\ UNCHANGED gamma
         /\ rule' = "incr_af "
         /\ reg' = [reg EXCEPT !.J[jet] = reg.J[jet]+1,
-                              !.W = {seq \in reg.W : seq /= info_wait}, 
-                              \*!.CP[id_wait] = Tail(reg.CP[id_wait]),
+                              !.W = {seq \in reg.W : seq /= info_wait},
                               !.E[id][1] = Tail(event)]
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
@@ -521,5 +520,5 @@ Eval == Stalk(<< <<1,"R">>, <<3,"L">> >>, <<"d">>, <<2,"R">>) \*\E seq \in set :
 
 =============================================================================
 \* Modification History
-\* Last modified Thu Jul 10 09:51:15 CEST 2025 by lucas
+\* Last modified Thu Jul 10 10:33:24 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas
