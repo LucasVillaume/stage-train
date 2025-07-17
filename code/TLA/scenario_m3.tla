@@ -74,13 +74,15 @@ Init_S4 ==
             id |-> 1,
             pos |-> 4,
             dir |-> "*",
-            prog |-> << <<"Start","L">>,<<"Until",<<3,8>>>>,<<"Start","R">>,<<"Until",<<3>>>>,<<"Start","L">>,<<"Until",<<7>>>> >>
+            prog |-> << <<"Start","L">>,<<"Until",<<3,8>>>>,<<"Start","R">>,<<"Until",<<3>>>>,<<"Start","L">>,<<"Until",<<7>>>> >>,
+            tpos |-> 4
         ]
         train2 == [
             id |-> 2,
             pos |-> 5,
             dir |-> "*",
-            prog |-> << <<"Start","R">> ,<<"Until",<<7,3,4>>>>,<<"Start","L">>,<<"Until",<<3>>>> >>
+            prog |-> << <<"Start","R">> ,<<"Until",<<7,3,4>>>>,<<"Start","L">>,<<"Until",<<3>>>> >>,
+            tpos |-> 5
         ]
         token == <<0,0,0,0,0,0,0,0>>
         Oldevents == <<
@@ -145,6 +147,37 @@ Suiv_S4(pos, dir, S) ==   IF pos = 1 /\ dir = "L" /\ S[1] = "d" /\ S[2] = "v" TH
                      ELSE IF pos = 7 /\ dir = "L" /\ S[4] = "v"               THEN 6
                      ELSE IF pos = 7 /\ dir = "R" /\ S[3] = "d"               THEN 3
                      ELSE IF pos = 8 /\ dir = "R" /\ S[3] = "v"               THEN 3
+                     ELSE -1
+                     
+                     
+SuivR_S4(pos, dir, S) ==  IF pos = 1  /\ dir = "L" /\ S[1] = "d"               THEN 9
+                     ELSE IF pos = 2  /\ dir = "L" /\ S[1] = "v"               THEN 9
+                     ELSE IF pos = 3  /\ dir = "L"                             THEN 11
+                     ELSE IF pos = 3  /\ dir = "R"                             THEN 10
+                     ELSE IF pos = 4  /\ dir = "L" /\ S[2] = "d"               THEN 10
+                     ELSE IF pos = 4  /\ dir = "R"                             THEN 13
+                     ELSE IF pos = 5  /\ dir = "L" /\ S[5] = "d"               THEN 13
+                     ELSE IF pos = 5  /\ dir = "R" /\ S[4] = "d"               THEN 12
+                     ELSE IF pos = 6  /\ dir = "L" /\ S[5] = "v"               THEN 13
+                     ELSE IF pos = 6  /\ dir = "R" /\ S[4] = "v"               THEN 12
+                     ELSE IF pos = 7  /\ dir = "L"                             THEN 12
+                     ELSE IF pos = 7  /\ dir = "R" /\ S[3] = "d"               THEN 11
+                     ELSE IF pos = 8  /\ dir = "R" /\ S[3] = "v"               THEN 11
+                     ELSE IF pos = 9  /\ dir = "L" /\ S[2] = "v"               THEN 10
+                     ELSE IF pos = 9  /\ dir = "R" /\ S[1] = "d"               THEN 1
+                     ELSE IF pos = 9  /\ dir = "R" /\ S[1] = "v"               THEN 2
+                     ELSE IF pos = 10 /\ dir = "L"                             THEN 3
+                     ELSE IF pos = 10 /\ dir = "R" /\ S[2] = "d"               THEN 4
+                     ELSE IF pos = 10 /\ dir = "R" /\ S[2] = "v"               THEN 9
+                     ELSE IF pos = 11 /\ dir = "L" /\ S[3] = "d"               THEN 7
+                     ELSE IF pos = 11 /\ dir = "L" /\ S[3] = "v"               THEN 8
+                     ELSE IF pos = 11 /\ dir = "R"                             THEN 3
+                     ELSE IF pos = 12 /\ dir = "L" /\ S[4] = "d"               THEN 5
+                     ELSE IF pos = 12 /\ dir = "L" /\ S[4] = "v"               THEN 6
+                     ELSE IF pos = 12 /\ dir = "R"                             THEN 7
+                     ELSE IF pos = 13 /\ dir = "L"                             THEN 4
+                     ELSE IF pos = 13 /\ dir = "R" /\ S[5] = "d"               THEN 5
+                     ELSE IF pos = 13 /\ dir = "R" /\ S[5] = "v"               THEN 6
                      ELSE -1
 
 

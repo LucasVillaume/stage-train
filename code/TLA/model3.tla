@@ -100,7 +100,8 @@ Init ==
 \*)
 \*Init == Init_S4
 \*Suiv(pos, dir, S) == Suiv_S4(pos, dir, S)
-
+\*SuivR(pos, dir, S) == SuivR_S4(pos, dir, S)
+\*nbCanton == 8
 
 \* Utilitaire
 
@@ -299,8 +300,9 @@ EnterSwitch(T) ==
     IN
         /\ Len(T.prog) > 0
         /\ meta.garde.state = "none"
-        /\ T.dir /= "*" 
+        /\ T.dir /= "*"
         /\ order[1] = "Until"
+        /\ T.tpos > nbCanton \* Uniquement de switch -> switch
         /\ nextC > nbCanton
         /\ gamma' = [gamma EXCEPT ![id].tpos = nextC]
         /\ rule' = "enterSwitch"
@@ -308,6 +310,7 @@ EnterSwitch(T) ==
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
         /\ UNCHANGED meta
+        \*/\ PrintT(<<rule,gamma>>)
         
         
 EnterBlock(T) ==
@@ -324,6 +327,7 @@ EnterBlock(T) ==
         /\ order[1] = "Until"
         /\ nextC /= -1
         /\ nextC <= nbCanton
+        /\ T.tpos > nbCanton \* switch -> bloc
         /\ Len(Tail(order[2])) /= 0
         /\ gamma' = [gamma EXCEPT 
                             ![id].pos = nextC,
@@ -337,7 +341,7 @@ EnterBlock(T) ==
                                 !.msg[1] = meta.msg[1] \o << <<nextC,opDir>>,<<nextC,T.dir>> >>]
 
 
-EnterBlock_cons(T) == 
+EnterBlock_cons(T) ==
     LET
         id == T.id
         order == Head(T.prog)
@@ -350,6 +354,7 @@ EnterBlock_cons(T) ==
         /\ order[1] = "Until"
         /\ nextC /= -1
         /\ nextC <= nbCanton
+        /\ T.tpos > nbCanton \* switch -> bloc
         /\ Len(Tail(order[2])) = 0
         /\ gamma' = [gamma EXCEPT 
                             ![T.id].pos = nextC,
@@ -364,7 +369,7 @@ EnterBlock_cons(T) ==
 
 
         \* Regulateur
-        
+
 
 StartEvent == \*Simuler une approche grands pas
     /\ meta.garde.state = "none"
@@ -638,5 +643,5 @@ Eval == Stalk(<< <<1,"R">>, <<3,"L">> >>, <<"d">>, <<2,"R">>) \*\E seq \in set :
 
 =============================================================================
 \* Modification History
-\* Last modified Thu Jul 17 09:36:32 CEST 2025 by lucas
+\* Last modified Thu Jul 17 11:44:34 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas
