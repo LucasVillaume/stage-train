@@ -14,14 +14,16 @@ train1 == [
     id |-> 1,
     pos |-> 1,
     dir |-> "*",
-    prog |-> << <<"Start", "R">>, <<"Until", <<2,3>> >> >>
+    prog |-> << <<"Start", "R">>, <<"Until", <<2,3>> >> >>,
+    tpos |-> 1
 ]
 
 train2 == [
     id |-> 2,
     pos |-> 4,
     dir |-> "*",
-    prog |-> << <<"Start", "L" >>, <<"Until", <<2,1>> >> >>
+    prog |-> << <<"Start", "L" >>, <<"Until", <<2,1>> >> >>,
+    tpos |-> 4
 ]
 
 \* Régulateur
@@ -36,7 +38,7 @@ events == [ [x \in (1..nbCanton) \X {"L","R"} |-> << >>] EXCEPT ![1,"L"] = << <<
                                                                 ![2,"R"] = << <<>>, <<>> >>,
                                                                 ![3,"R"] = << <<<<"turn",1,"v">>,<<"incr",2>>>> >>,
                                                                 ![3,"L"] = << <<>> >>,
-                                                                ![4,"L"] = << <<<<"incr",4>>,<<"att",2,1,0>>>> >> ]
+                                                                ![4,"L"] = << <<<<"incr",4>>,<<"att",2,1>>>> >> ]
 
 
 token == [x \in 1..nbCanton |-> 0]
@@ -54,12 +56,24 @@ checkpoint == <<<<-1>>,<<4,-1>>>> \*chekcpoint[1] = train1
 
 
 Suiv(pos, dir, S) == IF pos = 1 /\ dir = "R"               THEN 2
+                ELSE IF pos = 2 /\ dir = "L"               THEN 1
                 ELSE IF pos = 2 /\ dir = "R" /\ S[1] = "d" THEN 3
                 ELSE IF pos = 2 /\ dir = "R" /\ S[1] = "v" THEN 4
-                ELSE IF pos = 2 /\ dir = "L"               THEN 1
                 ELSE IF pos = 3 /\ dir = "L" /\ S[1] = "d" THEN 2
                 ELSE IF pos = 4 /\ dir = "L" /\ S[1] = "v" THEN 2
                 ELSE -1
+
+
+SuivR(pos, dir, S) == IF pos = 1 /\ dir = "R"               THEN 2
+                 ELSE IF pos = 2 /\ dir = "R"               THEN 5 \* switch
+                 ELSE IF pos = 2 /\ dir = "L"               THEN 1
+                 ELSE IF pos = 3 /\ dir = "L" /\ S[1] = "d" THEN 5
+                 ELSE IF pos = 4 /\ dir = "L" /\ S[1] = "v" THEN 5
+                 ELSE IF pos = 5 /\ dir = "L" /\ S[1] = "d" THEN 2
+                 ELSE IF pos = 5 /\ dir = "L" /\ S[1] = "v" THEN 2
+                 ELSE IF pos = 5 /\ dir = "R" /\ S[1] = "d" THEN 3
+                 ELSE IF pos = 5 /\ dir = "R" /\ S[1] = "v" THEN 4
+                 ELSE -1
                 
 
 
@@ -204,7 +218,7 @@ Until(T) ==
     LET
         id == T.id
         order == Head(T.prog)
-        nextC == Suiv(T.pos,T.dir,sigma)
+        nextC == SuivR(T.pos,T.dir,sigma)
         event == Head(reg.E[id])
         opDir == IF T.dir = "L" THEN "R" ELSE "L"
     IN
@@ -214,23 +228,25 @@ Until(T) ==
         /\ feux[T.pos,T.dir] = "V"
         /\ order[1] = "Until"
         /\ nextC /= -1
+        /\ nextC <= nbCanton
         /\ Len(Tail(order[2])) /= 0
         /\ gamma' = [gamma EXCEPT 
                             ![id].pos = nextC,
+                            ![T.id].tpos = nextC, \* modèle 3
                             ![id].prog[1][2] = Tail(order[2])]
         /\ rule' = "until"
         /\ UNCHANGED reg
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
         /\ meta' = [meta EXCEPT !.garde.state = "update",
-                                !.msg[1] = meta.msg[1] \o << <<nextC,opDir,T.id>>,<<nextC,T.dir,T.id>> >>]
+                                !.msg[1] = meta.msg[1] \o << <<nextC,opDir>>,<<nextC,T.dir>> >>]
 
 
 Until_cons(T) == 
     LET
         id == T.id
         order == Head(T.prog)
-        nextC == Suiv(T.pos,T.dir, sigma)
+        nextC == SuivR(T.pos,T.dir, sigma)
         opDir == IF T.dir = "L" THEN "R" ELSE "L" 
     IN
         /\ Len(T.prog) > 0
@@ -239,17 +255,112 @@ Until_cons(T) ==
         /\ feux[T.pos,T.dir] = "V"
         /\ order[1] = "Until"
         /\ nextC /= -1
+        /\ nextC <= nbCanton
         /\ Len(Tail(order[2])) = 0
         /\ gamma' = [gamma EXCEPT 
                             ![T.id].pos = nextC,
+                            ![T.id].tpos = nextC, \* modèle 3
                             ![T.id].prog = Tail(T.prog)]
         /\ UNCHANGED feux
         /\ UNCHANGED sigma
         /\ meta' = [meta EXCEPT !.garde.state = "update",
-                                !.msg[1] = meta.msg[1] \o << <<nextC,opDir,T.id>>,<<nextC,T.dir,T.id>> >>]
+                                !.msg[1] = meta.msg[1] \o << <<nextC,opDir>>,<<nextC,T.dir>> >>]
         /\ rule' = "until_cons"
         /\ UNCHANGED reg
 
+
+ExitBlock(T) ==
+    LET
+        id == T.id
+        order == Head(T.prog)
+        nextC == SuivR(T.tpos,T.dir,sigma)
+        event == Head(reg.E[id])
+    IN
+        /\ Len(T.prog) > 0
+        /\ meta.garde.state = "none"
+        /\ T.dir /= "*" 
+        /\ feux[T.pos,T.dir] = "V"
+        /\ order[1] = "Until"
+        /\ nextC > nbCanton
+        /\ gamma' = [gamma EXCEPT ![id].tpos = nextC]
+        /\ rule' = "exitBlock"
+        /\ UNCHANGED reg
+        /\ UNCHANGED sigma
+        /\ UNCHANGED feux
+        /\ UNCHANGED meta
+        
+        
+EnterSwitch(T) ==
+    LET
+        id == T.id
+        order == Head(T.prog)
+        nextC == SuivR(T.tpos,T.dir,sigma)
+        event == Head(reg.E[id])
+    IN
+        /\ Len(T.prog) > 0
+        /\ meta.garde.state = "none"
+        /\ T.dir /= "*" 
+        /\ order[1] = "Until"
+        /\ nextC > nbCanton
+        /\ gamma' = [gamma EXCEPT ![id].tpos = nextC]
+        /\ rule' = "enterSwitch"
+        /\ UNCHANGED reg
+        /\ UNCHANGED sigma
+        /\ UNCHANGED feux
+        /\ UNCHANGED meta
+        
+        
+EnterBlock(T) ==
+    LET
+        id == T.id
+        order == Head(T.prog)
+        nextC == SuivR(T.tpos,T.dir,sigma)
+        event == Head(reg.E[id])
+        opDir == IF T.dir = "L" THEN "R" ELSE "L"
+    IN
+        /\ Len(T.prog) > 0
+        /\ meta.garde.state = "none"
+        /\ T.dir /= "*" 
+        /\ order[1] = "Until"
+        /\ nextC /= -1
+        /\ nextC <= nbCanton
+        /\ Len(Tail(order[2])) /= 0
+        /\ gamma' = [gamma EXCEPT 
+                            ![id].pos = nextC,
+                            ![T.id].tpos = nextC, \* modèle 3
+                            ![id].prog[1][2] = Tail(order[2])]
+        /\ rule' = "enterBlock"
+        /\ UNCHANGED reg
+        /\ UNCHANGED sigma
+        /\ UNCHANGED feux
+        /\ meta' = [meta EXCEPT !.garde.state = "update",
+                                !.msg[1] = meta.msg[1] \o << <<nextC,opDir>>,<<nextC,T.dir>> >>]
+
+
+EnterBlock_cons(T) == 
+    LET
+        id == T.id
+        order == Head(T.prog)
+        nextC == SuivR(T.tpos, T.dir, sigma)
+        opDir == IF T.dir = "L" THEN "R" ELSE "L" 
+    IN
+        /\ Len(T.prog) > 0
+        /\ meta.garde.state = "none"
+        /\ T.dir /= "*"
+        /\ order[1] = "Until"
+        /\ nextC /= -1
+        /\ nextC <= nbCanton
+        /\ Len(Tail(order[2])) = 0
+        /\ gamma' = [gamma EXCEPT 
+                            ![T.id].pos = nextC,
+                            ![T.id].tpos = nextC, \* modèle 3
+                            ![T.id].prog = Tail(T.prog)]
+        /\ UNCHANGED feux
+        /\ UNCHANGED sigma
+        /\ meta' = [meta EXCEPT !.garde.state = "update",
+                                !.msg[1] = meta.msg[1] \o << <<nextC,opDir>>,<<nextC,T.dir>> >>]
+        /\ rule' = "enterBlock_cons"
+        /\ UNCHANGED reg
 
 
         \* Regulateur
@@ -287,6 +398,7 @@ Turn ==
         /\ sigma' = [sigma EXCEPT ![numAig] = order[3]]
         /\ UNCHANGED feux
         /\ UNCHANGED meta
+
 
 Att_bf == 
     LET
@@ -337,6 +449,7 @@ Att_af ==
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
         /\ meta' = [meta EXCEPT !.garde.requests = meta.garde.requests \o << <<target,"R">> >>]
+
 
 Incr_bf ==
     LET
@@ -458,6 +571,7 @@ UpdateTL ==
     /\ rule' = "UpdateTL"
     /\ feux' = UpdateS(feux,reg.W,reg.CP)
     /\ meta' = [meta EXCEPT !.garde.state = "none"]
+    \*/\ PrintT(gamma)
         
         
 
@@ -496,6 +610,10 @@ Next ==
         \/ Start(gamma[i])
         \/ Until(gamma[i])
         \/ Until_cons(gamma[i])
+        \/ ExitBlock(gamma[i])
+        \/ EnterSwitch(gamma[i])
+        \/ EnterBlock(gamma[i])
+        \/ EnterBlock_cons(gamma[i])
         \/ Stop(gamma[i])
         \/ StartEvent
         \/ Turn
@@ -520,5 +638,5 @@ Eval == Stalk(<< <<1,"R">>, <<3,"L">> >>, <<"d">>, <<2,"R">>) \*\E seq \in set :
 
 =============================================================================
 \* Modification History
-\* Last modified Thu Jul 10 10:33:24 CEST 2025 by lucas
+\* Last modified Thu Jul 17 09:36:32 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas
