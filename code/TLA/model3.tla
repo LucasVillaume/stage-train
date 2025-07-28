@@ -14,7 +14,7 @@ train1 == [
     id |-> 1,
     pos |-> 1,
     dir |-> "*",
-    prog |-> << <<"Start", "R">>, <<"Until", <<2,3>> >> >>,
+    prog |-> << <<"sync">>, <<"Start", "R">>, <<"Until", <<2,3>> >> >>,
     tpos |-> 1
 ]
 
@@ -22,23 +22,20 @@ train2 == [
     id |-> 2,
     pos |-> 4,
     dir |-> "*",
-    prog |-> << <<"Start", "L" >>, <<"Until", <<2,1>> >> >>,
+    prog |-> << <<"sync">>, <<"Start", "L" >>, <<"Until", <<2,1>> >> >>,
     tpos |-> 4
 ]
 
 \* Régulateur
-old_events == <<
-        << <<1,<<<<"incr",1>>>>>>, <<2,<<>>>>, <<3,<<<<"turn",1,"v">>,<<"incr",2>>>>>> >>,
-        << <<4,<<<<"incr",4>>,<<"att",2,1>>>>>>, <<2,<<>>>>, <<1,<<>>>> >>
-     >>
 
-events == [ [x \in (1..nbCanton) \X {"L","R"} |-> << >>] EXCEPT ![1,"L"] = << <<>> >>,
-                                                                ![1,"R"] = << <<<<"incr",1>>>>, <<>> >>,
+events == [ [x \in (0..nbCanton) \X {"L","R"} |-> << >>] EXCEPT ![1,"L"] = << <<>> >>,
+                                                                ![1,"R"] = << <<>>, <<>> >>,
                                                                 ![2,"L"] = << <<>>, <<>> >>,
                                                                 ![2,"R"] = << <<>>, <<>> >>,
                                                                 ![3,"R"] = << <<<<"turn",1,"v">>,<<"incr",2>>>> >>,
                                                                 ![3,"L"] = << <<>> >>,
-                                                                ![4,"L"] = << <<<<"incr",4>>,<<"att",2,1>>>> >> ]
+                                                                ![4,"L"] = << <<<<"att",2,1>>>>,<<>> >>] \* Event de départ
+
 
 
 token == [x \in 1..nbCanton |-> 0]
@@ -82,7 +79,7 @@ Init ==
     /\ reg = [
             E  |-> events,
             J  |-> token,
-            W  |-> {<<1,1,1,1>>,<<2,4,4,1>>},
+            W  |-> {},
             H  |-> << <<1,"R">>, <<4,"L">> >>,
             CP |-> checkpoint
        ]
@@ -92,7 +89,7 @@ Init ==
                                      ![4,"L"] = "R",
                                      ![4,"R"] = "R"]
     /\ meta = [
-            msg   |-> << <<>>, <<>> >>,
+            msg   |-> << << <<4,"L">> >>, <<>> >>,
             garde |-> [state |-> "none", requests |-> <<>>]
        ]
     /\ rule = "" \* Mesure de débug, pas présent dans le modèle
@@ -134,16 +131,16 @@ FindLock(W,CP) ==
     LET
         pos(tid) == reversedGetWaiting(W,tid)[2]
     IN
-    [x \in 1..Len(gamma) |->
-        IF \E seq \in W : seq[1] = x THEN \* Attend
-            pos(x)
-        ELSE IF Len(CP[x]) < 2 THEN \* Arrivé
-            0 
-        ELSE \* se déplace
-            Head(CP[x])
-    ]        
+        [x \in 1..Len(gamma) |->
+            IF \E seq \in W : seq[1] = x THEN \* Attend
+                pos(x)
+            ELSE IF Len(CP[x]) < 2 THEN \* Arrivé
+                0 
+            ELSE \* se déplace
+                Head(CP[x])
+        ]
 
-        
+
 UpdateS(S,W,CP) == \*S pour Signals
     LET
         locked == FindLock(W,CP)
@@ -168,16 +165,27 @@ Stalk(H, sig, capteur) ==
         getByPos(p) == CHOOSE x \in DOMAIN H : H[x][1] = p
         getBySuiv(c) == CHOOSE x \in DOMAIN H : Suiv(H[x][1], H[x][2], sig) = c[1] /\ H[x][2] /= c[2]
     IN
-        IF \E i \in DOMAIN H : H[i][1] = capteur[1] THEN
-            IF H[getByPos(capteur[1])][2] /= capteur[2] THEN
-                [H EXCEPT ![getByPos(capteur[1])] = <<capteur[1], capteur[2]>>]
+        IF capteur /= <<0,"L">> THEN \* Départ
+            IF \E i \in DOMAIN H : H[i][1] = capteur[1] THEN
+                IF H[getByPos(capteur[1])][2] /= capteur[2] THEN
+                    [H EXCEPT ![getByPos(capteur[1])] = <<capteur[1], capteur[2]>>]
+                ELSE
+                    H
+            ELSE IF \E i \in DOMAIN H : Suiv(H[i][1], H[i][2], sig) = capteur[1] THEN
+                [H EXCEPT ![getBySuiv(capteur)] = <<capteur[1], H[getBySuiv(capteur)][2]>>]
             ELSE
-                H
-        ELSE IF \E i \in DOMAIN H : Suiv(H[i][1], H[i][2], sig) = capteur[1] THEN
-            [H EXCEPT ![getBySuiv(capteur)] = <<capteur[1], H[getBySuiv(capteur)][2]>>]
+                -1
         ELSE
-            -1
+            H
+                
 
+Synchro(G) == \* G : gamma
+    [id \in DOMAIN G |-> 
+        IF Len(G[id].prog) /= 0 /\ Head(G[id].prog) = <<"sync">> THEN
+            [G[id] EXCEPT !.prog = Tail(G[id].prog) ]
+        ELSE
+            G[id]
+    ]
 
 
 \* règles
@@ -197,7 +205,7 @@ Start(T) ==
         /\ UNCHANGED reg
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ meta' = [meta EXCEPT !.msg[1] = meta.msg[1] \o << <<T.pos,T.prog[1][2],T.id>> >>]
+        /\ meta' = [meta EXCEPT !.msg[1] = meta.msg[1] \o << <<T.pos,T.prog[1][2]>> >>]
 
 
 Stop(T) ==
@@ -310,7 +318,6 @@ EnterSwitch(T) ==
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
         /\ UNCHANGED meta
-        \*/\ PrintT(<<rule,gamma>>)
         
         
 EnterBlock(T) ==
@@ -371,16 +378,26 @@ EnterBlock_cons(T) ==
         \* Regulateur
 
 
-StartEvent == \*Simuler une approche grands pas
+FlushBuffer == 
     /\ meta.garde.state = "none"
+    /\ Len(meta.msg[1]) /= 0
+    /\ UNCHANGED gamma
+    /\ UNCHANGED reg
+    /\ UNCHANGED sigma
+    /\ UNCHANGED feux
+    /\ meta' = [meta EXCEPT !.garde.state = "manage"]
+    /\ rule' = "FlushBuffer"
+
+
+UpdateHisto ==
+    /\ meta.garde.state = "manage"
     /\ Len(meta.msg[1]) /= 0
     /\ UNCHANGED gamma
     /\ reg' = [reg EXCEPT !.H = Stalk(reg.H,sigma,Head(meta.msg[1]))]
     /\ UNCHANGED sigma
     /\ UNCHANGED feux
     /\ meta' = [meta EXCEPT !.garde.state = "event"]
-    /\ rule' = "StartEvent"
-    \*/\ PrintT(<<reg.J,meta.msg,feux,gamma>>)
+    /\ rule' = "UpdateHisto"
 
 
 Turn == 
@@ -532,7 +549,7 @@ Auth ==
 
 
 
-EndEvent ==
+PopEvent ==
     LET
         a == Head(meta.msg[1])
         id == <<a[1],a[2]>>
@@ -540,14 +557,25 @@ EndEvent ==
     IN
         /\ meta.garde.state = "event"
         /\ Len(meta.msg[1]) /= 0
-        /\ Len(event) = 0
+        /\ Len(event) = 0 
         /\ UNCHANGED gamma
-        /\ rule' = "EndEvent"
+        /\ rule' = "PopEvent"
         /\ reg' = [reg EXCEPT !.E[id] = Tail(reg.E[id])]
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ meta' = [meta EXCEPT !.garde.state = "update",
-                                !.msg[1] = Tail(meta.msg[1])]
+        /\ meta' = [meta EXCEPT !.msg[1] = Tail(meta.msg[1]),
+                                !.garde.state = "manage"]
+                                
+                                
+EndFlush == \*TODO : ajouter la suppression des sync
+    /\ meta.garde.state = "manage"
+    /\ Len(meta.msg[1]) = 0
+    /\ gamma' = Synchro(gamma)
+    /\ rule' = "EndFlush"
+    /\ UNCHANGED reg
+    /\ UNCHANGED sigma
+    /\ UNCHANGED feux
+    /\ meta' = [meta EXCEPT !.garde.state = "update"]
 
 
         \* Feu
@@ -620,14 +648,16 @@ Next ==
         \/ EnterBlock(gamma[i])
         \/ EnterBlock_cons(gamma[i])
         \/ Stop(gamma[i])
-        \/ StartEvent
+        \/ FlushBuffer
+        \/ UpdateHisto
         \/ Turn
         \/ Incr_bf
         \/ Incr_af
         \/ Att_bf
         \/ Att_af
         \/ Auth
-        \/ EndEvent
+        \/ PopEvent
+        \/ EndFlush
         \/ ReqUpdate
         \/ UpdateTL
         \/ IDLE
@@ -636,12 +666,10 @@ Next ==
 Spec == Init /\ [][Next]_<<gamma,reg,sigma,feux,meta,rule>> /\ WF_<<gamma,reg,sigma,feux,meta,rule>>(Next)
 \* WF_ : Weak Fairness, "si une règle peut être appliquée, je l'applique"
 
-set == {<<1,4,5,7>>,<<2,6,5,8>>}
-
 
 Eval == Stalk(<< <<1,"R">>, <<3,"L">> >>, <<"d">>, <<2,"R">>) \*\E seq \in set : seq[1] = 2 \*SelectSeq(<< <<8,<<<<"">>, <<"">>, <<" ">>>>>>, <<2,<<<<"att">>>>>> >>, IsAttTurnInSeq)[1][1] \*"Hello" \o " World !"
 
 =============================================================================
 \* Modification History
-\* Last modified Thu Jul 17 11:44:34 CEST 2025 by lucas
+\* Last modified Mon Jul 28 11:09:30 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas
