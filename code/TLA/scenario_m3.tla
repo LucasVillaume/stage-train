@@ -86,26 +86,25 @@ Init_S4 ==
         ]
         token == <<0,0,0,0,0,0,0,0>>
         Oldevents == <<
-                << <<4,<<<<"incr",4>>>>>>, <<3,<<>>>>, <<8,<<<<"turn",3,"d">>,<<"incr",3>>,<<"att",3,2>>>>>>, <<3,<<<<"turn",3,"d">>,<<"auth">>>>>>, <<7,<<<<"incr",3>>>>>> >>,
-                << <<5,<<<<"incr",5>>>>>>, <<7,<<<<"att",3,1>>>>>>, <<3,<<>>>>, <<4,<<<<"turn",3,"v">>,<<"incr",3>>,<<"att",3,3>>>>>>, <<3,<<>>>> >>
+                << <<4,<<>>>>, <<3,<<>>>>, <<8,<<<<"turn",3,"d">>,<<"incr",3>>,<<"att",3,2>>>>>>, <<3,<<<<"turn",3,"d">>,<<"auth">>>>>>, <<7,<<<<"incr",3>>>>>> >>,
+                << <<5,<<>>>>, <<7,<<<<"att",3,1>>>>>>, <<3,<<>>>>, <<4,<<<<"turn",3,"v">>,<<"incr",3>>,<<"att",3,3>>>>>>, <<3,<<>>>> >>
             >>
 
-        
-        events == [ [x \in (1..8) \X {"L","R"} |-> << >>] EXCEPT ![4,"L"] = << <<<<"incr",4>>>>, <<>>, <<>> >>,
-                                                                 ![4,"R"] = << <<<<"turn",3,"v">>,<<"incr",3>>,<<"att",3,3>>>> >>,
-                                                                 ![5,"R"] = << <<<<"incr",5>>>> >>,
-                                                                 ![3,"L"] = << <<>>, <<>>, <<>>, <<>>, <<>> >>,
-                                                                 ![3,"R"] = << <<>>, <<>>, <<<<"turn",3,"d">>,<<"auth">>>>, <<>> >>,
-                                                                 ![7,"L"] = << <<<<"att",3,1>>>>, <<>> >>,
+        \* Revoir l'ordre des event (si bon capteur ou non)
+        events == [ [x \in (1..8) \X {"L","R"} |-> << >>] EXCEPT ![4,"L"] = << <<>>, <<<<"turn",3,"v">>,<<"incr",3>>,<<"att",3,3>>>>, <<>> >>,
+                                                                 \*![4,"R"] = << <<<<"turn",3,"v">>,<<"incr",3>>,<<"att",3,3>>>> >>,
+                                                                 ![5,"R"] = << <<>> >>,
+                                                                 ![3,"L"] = << <<>>, <<>>, <<<<"turn",3,"d">>,<<"auth">>>>, <<>>>>,
+                                                                 \*![3,"R"] = << <<>>, <<>>, <<<<"turn",3,"d">>,<<"auth">>>>, <<>> >>,
+                                                                 ![3,"R"] = << <<>>, <<>>, <<>> >>,
+                                                                 ![7,"L"] = << <<<<"att",3,1>>>> >>,
                                                                  ![7,"R"] = << <<>>, <<<<"incr",3>>>> >>,
-                                                                 ![8,"L"] = << <<<<"turn",3,"d">>,<<"incr",3>>,<<"att",3,2>>>> >>,
-                                                                 ![8,"R"] = << <<>>, <<>> >>]
+                                                                 \*![8,"L"] = << <<<<"turn",3,"d">>,<<"incr",3>>,<<"att",3,2>>>> >>,
+                                                                 ![8,"R"] = << <<<<"turn",3,"d">>,<<"incr",3>>,<<"att",3,2>>>>, <<>> >>]
         
                                                   
-        nextEv == <<1,1>>
         wait == [x \in (1..4) \X (0..3) |-> -1]
         switch == <<"d", "d", "v", "d", "d">> 
-        historique == [x \in (1..2) |-> -1]
         traffic_lights == [x \in (1..8) \X {"L","R"} |-> "V"]
         checkpoint == <<<<8,3,-1>>,<<7,4,-1>>>>
     IN
@@ -113,7 +112,7 @@ Init_S4 ==
         /\ reg = [
                 E  |-> events,
                 J  |-> token,
-                W  |-> {<<1,4,4,1>>,<<2,5,5,1>>},
+                W  |-> {},
                 H  |-> << <<4,"L">>, <<5,"R">> >>,
                 CP |-> checkpoint
            ]
@@ -122,10 +121,10 @@ Init_S4 ==
                 msg   |-> << <<>>, <<>> >>,
                 garde |-> [state |-> "none", requests |-> <<>>]
            ]
-        /\ feux = [traffic_lights EXCEPT ![4,"L"] = "R",
-                                      ![4,"R"] = "R",
-                                      ![5,"R"] = "R",
-                                      ![5,"L"] = "R"]
+        /\ feux = [traffic_lights EXCEPT ![8,"L"] = "R",
+                                      ![8,"R"] = "R",
+                                      ![7,"R"] = "R",
+                                      ![7,"L"] = "R"]
         /\ rule = ""
 
 
@@ -179,6 +178,87 @@ SuivR_S4(pos, dir, S) ==  IF pos = 1  /\ dir = "L" /\ S[1] = "d"               T
                      ELSE IF pos = 13 /\ dir = "R" /\ S[5] = "d"               THEN 5
                      ELSE IF pos = 13 /\ dir = "R" /\ S[5] = "v"               THEN 6
                      ELSE -1
+
+
+
+(********************** Boucle ***********************)
+
+
+Init_SB == 
+    LET 
+        train1 == [
+            id |-> 1,
+            pos |-> 1,
+            dir |-> "*",
+            prog |-> << <<"Start","R">>,<<"Until",<<2,3,4,1,2,3,4,1>>>>,<<"sync">>,<<"Until",<<2,3,4,5>>>> >>,
+            tpos |-> 1
+        ]
+        token == <<0,0,0,0,0>>
+
+        
+        events == [ [x \in (1..5) \X {"L","R"} |-> << >>] EXCEPT ![1,"L"] = << <<>>, <<<<"turn",1,"v">>>> >>,
+                                                                 ![1,"R"] = << <<>>, <<>>, <<>> >>,
+                                                                 ![2,"L"] = << <<>>, <<>>, <<>> >>,
+                                                                 ![2,"R"] = << <<>>, <<>>, <<>> >>,
+                                                                 ![3,"L"] = << <<>>, <<>>, <<>> >>,
+                                                                 ![3,"R"] = << <<>>, <<>>, <<>> >>,
+                                                                 ![4,"L"] = << <<>>, <<>>, <<>> >>,
+                                                                 ![4,"R"] = << <<>>, <<>>, <<>> >>,
+                                                                 ![5,"L"] = << <<>> >>]
+        
+                                                  
+        wait == [x \in (1..4) \X (0..3) |-> -1]
+        switch == <<"d">>
+        traffic_lights == [x \in (1..5) \X {"L","R"} |-> "V"]
+        checkpoint == <<<<-1>>>>
+    IN
+        /\ gamma = <<train1>>
+        /\ reg = [
+                E  |-> events,
+                J  |-> token,
+                W  |-> {},
+                H  |-> << <<1,"R">> >>,
+                CP |-> checkpoint
+           ]
+        /\ sigma = switch
+        /\ meta = [
+                msg   |-> << <<>>, <<>> >>,
+                garde |-> [state |-> "none", requests |-> <<>>]
+           ]
+        /\ feux = traffic_lights
+        /\ rule = ""
+
+
+Suiv_SB(pos, dir, S) ==   IF pos = 1 /\ dir = "R"               THEN 2
+                     ELSE IF pos = 1 /\ dir = "L" /\ S[1] = "d" THEN 4
+                     ELSE IF pos = 2 /\ dir = "R"               THEN 3
+                     ELSE IF pos = 2 /\ dir = "L"               THEN 1
+                     ELSE IF pos = 3 /\ dir = "R"               THEN 4
+                     ELSE IF pos = 3 /\ dir = "L"               THEN 2
+                     ELSE IF pos = 4 /\ dir = "L"               THEN 3
+                     ELSE IF pos = 4 /\ dir = "R" /\ S[1] = "d" THEN 1
+                     ELSE IF pos = 4 /\ dir = "R" /\ S[1] = "v" THEN 5
+                     ELSE IF pos = 5 /\ dir = "L" /\ S[1] = "v" THEN 4
+                     ELSE -1
+                     
+SuivR_SB(pos, dir, S) ==   IF pos = 1 /\ dir = "R"               THEN 2
+                      ELSE IF pos = 1 /\ dir = "L" /\ S[1] = "d" THEN 6
+                      ELSE IF pos = 2 /\ dir = "R"               THEN 3
+                      ELSE IF pos = 2 /\ dir = "L"               THEN 1
+                      ELSE IF pos = 3 /\ dir = "R"               THEN 4
+                      ELSE IF pos = 3 /\ dir = "L"               THEN 2
+                      ELSE IF pos = 4 /\ dir = "L"               THEN 3
+                      ELSE IF pos = 4 /\ dir = "R" /\ S[1] = "d" THEN 6
+                      ELSE IF pos = 4 /\ dir = "R" /\ S[1] = "v" THEN 6
+                      ELSE IF pos = 5 /\ dir = "L" /\ S[1] = "v" THEN 6
+                      ELSE IF pos = 6 /\ dir = "R" /\ S[1] = "d" THEN 1
+                      ELSE IF pos = 6 /\ dir = "R" /\ S[1] = "v" THEN 5
+                      ELSE IF pos = 6 /\ dir = "L"               THEN 4
+                      ELSE -1
+
+
+
+
 
 
 (********************** Défaut 1 ***********************)

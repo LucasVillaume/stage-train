@@ -28,12 +28,10 @@ train2 == [
 
 \* Régulateur
 
-events == [ [x \in (0..nbCanton) \X {"L","R"} |-> << >>] EXCEPT ![1,"L"] = << <<>> >>,
-                                                                ![1,"R"] = << <<>>, <<>> >>,
+events == [ [x \in (0..nbCanton) \X {"L","R"} |-> << >>] EXCEPT ![1,"R"] = << <<>>, <<>> >>,
                                                                 ![2,"L"] = << <<>>, <<>> >>,
                                                                 ![2,"R"] = << <<>>, <<>> >>,
-                                                                ![3,"R"] = << <<<<"turn",1,"v">>,<<"incr",2>>>> >>,
-                                                                ![3,"L"] = << <<>> >>,
+                                                                ![3,"L"] = << <<<<"turn",1,"v">>,<<"incr",2>>>> >>,
                                                                 ![4,"L"] = << <<<<"att",2,1>>>>,<<>> >>] \* Event de départ
 
 
@@ -49,7 +47,7 @@ historique == [x \in (1..nbTrain) |-> -1]
 traffic_lights == [x \in (1..nbCanton) \X {"L","R"} |-> "V"]
 
 
-checkpoint == <<<<-1>>,<<4,-1>>>> \*chekcpoint[1] = train1
+checkpoint == <<<<-1>>,<<-1,-1>>>> \*chekcpoint[1] = train1
 
 
 Suiv(pos, dir, S) == IF pos = 1 /\ dir = "R"               THEN 2
@@ -84,9 +82,7 @@ Init ==
             CP |-> checkpoint
        ]
     /\ sigma = switch
-    /\ feux = [traffic_lights EXCEPT ![1,"L"] = "R",
-                                     ![1,"R"] = "R",
-                                     ![4,"L"] = "R",
+    /\ feux = [traffic_lights EXCEPT ![4,"L"] = "R",
                                      ![4,"R"] = "R"]
     /\ meta = [
             msg   |-> << << <<4,"L">> >>, <<>> >>,
@@ -205,7 +201,8 @@ Start(T) ==
         /\ UNCHANGED reg
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ meta' = [meta EXCEPT !.msg[1] = meta.msg[1] \o << <<T.pos,T.prog[1][2]>> >>]
+        /\ UNCHANGED meta
+        \*/\ meta' = [meta EXCEPT !.msg[1] = meta.msg[1] \o << <<T.pos,T.prog[1][2]>> >>]
 
 
 Stop(T) ==
@@ -248,7 +245,7 @@ Until(T) ==
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
         /\ meta' = [meta EXCEPT !.garde.state = "update",
-                                !.msg[1] = meta.msg[1] \o << <<nextC,opDir>>,<<nextC,T.dir>> >>]
+                                !.msg[1] = meta.msg[1] \o << <<T.pos,T.dir>>,<<nextC,opDir>> >>]
 
 
 Until_cons(T) == 
@@ -273,7 +270,7 @@ Until_cons(T) ==
         /\ UNCHANGED feux
         /\ UNCHANGED sigma
         /\ meta' = [meta EXCEPT !.garde.state = "update",
-                                !.msg[1] = meta.msg[1] \o << <<nextC,opDir>>,<<nextC,T.dir>> >>]
+                                !.msg[1] = meta.msg[1] \o << <<T.pos,T.dir>>,<<nextC,opDir>> >>]
         /\ rule' = "until_cons"
         /\ UNCHANGED reg
 
@@ -296,7 +293,7 @@ ExitBlock(T) ==
         /\ UNCHANGED reg
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
-        /\ UNCHANGED meta
+        /\ meta' = [meta EXCEPT !.msg[1] = meta.msg[1] \o << <<T.pos,T.dir>> >>]
         
         
 EnterSwitch(T) ==
@@ -345,7 +342,7 @@ EnterBlock(T) ==
         /\ UNCHANGED sigma
         /\ UNCHANGED feux
         /\ meta' = [meta EXCEPT !.garde.state = "update",
-                                !.msg[1] = meta.msg[1] \o << <<nextC,opDir>>,<<nextC,T.dir>> >>]
+                                !.msg[1] = meta.msg[1] \o << <<nextC,opDir>> >>]
 
 
 EnterBlock_cons(T) ==
@@ -370,7 +367,7 @@ EnterBlock_cons(T) ==
         /\ UNCHANGED feux
         /\ UNCHANGED sigma
         /\ meta' = [meta EXCEPT !.garde.state = "update",
-                                !.msg[1] = meta.msg[1] \o << <<nextC,opDir>>,<<nextC,T.dir>> >>]
+                                !.msg[1] = meta.msg[1] \o << <<nextC,opDir>> >>]
         /\ rule' = "enterBlock_cons"
         /\ UNCHANGED reg
 
@@ -628,6 +625,7 @@ Liveness ==
     /\  <>[] /\ gamma[1].pos = 3
              /\ gamma[1].dir = "*"
     /\  <>[] /\ gamma[2].pos = 1
+    
              /\ gamma[2].dir = "*"
 
 Safety == [] (gamma[1].pos /= gamma[2].pos)
@@ -671,5 +669,5 @@ Eval == Stalk(<< <<1,"R">>, <<3,"L">> >>, <<"d">>, <<2,"R">>) \*\E seq \in set :
 
 =============================================================================
 \* Modification History
-\* Last modified Mon Jul 28 11:09:30 CEST 2025 by lucas
+\* Last modified Tue Jul 29 14:30:42 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas
