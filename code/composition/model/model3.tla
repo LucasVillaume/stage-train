@@ -1,100 +1,61 @@
 ----------------------------- MODULE model3 -----------------------------
 
 
-EXTENDS Integers, TLC, Sequences\*, scenario_m3 (*
-VARIABLE gamma, reg, sigma, feux, meta, rule 
+EXTENDS Integers, TLC, Sequences, composition
+
+\* Circuit
+Suiv(pos, dir, S) ==   IF pos = 1 /\ dir = "L" /\ S[1] = "d" /\ S[2] = "v" THEN 3
+                     ELSE IF pos = 2 /\ dir = "L" /\ S[1] = "v" /\ S[2] = "v" THEN 3
+                     ELSE IF pos = 3 /\ dir = "L" /\ S[3] = "d"               THEN 7
+                     ELSE IF pos = 3 /\ dir = "L" /\ S[3] = "v"               THEN 8
+                     ELSE IF pos = 3 /\ dir = "R" /\ S[2] = "d"               THEN 4
+                     ELSE IF pos = 3 /\ dir = "R" /\ S[1] = "d" /\ S[2] = "v" THEN 1
+                     ELSE IF pos = 3 /\ dir = "R" /\ S[1] = "v" /\ S[2] = "v" THEN 2
+                     ELSE IF pos = 4 /\ dir = "L" /\ S[2] = "d"               THEN 3
+                     ELSE IF pos = 4 /\ dir = "R" /\ S[5] = "d"               THEN 5
+                     ELSE IF pos = 4 /\ dir = "R" /\ S[5] = "v"               THEN 6
+                     ELSE IF pos = 5 /\ dir = "L" /\ S[5] = "d"               THEN 4
+                     ELSE IF pos = 5 /\ dir = "R" /\ S[4] = "d"               THEN 7
+                     ELSE IF pos = 6 /\ dir = "L" /\ S[5] = "v"               THEN 4
+                     ELSE IF pos = 6 /\ dir = "R" /\ S[4] = "v"               THEN 7
+                     ELSE IF pos = 7 /\ dir = "L" /\ S[4] = "d"               THEN 5
+                     ELSE IF pos = 7 /\ dir = "L" /\ S[4] = "v"               THEN 6
+                     ELSE IF pos = 7 /\ dir = "R" /\ S[3] = "d"               THEN 3
+                     ELSE IF pos = 8 /\ dir = "R" /\ S[3] = "v"               THEN 3
+                     ELSE -1
 
 
-nbCanton == 4 \* Nombre de canton du circuit
-maxVal == 3 \* Valeur max que peut prendre un jeton
-nbTrain == 2
+SuivR(pos, dir, S) ==  IF pos = 1  /\ dir = "L" /\ S[1] = "d"               THEN 9
+                     ELSE IF pos = 2  /\ dir = "L" /\ S[1] = "v"               THEN 9
+                     ELSE IF pos = 3  /\ dir = "L"                             THEN 11
+                     ELSE IF pos = 3  /\ dir = "R"                             THEN 10
+                     ELSE IF pos = 4  /\ dir = "L" /\ S[2] = "d"               THEN 10
+                     ELSE IF pos = 4  /\ dir = "R"                             THEN 13
+                     ELSE IF pos = 5  /\ dir = "L" /\ S[5] = "d"               THEN 13
+                     ELSE IF pos = 5  /\ dir = "R" /\ S[4] = "d"               THEN 12
+                     ELSE IF pos = 6  /\ dir = "L" /\ S[5] = "v"               THEN 13
+                     ELSE IF pos = 6  /\ dir = "R" /\ S[4] = "v"               THEN 12
+                     ELSE IF pos = 7  /\ dir = "L"                             THEN 12
+                     ELSE IF pos = 7  /\ dir = "R" /\ S[3] = "d"               THEN 11
+                     ELSE IF pos = 8  /\ dir = "R" /\ S[3] = "v"               THEN 11
+                     ELSE IF pos = 9  /\ dir = "L" /\ S[2] = "v"               THEN 10
+                     ELSE IF pos = 9  /\ dir = "R" /\ S[1] = "d"               THEN 1
+                     ELSE IF pos = 9  /\ dir = "R" /\ S[1] = "v"               THEN 2
+                     ELSE IF pos = 10 /\ dir = "L"                             THEN 3
+                     ELSE IF pos = 10 /\ dir = "R" /\ S[2] = "d"               THEN 4
+                     ELSE IF pos = 10 /\ dir = "R" /\ S[2] = "v"               THEN 9
+                     ELSE IF pos = 11 /\ dir = "L" /\ S[3] = "d"               THEN 7
+                     ELSE IF pos = 11 /\ dir = "L" /\ S[3] = "v"               THEN 8
+                     ELSE IF pos = 11 /\ dir = "R"                             THEN 3
+                     ELSE IF pos = 12 /\ dir = "L" /\ S[4] = "d"               THEN 5
+                     ELSE IF pos = 12 /\ dir = "L" /\ S[4] = "v"               THEN 6
+                     ELSE IF pos = 12 /\ dir = "R"                             THEN 7
+                     ELSE IF pos = 13 /\ dir = "L"                             THEN 4
+                     ELSE IF pos = 13 /\ dir = "R" /\ S[5] = "d"               THEN 5
+                     ELSE IF pos = 13 /\ dir = "R" /\ S[5] = "v"               THEN 6
+                     ELSE -1
 
-\*Trains
-train1 == [
-    id |-> 1,
-    pos |-> 1,
-    dir |-> "*",
-    prog |-> << <<"sync">>, <<"Start", "R">>, <<"Until", <<2,3>> >> >>,
-    tpos |-> 1
-]
-
-train2 == [
-    id |-> 2,
-    pos |-> 4,
-    dir |-> "*",
-    prog |-> << <<"sync">>, <<"Start", "L" >>, <<"Until", <<2,1>> >> >>,
-    tpos |-> 4
-]
-
-\* Régulateur
-
-events == [ [x \in (0..nbCanton) \X {"L","R"} |-> << >>] EXCEPT ![1,"R"] = << <<>>, <<>> >>,
-                                                                ![2,"L"] = << <<>>, <<>> >>,
-                                                                ![2,"R"] = << <<>>, <<>> >>,
-                                                                ![3,"L"] = << <<<<"turn",1,"v">>,<<"incr",2>>>> >>,
-                                                                ![4,"L"] = << <<<<"att",2,1>>>>,<<>> >>] \* Event de départ
-
-
-
-token == [x \in 1..nbCanton |-> 0]
-
-wait == [x \in (1..nbCanton) \X (0..maxVal) |-> -1]
-
-switch == <<"d">>
-
-historique == [x \in (1..nbTrain) |-> -1]
-
-traffic_lights == [x \in (1..nbCanton) \X {"L","R"} |-> "V"]
-
-
-checkpoint == <<<<-1>>,<<-1,-1>>>> \*chekcpoint[1] = train1
-
-
-Suiv(pos, dir, S) == IF pos = 1 /\ dir = "R"               THEN 2
-                ELSE IF pos = 2 /\ dir = "L"               THEN 1
-                ELSE IF pos = 2 /\ dir = "R" /\ S[1] = "d" THEN 3
-                ELSE IF pos = 2 /\ dir = "R" /\ S[1] = "v" THEN 4
-                ELSE IF pos = 3 /\ dir = "L" /\ S[1] = "d" THEN 2
-                ELSE IF pos = 4 /\ dir = "L" /\ S[1] = "v" THEN 2
-                ELSE -1
-
-
-SuivR(pos, dir, S) == IF pos = 1 /\ dir = "R"               THEN 2
-                 ELSE IF pos = 2 /\ dir = "R"               THEN 5 \* switch
-                 ELSE IF pos = 2 /\ dir = "L"               THEN 1
-                 ELSE IF pos = 3 /\ dir = "L" /\ S[1] = "d" THEN 5
-                 ELSE IF pos = 4 /\ dir = "L" /\ S[1] = "v" THEN 5
-                 ELSE IF pos = 5 /\ dir = "L" /\ S[1] = "d" THEN 2
-                 ELSE IF pos = 5 /\ dir = "L" /\ S[1] = "v" THEN 2
-                 ELSE IF pos = 5 /\ dir = "R" /\ S[1] = "d" THEN 3
-                 ELSE IF pos = 5 /\ dir = "R" /\ S[1] = "v" THEN 4
-                 ELSE -1
-                
-
-
-Init == 
-    /\ gamma = <<train1,train2>>
-    /\ reg = [
-            E  |-> events,
-            J  |-> token,
-            W  |-> {},
-            H  |-> << <<1,"R">>, <<4,"L">> >>,
-            CP |-> checkpoint
-       ]
-    /\ sigma = switch
-    /\ feux = [traffic_lights EXCEPT ![4,"L"] = "R",
-                                     ![4,"R"] = "R"]
-    /\ meta = [
-            msg   |-> << << <<4,"L">> >>, <<>> >>,
-            garde |-> [state |-> "none", requests |-> <<>>]
-       ]
-    /\ rule = "" \* Mesure de débug, pas présent dans le modèle
-
-\*)
-\*Init == Init_S4
-\*Suiv(pos, dir, S) == Suiv_S4(pos, dir, S)
-\*SuivR(pos, dir, S) == SuivR_S4(pos, dir, S)
-\*nbCanton == 8
+nbCanton == 8
 
 \* Utilitaire
 
@@ -565,7 +526,7 @@ PopEvent ==
                                 !.garde.state = "manage"]
                                 
                                 
-EndFlush == \*TODO : ajouter la suppression des sync
+EndFlush ==
     /\ meta.garde.state = "manage"
     /\ Len(meta.msg[1]) = 0
     /\ gamma' = Synchro(gamma)
@@ -618,21 +579,6 @@ IDLE ==
     /\ UNCHANGED meta
     /\ UNCHANGED reg
     /\ UNCHANGED sigma
-    
-
-\* Propriétés
-
-Liveness == 
-    /\  <>[] /\ gamma[1].pos = 3
-             /\ gamma[1].dir = "*"
-    /\  <>[] /\ gamma[2].pos = 1
-    
-             /\ gamma[2].dir = "*"
-
-Safety == [] (gamma[1].pos /= gamma[2].pos)
-
-
-Creep == <>[] (\A t \in DOMAIN reg.H : reg.H[t][1] = gamma[t].pos) \* cohérence entre 'vrai train' et 'train simulé'
 
 
 \* Spec
@@ -663,12 +609,4 @@ Next ==
         
 
 Spec == Init /\ [][Next]_<<gamma,reg,sigma,feux,meta,rule>> /\ WF_<<gamma,reg,sigma,feux,meta,rule>>(Next)
-\* WF_ : Weak Fairness, "si une règle peut être appliquée, je l'applique"
-
-
-Eval == Stalk(<< <<1,"R">>, <<3,"L">> >>, <<"d">>, <<2,"R">>) \*\E seq \in set : seq[1] = 2 \*SelectSeq(<< <<8,<<<<"">>, <<"">>, <<" ">>>>>>, <<2,<<<<"att">>>>>> >>, IsAttTurnInSeq)[1][1] \*"Hello" \o " World !"
-
 =============================================================================
-\* Modification History
-\* Last modified Mon Aug 04 14:47:00 CEST 2025 by lucas
-\* Created Fri May 09 16:46:37 CEST 2025 by lucas
