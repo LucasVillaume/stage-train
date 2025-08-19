@@ -1,0 +1,543 @@
+
+% Environments
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{conjecture}{Conjecture}
+\theoremstyle{definition}
+\newtheorem{definition}{Définition}
+\newtheorem{hypothesis}{Hypothèse}
+\newtheorem{example}{Exemple}
+\theoremstyle{remark}
+\newtheorem*{inducthyp}{Induction Hypothesis}
+\newtheorem*{notation}{Notation}
+\newtheorem*{remarkThm}{Remark}
+\newtheorem*{remarkThmRust}{\includegraphics[height=10pt]{Images/rust-logo-blk.png}~Remark}
+\newtheorem{corollary}{Corollaire}
+\newtheorem{ilemma}{Imported Lemma}
+
+\newenvironment{IH}[1][]
+{
+	\begin{inducthyp}[#1]
+		}{
+			\hspace{\stretch{1}}\(\triangleright\)
+	\end{inducthyp}
+	}
+\newenvironment{remarkRs}[1][]
+{
+	\begin{remarkThmRust}[#1]
+		}{
+			\hspace{\stretch{1}}\(\triangleleft\)
+	\end{remarkThmRust}
+	}
+\newenvironment{remark}[1][]
+{
+	\begin{remarkThm}[#1]
+		}{
+			\hspace{\stretch{1}}\(\triangleleft\)
+	\end{remarkThm}
+	}
+
+\tcbsetforeverylayer{
+	enhanced,
+	breakable,
+	boxrule=0pt,
+	frame hidden,
+	sharp corners,
+	left=1em,
+	right=1em,
+	}
+
+\tcolorboxenvironment{definition}{
+	borderline west={1pt}{0pt}{gray!80!blue},
+	colback=gray!80!blue!5
+}
+\tcolorboxenvironment{theorem}{
+	borderline west={1pt}{0pt}{gray!80!red},
+	colback=gray!80!red!5
+}
+\tcolorboxenvironment{corollary}{
+	borderline west={1pt}{0pt}{gray!80!red},
+	colback=gray!80!red!5
+}
+\tcolorboxenvironment{lemma}{
+	borderline west={1pt}{0pt}{gray!80!red},
+	colback=gray!80!red!5
+}
+\tcolorboxenvironment{ilemma}{
+	borderline west={1pt}{0pt}{gray!80!yellow},
+	colback=gray!80!yellow!5
+}
+\tcolorboxenvironment{conjecture}{
+	borderline west={1pt}{0pt}{gray!80!yellow},
+	colback=gray!80!yellow!5
+}
+\tcolorboxenvironment{example}{
+	borderline west={1pt}{0pt}{gray!80!green},
+	colback=gray!80!green!10
+}
+\newtcolorbox{sidebox}{
+	borderline={1pt}{0pt}{gray!80!cyan},
+	colback=gray!80!cyan!15
+	}
+
+
+
+\newenvironment{mathenum}
+{
+	\begin{enumerate}[label={{\rm(\roman*)}}, itemjoin={{; }}, itemjoin*={{; and }},]
+}
+	{\end{enumerate}}
+
+\newenvironment{inlineenum}[1][and]
+{
+	\begin{enumerate*}[label={{\rm(\roman*)}}, before={}, itemjoin={{; }}, itemjoin*={{; #1 }},]
+}
+	{\end{enumerate*}}
+
+\newenvironment{summary}[1]
+{
+	\vspace{\fill}
+	\begin{center}
+		\Large
+		Summary -- #1
+	\end{center}
+}
+{\afterpage{\restorepagecolor\pagestyle{myheadings}}}
+
+\tcolorboxenvironment{summary}{
+	borderline={1pt}{0pt}{gray!80!red},
+	colback=gray!80!red!5,
+}
+
+\makeatletter
+\newcommand{\sumoplus}{\DOTSB\sumoplus@\slimits@}
+\newcommand{\sumoplus@}{\mathop{\mathpalette\sumoplus@@\relax}}
+\newcommand{\sumoplus@@}[2]{% #1 is a style selection, #2 is unused
+  \vcenter{\vbox{\halign{\hfil##\hfil\cr
+    \scalebox{0.5}{$\m@th#1\boldsymbol{\oplus}$}\cr
+    \noalign{\nointerlineskip}
+    $\m@th#1\sum$\cr
+  }}}%
+}
+\makeatother
+
+% ------- Text
+\newcommand{\ie}{i.e.\ }
+\newcommand{\eg}{e.g.\ }
+\newcommand{\etal}{et al.\ }
+\newcommand{\etc}{etc.\ }
+\newcommand{\name}[1]{#1}
+\newcommand{\code}[1]{\texttt{#1}}
+
+% ------- hyperlinks
+\newcommand{\rulename}[1]{\hypertarget{#1}{(\textsc{#1})}}
+\newcommand{\ruleref}[1]{\hyperlink{#1}{(\textsc{#1})}}
+\newcommand{\defidx}[2]{\hypertarget{#1}{#1\index{#2}}}
+\newcommand{\defref}[2]{\hyperlink{#2}{#1}}
+
+% Notations
+\newcommand{\llbracket}[0]{[\mkern-3mu[}
+\newcommand{\rrbracket}[0]{]\mkern-3mu]}
+\newcommand{\tuple}[1]{\langle #1\rangle}
+\newcommand{\some}[1]{\lfloor #1\rfloor}
+\newcommand{\ok}[1]{\lfloor #1\rfloor}
+\newcommand{\err}[1]{\lceil #1\rceil}
+\newcommand{\none}[0]{\bot}
+\newcommand{\cfj}[0]{\textsc{cfj}}
+\newcommand{\set}[1]{\mathbb{#1}}
+\newcommand{\pfunction}[2]{#1 \nrightarrow #2}
+\newcommand{\listtype}[1]{[#1]}
+\newcommand{\multiset}[1]{\{\mkern-5mu\{#1\}\mkern-5mu\}}
+\newcommand{\relation}[1]{\mathcal{#1}}
+\newcommand{\powerset}[1]{\mathscr{P}(#1)}
+\newcommand{\powermultiset}[1]{\mathscr{P}^\star(#1)}
+\newcommand{\powerlist}[1]{\mathscr{P}^+(#1)}
+\newcommand{\concat}[2]{#1 \concatop #2}
+\newcommand{\append}[2]{#1 \appendop #2}
+\newcommand{\multisetsum}[2]{#1 +^\star #2}
+\newcommand{\existsunique}{\exists !}
+\newcommand{\define}{\stackrel{\mathrm{\Delta}}{=}}
+\newcommand{\slot}{[\cdot]}
+\newcommand{\st}{\cdot}
+\newcommand{\card}[1]{\left|#1 \right|}
+\DeclareMathOperator{\appendop}{:\mkern-2mu :}
+\DeclareMathOperator{\concatop}{@}
+\DeclareMathOperator{\size}{size}
+\DeclareMathOperator{\locations}{locations}
+\DeclareMathOperator{\filter}{filter}
+\DeclareMathOperator{\skl}{skl}
+\DeclareMathOperator{\msg}{msg}
+\DeclareMathOperator{\sortop}{sort}
+\DeclareMathOperator{\applyop}{apply}
+\DeclareMathOperator{\enqueueop}{enqueue}
+\DeclareMathOperator{\pickop}{pick}
+\DeclareMathOperator{\symdiff}{\ominus}
+
+% LG 
+\newcommand{\Compose}[2]{\prod_{#1}#2}
+\newcommand{\compose}[2]{#1 \parallel #2}
+\newcommand{\transSet}[1][u]{\mathscr{T}_{#1}}
+\newcommand{\genTransSet}[1]{\mathscr{T}_{#1}}
+\newcommand{\lgsize}[1]{\hyperlink{Location graph size}{\size}(#1)}
+\newcommand{\lglocations}[1]{\hyperlink{Locations}{\locations}(#1)}
+\newcommand{\lgextract}[1]{\hyperlink{Skeleton extraction}{e}(#1)}
+
+\newcommand{\atomset}{\set{A}}
+\newcommand{\prelocset}[0]{\hyperlink{Prelocation}{\set{L}^{\rm\sf p}}}
+\newcommand{\lgraph}[3]{\mathtt{lgraph}(#1, #2, #3)}
+\newcommand{\lauth}[2]{\mathtt{sAuth}(#1, #2)}
+\newcommand{\llabel}[3]{\mathtt{sLabel}(#1, #2, #3)}
+\newcommand{\ltrans}[2]{\mathtt{trans}(#1, #2)}
+
+\newcommand{\seval}[1]{\hyperlink{Evaluation of matching interactions}{\mathtt{seval}(}#1\hyperlink{Evaluation of matching interactions}{)}}
+
+\newcommand{\wellformed}[1]{\mathtt{WF}(#1)}
+\newcommand{\auth}[0]{\hyperlink{Authorisation function}{\mathtt{Auth}}}
+\newcommand{\lginstance}[3]{\tuple{#1, #2, #3}}
+\newcommand{\lgreduce}[5][\transSet{}]{#2\vdash_{{#1}} #3 \xrightarrow{#4}#5}
+\newcommand{\locreduce}[4]{#1\hyperlink{Unconstrained location transition}{\vartriangleright} #2 \xrightarrow{#3}#4}
+\newcommand{\environment}[2]{#1\hyperlink{Environment}{\cdot} #2}
+\newcommand{\envset}{\hyperlink{Environment}{\set{E}}}
+\newcommand{\envunion}[2]{#1 \hyperlink{Environment union}{\cup} #2}
+\newcommand{\envequiv}[2]{#1 \Bumpeq #2} %TODO
+\newcommand{\genvequiv}[2]{#1 \Bumpeq #2} %TODO
+
+% Generic elements
+\newcommand{\sort}[1]{#1.\mathtt{sort}}
+\newcommand{\proc}[1]{#1.\mathtt{proc}}
+\newcommand{\prov}[1]{#1.\mathtt{provided}}
+\newcommand{\req}[1]{#1.\mathtt{required}}
+\newcommand{\bound}[1]{#1.\mathtt{bound}}
+\newcommand{\unbound}[1]{#1.\mathtt{unbound}}
+\newcommand{\pbound}[1]{#1.\mathtt{pbound}}
+\newcommand{\rbound}[1]{#1.\mathtt{rbound}}
+\newcommand{\punbound}[1]{#1.\mathtt{punbound}}
+\newcommand{\runbound}[1]{#1.\mathtt{runbound}}
+\newcommand{\supp}[1]{\hyperlink{Support}{\mathtt{supp}(}#1\hyperlink{Support}{)}}
+
+%% Macros for locations
+\newcommand{\lwellformed}[1]{\hyperlink{Well-formed prelocations}{\mathtt{WF}}(#1)}
+\newcommand{\lproc}[1]{#1\hyperlink{Elements of a prelocation}{\mathtt{.proc}}}
+\newcommand{\lsort}[1]{#1\hyperlink{Elements of a prelocation}{\mathtt{.sort}}}
+\newcommand{\lprov}[1]{#1\hyperlink{Elements of a prelocation}{\mathtt{.provided}}}
+\newcommand{\lreq}[1]{#1\hyperlink{Elements of a prelocation}{\mathtt{.required}}}
+\newcommand{\locset}{\hyperlink{Location}{\set{L}}}
+\newcommand{\location}[4]{\hyperlink{Location}{[}#1\hyperlink{Location}{:} #2 \hyperlink{Location}{\vartriangleleft} #3 \hyperlink{Location}{\bullet} #4\hyperlink{Location}{]}}
+
+% Elements of location pregraphs
+\newcommand{\prelgset}[0]{\hyperlink{Location pregraph}{\set{G}^{\rm\sf p}}}
+
+% Elements of a graph
+\newcommand{\gsort}[1]{#1\hyperlink{Elements of a location graph}{\mathtt{.sort}}}
+\newcommand{\gprov}[1]{#1\hyperlink{Elements of a location graph}{\mathtt{.prov}}}
+\newcommand{\greq}[1]{#1\hyperlink{Elements of a location graph}{\mathtt{.req}}}
+\newcommand{\groles}[1]{#1\hyperlink{Elements of a location graph}{\mathtt{.roles}}}
+\newcommand{\gbound}[1]{#1\hyperlink{Elements of a location graph}{\mathtt{.bound}}}
+\newcommand{\gunbound}[1]{#1\hyperlink{Elements of a location graph}{.\mathtt{unbound}}}
+\newcommand{\gpbound}[1]{#1\hyperlink{Elements of a location graph}{\mathtt{.pbound}}}
+\newcommand{\gpunbound}[1]{#1\hyperlink{Elements of a location graph}{.\mathtt{punbound}}}
+\newcommand{\grbound}[1]{#1\hyperlink{Elements of a location graph}{\mathtt{.rbound}}}
+\newcommand{\grunbound}[1]{#1\hyperlink{Elements of a location graph}{.\mathtt{runbound}}}
+\newcommand{\graphset}{\hyperlink{Location graph}{\set{G}}}
+\newcommand{\gcompose}[2]{#1 \hyperlink{Location pregraph}{\parallel} #2}
+\newcommand{\gequiv}[2]{#1 \hyperlink{Location pregraph structural equivalence}{\equiv} #2}
+
+\newcommand{\separate}[2]{\hyperlink{Separated location pregraphs}{\mathtt{separate}}(#1, #2)}
+\newcommand{\gwellformed}[1]{\hyperlink{Well-formed location pregraph}{\mathtt{WF}_G}(#1)}
+
+% Macros for skeleton locations & location graphs
+\newcommand{\sgraphset}{\hyperlink{Skeleton of a location graph}{\set{G}^{\rm\sf s}}}
+\newcommand{\slocset}{\hyperlink{Skeleton of a location graph}{\set{L}^{\rm\sf s}}}
+\newcommand{\skeleton}[1]{\hyperlink{Skeleton of a location graph}{\Sigma}(#1)}
+\newcommand{\slocation}[3]{\hyperlink{Skeleton location graph}{[}#1 \hyperlink{Skeleton location graph}{\vartriangleleft} #2 \hyperlink{Skeleton location graph}{\bullet} #3\hyperlink{Skeleton location graph}{]}}
+\newcommand{\sgcompose}[2]{#1 \hyperlink{Skeleton location graph}{\parallel} #2}
+\newcommand{\sgequiv}[2]{#1 \hyperlink{Skeleton graph structural equivalence}{\equiv} #2}
+% Element of a skeleton location graph
+\newcommand{\sgsort}[1]{#1\hyperlink{Elements of a skeleton location graph}{\mathtt{.sort}}}
+\newcommand{\sgprov}[1]{#1\hyperlink{Elements of a skeleton location graph}{\mathtt{.prov}}}
+\newcommand{\sgreq}[1]{#1\hyperlink{Elements of a skeleton location graph}{\mathtt{.req}}}
+\newcommand{\sgroles}[1]{#1\hyperlink{Elements of a skeleton location graph}{\mathtt{.roles}}}
+\newcommand{\sgbound}[1]{#1\hyperlink{Elements of a skeleton location graph}{\mathtt{.bound}}}
+\newcommand{\sgunbound}[1]{#1\hyperlink{Elements of a skeleton location graph}{.\mathtt{unbound}}}
+\newcommand{\sgpbound}[1]{#1\hyperlink{Elements of a skeleton location graph}{\mathtt{.pbound}}}
+\newcommand{\sgpunbound}[1]{#1\hyperlink{Elements of a skeleton location graph}{.\mathtt{punbound}}}
+\newcommand{\sgrbound}[1]{#1\hyperlink{Elements of a skeleton location graph}{\mathtt{.rbound}}}
+\newcommand{\sgrunbound}[1]{#1\hyperlink{Elements of a skeleton location graph}{.\mathtt{runbound}}}
+
+
+% Elements of a (unconstrained) transition
+\newcommand{\lbl}[1]{#1.\mathtt{label}}
+\newcommand{\env}[1]{#1.\mathtt{env}}
+\newcommand{\init}[1]{#1.\mathtt{init}}
+\newcommand{\final}[1]{#1.\mathtt{final}}
+
+% Macros for transitions
+\newcommand{\indp}[6]{\hyperlink{Priority satisfaction of composed graphs (2)}{\mathtt{Ind}_P(}#1, #2, #3, #4, #5, #6\hyperlink{Priority satisfaction of composed graphs (2)}{)}}
+\newcommand{\indi}[2]{\hyperlink{Independent interaction set}{\mathtt{Ind}_I(}#1, #2\hyperlink{Independent interaction set}{)}}
+\newcommand{\condi}[4]{\hyperlink{Correct matching of a union of interaction sets}{\mathtt{Cond}_I(}#1, #2, #3, #4\hyperlink{Correct matching of a union of interaction sets}{)}}
+\newcommand{\condp}[7]{\hyperlink{Priority satisfaction of composed graphs}{\mathtt{Cond}_P(}#1, #2, #3, #4, #5, #6, #7\hyperlink{Priority satisfaction of composed graphs}{)}}
+\newcommand{\cond}[2]{\hyperlink{Correct environment}{\mathtt{Cond}(}#1, #2\hyperlink{Correct environment}{)}}
+
+% Labels
+\newcommand{\act}[1]{#1.\mathtt{act}} % À supprimer
+\newcommand{\roles}[1]{#1.\mathtt{roles}}
+\newcommand{\role}[1]{#1.\mathtt{role}}
+\newcommand{\negate}[1]{\neg #1}
+\newcommand{\conjugate}[1]{\overline{#1}}
+\newcommand{\anydir}[1]{\hat{#1}}
+\newcommand{\priority}[3]{#1: #2 \langle #3 \rangle}
+\newcommand{\interaction}[3]{#1: #2 \langle #3 \rangle}
+\newcommand{\priorityset}{\hyperlink{Priority constraint}{\set{\Pi}}}
+\newcommand{\interactionset}{\hyperlink{Interaction}{\set{I}}}
+\newcommand{\prequired}[1]{#1\hyperlink{Elements of priority constraints}{.\mathtt{required}}} % required roles of priority constraints
+\newcommand{\pprovided}[1]{#1\hyperlink{Elements of priority constraints}{.\mathtt{provided}}} % provided roles of priority constraints
+\newcommand{\proles}[1]{#1\hyperlink{Elements of priority constraints}{.\mathtt{roles}}} % roles of priority constraints
+\newcommand{\irequired}[1]{#1\hyperlink{Elements of interactions}{.\mathtt{required}}} % required roles of interactions
+\newcommand{\iprovided}[1]{#1\hyperlink{Elements of interactions}{.\mathtt{provided}}} % provided roles of interactions
+\newcommand{\iroles}[1]{#1\hyperlink{Elements of interactions}{.\mathtt{roles}}} % roles of interactions
+\newcommand{\prior}[1]{#1\hyperlink{Elements of a label}{.\mathtt{prior}}}
+\newcommand{\sync}[1]{#1\hyperlink{Elements of a label}{.\mathtt{sync}}}
+\newcommand{\laroles}[1]{#1\hyperlink{Elements of a label}{.\mathtt{roles}}} % roles of labels
+\newcommand{\satisfies}[3]{#1 \hyperlink{Priority satisfaction}{\models}_{#2} #3}
+
+
+\newcommand{\wf}[1]{\mathtt{WF}(#1)}
+
+\newcommand{\names}[1]{#1\hyperlink{Elements of an environment}{.\mathtt{names}}} % Names of an environment
+\newcommand{\graph}[1]{#1\hyperlink{Elements of an environment}{.\mathtt{graph}}} % Graph of an environment
+
+\renewcommand{\owns}[0]{\multimap}
+
+\newcommand{\observable}[2]{#1\downarrow_{#2}}
+
+\newcommand{\rmv}[1]{\mathtt{rmv}(#1)}
+\newcommand{\rmvself}[1]{\overline{\mathtt{rmv}}(#1)}
+\newcommand{\rmvchan}{\mathtt{rmv}}
+\newcommand{\rmvselfchan}{\overline{\mathtt{rmv}}}
+
+\newcommand{\emptygraph}[0]{\emptyset}
+\newcommand{\emptysgraph}[0]{\emptyset}
+\newcommand{\subskeleton}[2]{#1 \hyperlink{Inclusion (Skeleton Location Graph)}{\subseteq} #2}
+\newcommand{\sgraphunion}[2]{#1 \hyperlink{Union (Skeleton Location Graph)}{\cup} #2}
+
+\newcommand{\gpartset}[1]{\hyperlink{Graph partition}{\set{P}}_{#1}} % The set of partitions of a given graph
+\newcommand{\gpartfset}[1]{\hyperlink{Graph partitioning function}{\set{P}}_{#1}} % The set of partition functions (for an set of location graphs). 
+
+\newcommand{\finer}[2]{#1\succ #2}
+\newcommand{\coarser}[2]{#1\prec #2}
+
+\newcommand{\pfiner}[2]{#1 \hyperlink{Finer graph partition}{\succ} #2}
+\newcommand{\ffiner}[2]{#1 \hyperlink{Finer/Coarser partitioning functions}{\succ} #2}
+\newcommand{\subgraph}[2]{#1 \hyperlink{Inclusion}{\subseteq} #2}
+\newcommand{\gdistance}[2]{d(#1, #2)}
+\newcommand{\pdistance}[2]{D(#1, #2)}
+
+\newcommand{\makeaction}[3]{#1:#2\langle#3\rangle}
+\newcommand{\makeprior}[3]{#1:#2\langle#3\rangle}
+
+\newcommand{\depth}[0]{\mathtt{depth}}
+
+% LG nesting
+\newcommand{\nest}[1]{\hyperlink{Location nesting function}{n(}#1\hyperlink{Location nesting function}{)}}
+\newcommand{\nestr}[1]{\hyperlink{Inverse of location nesting}{n^{-1}(}#1\hyperlink{Inverse of location nesting}{)}}
+\newcommand{\Nest}[2]{\hyperlink{Graph nesting function}{N_{#1}(}#2\hyperlink{Graph nesting function}{)}}
+\newcommand{\Nestr}[2]{\hyperlink{Inverse of location nesting}{N^{-1}_{#1}(}#2\hyperlink{Inverse of location nesting}{)}}
+\newcommand{\nauth}{\hyperlink{}{\mathtt{Auth}_2}} % Authorisation function for 2nd order graphs.
+\newcommand{\ninter}[4]{\hyperlink{Second order interactions}{\mathtt{inter}_2(}#1, #2, #3, #4\hyperlink{Second order interactions}{)}}
+
+% LG extended simulation 
+
+\newcommand{\simueq}[1]{\eqcirc_{#1}}
+\newcommand{\simulates}[2]{#1\sim #2}
+
+% LG merging
+\newcommand{\lgmerge}[2]{#1\star #2}
+\newcommand{\lifttop}[1]{#1^\top}
+\newcommand{\liftbot}[1]{#1^\bot}
+\newcommand{\lift}[1]{#1^{\top\bot}}
+\newcommand{\wfmerge}[1]{\mathtt{WF}_\star(#1)}
+\newcommand{\side}[1]{\mathtt{side}(#1)}
+\newcommand{\proj}[2]{\pi_{{#1}}(#2)}
+
+% Nesting 
+\newcommand{\prune}[1]{\hyperlink{Label pruning}{\mathtt{prune}(}#1\hyperlink{Label pruning}{)}}
+\newcommand{\recover}[2]{\hyperlink{Graph recovery}{\mathtt{recover}(}#1, #2\hyperlink{Graph recovery}{)}}
+% Nesting (recursive -- naive)
+\newcommand{\recnestloc}[2]{\hyperlink{Recursive location nesting function}{\mathbb{n}}_{#1}(#2)}
+\newcommand{\recnest}[2]{\hyperlink{Recursive graph nesting function}{\mathbb{N}}_{#1}(#2)}
+% recursive -- not naive
+\newcommand{\rnest}[2]{\hyperlink{Higher-order nesting function}{\nu_{#1}(#2)}}
+
+% Strict encapsulation policy
+\newcommand{\sownership}[2]{#1\hyperlink{Strict ownership domain}{\#} #2}
+\newcommand{\seownership}[2]{#1\hyperlink{Strict ownership domain}{\star } #2}
+\newcommand{\sgsownership}[2]{#1\hyperlink{Ownership domains of skeleton graphs}{\#_s} #2}
+\newcommand{\sgseownership}[2]{#1\hyperlink{Ownership domains of skeleton graphs}{\star_s } #2}
+\newcommand{\sesort}{\hyperlink{sesort}{\set{S}_{se}}}
+\newcommand{\sesortid}[1]{#1 \hyperlink{sesortid}{{\tt .id}}}
+\newcommand{\sesortowned}[1]{#1 \hyperlink{sesortowned}{{\tt .owned}}}
+\newcommand{\selowned}[1]{#1 \hyperlink{selowned}{{\tt .owned}}}
+\newcommand{\segowned}[1]{#1 \hyperlink{selowned}{{\tt .owned}}}
+\newcommand{\selid}[1]{#1 \hyperlink{selowned}{{\tt .id}}}
+\newcommand{\seownerpred}[1]{#1 \hyperlink{seownerpred}{{\tt .is\_owner}}}
+\newcommand{\sewf}[1]{\hyperlink{sewf}{{\tt WF}_{se}(}#1\hyperlink{sewf}{)}}
+\newcommand{\selocs}{\hyperlink{sewf}{\set{L}_{se}}}
+\newcommand{\segraphs}{\hyperlink{sewf}{\set{G}_{se}}}
+\newcommand{\seowns}[2]{#1 \hyperlink{Strict ownership relation}{\owns} #2}
+\newcommand{\srange}[2]{\hyperlink{Label range}{{\tt range}(}#1, #2\hyperlink{Label range}{)}}
+
+% Fip policy
+\newcommand{\newarrow}[1]{\mathtt{new\_arrow}(#1)}
+\newcommand{\delarrow}[1]{\mathtt{del\_arrow}(#1)}
+
+% -------------------------
+
+
+% JavaLoc
+\newcommand{\classname}[1]{\texttt{#1}}
+\newcommand{\methodname}[1]{\texttt{#1}}
+
+
+% CFJ single thread semantics
+\newcommand{\cfjstsreduce}[1]{\overset{#1}{\longrightarrow}}
+
+% CFJ concurrent semantics
+\newcommand{\cfjreduce}[0]{\Longrightarrow}
+
+% FIP commands
+\newcommand{\coddep}[0]{\dashleftarrow}
+\newcommand{\fip}[0]{{\textsc{fip}}}
+\newcommand{\cod}[0]{{\textsc{cod}}}
+\newcommand{\lock}[0]{\text{\faLock}}
+\newcommand{\unlock}[0]{\text{\faUnlock}}
+
+
+% -------------------------
+% Abstract Machine
+\newcommand{\amprov}{{\tt provided}}
+\newcommand{\amreq}{{\tt required}}
+\newcommand{\ambind}[3]{\hyperlink{Transition item}{{\tt Bind}(}#1, #2, #3\hyperlink{Transition item}{)}}
+\newcommand{\amcreate}[1]{\hyperlink{Transition item}{{\tt Create}(}#1\hyperlink{Transition item}{)}}
+\newcommand{\amexpect}[3]{\hyperlink{Transition item}{{\tt Expect}(}#1, #2, #3\hyperlink{Transition item}{)}}
+\newcommand{\amreceive}[2]{\hyperlink{Transition item}{{\tt Receive}(}#1, #2\hyperlink{Transition item}{)}}
+\newcommand{\amrelease}[3]{\hyperlink{Transition item}{{\tt Release}(}#1, #2, #3\hyperlink{Transition item}{)}}
+\newcommand{\amsend}[3]{\hyperlink{Transition item}{{\tt Send}(}#1, #2, #3\hyperlink{Transition item}{)}}
+\newcommand{\amsort}[2]{\hyperlink{Transition item}{{\tt Sort}(}#1, #2\hyperlink{Transition item}{)}}
+\newcommand{\amremove}[1]{\hyperlink{Transition item}{{\tt Remove}(}#1\hyperlink{Transition item}{)}}
+\newcommand{\amtransitem}{\hyperlink{Transition item}{\set{T}_i}}
+\newcommand{\amtrans}{\hyperlink{Transition (Abstract machine)}{\set{T}}}
+\newcommand{\amtransenqueue}[2]{\hyperlink{Transition item enqueuing}{\enqueueop(}#1, #2\hyperlink{Transition item enqueuing}{)}}
+\newcommand{\amfilter}[1]{\hyperlink{Transition filter}{\filter(}#1\hyperlink{Transition filter}{)}}
+\newcommand{\amskli}[1]{\hyperlink{Skeleton of a transition item}{\skl_i(}#1\hyperlink{Skeleton of a transition itemSkeleton of a transition item}{)}}
+\newcommand{\amskl}[1]{\hyperlink{Skeleton of a transition}{\skl(}#1\hyperlink{Skeleton of a transition}{)}}
+\newcommand{\amwftrans}[1]{\hyperlink{Well-formed transition (Abstract machine)}{{\tt WF}_t(}#1\hyperlink{Well-formed transition (Abstract machine)}{)}}
+\newcommand{\amnotintransset}{{\tt Not\_In\_Trans\_Set}}
+\newcommand{\amnotselected}{{\tt Not\_Selected}}
+\newcommand{\amnotallowed}{{\tt Not\_allowed}}
+\newcommand{\amnomatch}{{\tt No\_match}}
+\newcommand{\amwfhandle}[1]{\hyperlink{Well-formed handle}{{\tt WF}_h(}#1\hyperlink{Well-formed handle}{)}}
+\newcommand{\ammsg}[1]{\hyperlink{Messages of a transition}{\msg(}#1\hyperlink{Messages of a transition}{)}}
+\newcommand{\amsortrel}[2]{\hyperlink{New sort in a transition}{\sortop(}#1, #2\hyperlink{New sort in a transition}{)}}
+\DeclareMathOperator{\ep}{endpoints}
+\newcommand{\amendpoints}[2]{\hyperlink{Endpoints effects of a transition}{\ep(}#1, #2\hyperlink{Endpoints effects of a transition}{)}}
+\newcommand{\amretaddr}{{\tt ret}}
+\newcommand{\amapplyloc}[3]{\hyperlink{Application of a transition to a location}{\applyop_l(}#1, #2, #3\hyperlink{Application of a transition to a location}{)}}
+\newcommand{\aminitstack}{{\tt stack}_i}
+\newcommand{\amrolesset}{\hyperlink{sec:am:base_sets}{\set{R}}}
+\newcommand{\amdirset}{\hyperlink{sec:am:base_sets}{\set{D}}}
+\newcommand{\ammsgset}{\hyperlink{sec:am:base_sets}{\set{M}}}
+\newcommand{\amsortsset}{\hyperlink{sec:am:base_sets}{\set{S}}}
+\newcommand{\amepset}{\hyperlink{Endpoint}{\set{E}}}
+\newcommand{\amsklocset}{\hyperlink{Skeleton locations (Abstract machine)}{\set{\Sigma}_l}}
+\newcommand{\amskgset}{\hyperlink{Skeleton location graphs (Abstract machine)}{\set{\Sigma}}}
+\newcommand{\amsilentprimitive}[0]{{\sl silent}}
+\newcommand{\ambindprimitive}[2]{{\sl bind}(#1, #2)}
+\newcommand{\amreleaseprimitive}[1]{{\sl release}(#1)}
+\newcommand{\amcreateprimitive}[1]{{\sl create}(#1)}
+\newcommand{\amnewsortprimitive}[1]{{\sl newSort}(#1)}
+\newcommand{\amreceiveprimitive}[1]{{\sl receive}(#1)}
+\newcommand{\amsendprimitive}[2]{{\sl send}(#1, #2)}
+\newcommand{\amexpectprimitive}[2]{{\sl expect}(#1, #2)}
+\newcommand{\amendprimitive}{{\sl end}}
+\newcommand{\amresetprimitive}{{\sl reset}}
+\newcommand{\amnexttransprimitive}{{\sl next\_transition}}
+\newcommand{\amcommitprimitive}{{\sl commit}}
+\newcommand{\amprimitiveset}{\hyperlink{Primitives of the abstract machine}{\set{P}}}
+\DeclareMathOperator{\statenext}{next}
+\newcommand{\amnext}[1]{\statenext(#1)}
+\DeclareMathOperator{\statememory}{memory}
+\newcommand{\ammemory}[1]{\statememory(#1)}
+\newcommand{\ammemoryupdate}[3]{#1[#2 \mapsto #3]}
+\newcommand{\ammemoryremove}[2]{#1[\times #2]}
+\newcommand{\amstatesset}{\set{S}_t}
+\newcommand{\aminitialstate}{\sigma_i}
+\newcommand{\amobjects}{\hyperlink{Objects of the abstract machine}{\set{O}}}
+\newcommand{\amaddressesset}{\set{A}}
+\newcommand{\amlochandlesset}{\hyperlink{Location handle}{\set{L}_H}}
+\newcommand{\amlocset}{\hyperlink{Location (Abstract machine)}{\set{L}}}
+\newcommand{\amtransitemsum}[2]{#1 \hyperlink{Transition item sum}{\oplus} #2}
+\newcommand{\amtranssum}[2]{#1 \hyperlink{Transition sum}{\oplus} #2}
+\newcommand{\amtransSum}[2]{\sumoplus_{#1} #2}
+\newcommand{\amerrorset}{\hyperlink{Transition result}{\set{E}_r}}
+\newcommand{\amsuccessset}{\hyperlink{Transition result}{\set{S}_r}}
+\newcommand{\amresultset}{\hyperlink{Transition result}{\set{R}_t}}
+\newcommand{\amts}[2]{ts(#1, #2)}
+\newcommand{\amaf}[3]{af(#1, #2, #3)}
+\DeclareMathOperator{\complete}{complete}
+\newcommand{\amcomplete}[1]{\hyperlink{Complete set of transition}{\complete(}#1\hyperlink{Complete set of transition}{)}}
+\newcommand{\ampick}[2]{\hyperlink{Picking relation}{\pickop(}#1, #2\hyperlink{Picking relation}{)}}
+\DeclareMathOperator{\exchange}{exchange}
+\newcommand{\amexchange}[1]{\hyperlink{Exchange function}{\exchange(}#1\hyperlink{Exchange function}{)}}
+\newcommand{\amexchanget}[2]{\hyperlink{Exchange function}{\exchange_t(}#1, #2\hyperlink{Exchange function}{)}}
+\DeclareMathOperator{\items}{items}
+\newcommand{\amitems}[1]{\hyperlink{Role predicate}{\items(}#1\hyperlink{Role predicate}{)}}
+\DeclareMathOperator{\roleok}{roles\_ok}
+\newcommand{\amroleok}[2]{\hyperlink{Role predicate}{\roleok(}#1, #2\hyperlink{Role predicate}{)}}
+\newcommand{\amapplyt}[2]{\hyperlink{Transition application to a skeleton location}{\applyop_t(}#1, #2\hyperlink{Transition application to a skeleton location}{)}}
+\newcommand{\amapply}[2]{\hyperlink{Transition application to a skeleton location graph}{\applyop(}#1, #2\hyperlink{Transition application}{)}}
+\newcommand{\amapplyf}[3]{\hyperlink{Full transition application to a skeleton location graph}{\applyop_f(}#1, #2, #3\hyperlink{Full transition application}{)}}
+\newcommand{\amwflg}[1]{\hyperlink{Well-formed location graph}{{\tt WF}_g(}#1\hyperlink{Well-formed location graph}{)}}
+\DeclareMathOperator{\result}{result}
+\DeclareMathOperator{\possibleresult}{possible\_result}
+\newcommand{\amlistres}[7]{\hyperlink{Results of a list of transitions}{\result(}#1, #2, #3, #4, #5, #6, #7\hyperlink{Results of a list of transitions}{)}}
+\newcommand{\amlistpres}[3]{\hyperlink{Possible results of a list of transitions}{\possibleresult(}#1, #2, #3\hyperlink{Possible results of a list of transitions}{)}}
+
+% Ad-hoc policy in LG
+\newcommand{\lsindex}{ls}
+\newcommand{\lswf}[1]{{\tt WF}(#1)}
+\newcommand{\lsgraphset}{\mathbb{G}_{ls}}
+\renewcommand{\S}{{\tt S}}
+\renewcommand{\L}{{\tt L}}
+\newcommand{\lssortset}{\set{S}_{\lsindex}}
+\newcommand{\lscreate}[1]{{\tt create}(#1)}
+\newcommand{\lsremove}[1]{{\tt remove}(#1)}
+\newcommand{\lsroleset}{\set{R}_{\lsindex}}
+\newcommand{\lstransset}{\transSet[ls]}
+
+
+% PubSub Server
+\newcommand{\tcploc}{{\tt TCPLoc}}
+\newcommand{\tcpread}{{\tt TCPRead}}
+\newcommand{\tcplistener}{{\tt Listener}}
+\newcommand{\subtotcp}{{\tt S2T}}
+\newcommand{\tcptosub}{{\tt T2S}}
+
+
+% from : https://tex.stackexchange.com/questions/365952/enumerate-a-list-of-equations#365956
+\makeatletter
+\newcommand{\leqnomode}{\tagsleft@true}
+\makeatother
+\newcounter{dummy}
+
+\renewcommand{\theequation}{\arabic{equation}}
+\newenvironment{enumeq}{
+	\bgroup
+	\leqnomode
+	\setcounter{dummy}{\theequation}
+	\setcounter{equation}{0}
+	\renewcommand{\theequation}{\roman{equation}}
+}{
+	\setcounter{equation}{\thedummy}
+	\egroup
+}

@@ -1,0 +1,88 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{style}
+
+\RequirePackage[utf8]{inputenc}
+\RequirePackage[margin=2.5cm]{geometry}
+%\RequirePackage[]{minitoc}
+
+\RequirePackage{afterpage}
+\RequirePackage{pagecolor} % Summary pages
+
+\RequirePackage{mathbbol} % Greek blackboard fonts
+\RequirePackage{amssymb}
+\RequirePackage[fleqn]{amsmath}
+\RequirePackage{amsthm}
+\RequirePackage{mathtools}
+\RequirePackage[mathscr]{euscript}
+
+\RequirePackage{graphicx}
+
+%\RequirePackage{algorithm2e}
+
+\RequirePackage{fancyhdr}
+\pagestyle{myheadings}
+
+%======  Colors
+
+\colorlet{lightblue}{blue!5}
+\colorlet{darkgreen}{green!50!black}
+\colorlet{darkred}{red!50!black}
+\colorlet{darkblue}{blue!50!black}
+
+%====== Enums 
+\RequirePackage[inline]{enumitem}
+\setlist[description]{
+	font=\sc,
+	itemsep=5pt
+}
+% Itemize bullets
+\setlist{nosep}
+\renewcommand{\labelitemi}{---}
+
+
+%====== Heading styles
+\usepackage[medium, compact]{titlesec}
+
+%====== Tabular
+\RequirePackage{colortbl}
+\renewcommand{\arraystretch}{1.5} % increase interline separation
+%\arrayrulecolor{darkblue}
+
+%====== Abstract
+\newenvironment{abstract}[1][Abstract]{
+	\begin{center}
+		\begin{minipage}{0.7\textwidth}
+			\begin{center}
+				\textbf{#1}
+			\end{center}
+			\small
+}{
+		\end{minipage}
+	\end{center}
+}
+
+
+%====== Title page
+\newcommand*{\@subtitle}{}
+\newcommand*{\subtitle}[1]{\gdef\@subtitle{#1}}
+\renewcommand{\maketitle}
+{
+	\begin{titlepage}
+		%\begin{tikzpicture}[overlay,remember picture]
+		%	\node[anchor=south,rotate=90,font=\sffamily] 
+		%	(AE) at ([xshift=-1ex]current page text area.west){Version pré-publique, ne pas diffuser. (Compilation~: \DTMnow)};
+		%	\draw[thick,] (AE.east) -- ++ (0,4)
+		%	(AE.west) -- ++ (0,-4);
+		%\end{tikzpicture}
+
+		\begin{center}
+			\vspace*{\fill}
+			{\huge\@title\par}
+			{\Large\@subtitle\par}
+			\vspace{1cm}
+			{\Large\color{gray!80!blue}\@author\par}
+		\end{center}
+
+		\vfill
+	\end{titlepage}
+}

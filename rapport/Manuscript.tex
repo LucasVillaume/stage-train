@@ -1,0 +1,584 @@
+\documentclass[oneside, a4paper, 11pt]{book}
+\usepackage{style}
+\usepackage{makeidx}
+\makeindex
+\usepackage{pdfpages}
+\usepackage{rotating}
+\usepackage{multicol}
+\usepackage{mdframed}
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable, skins}
+\usepackage[english=british]{csquotes}
+\usepackage[super]{nth}
+\usepackage{xcolor}
+\usepackage{xifthen} % if then else
+\usepackage{subcaption}
+\usepackage{amssymb}
+\usepackage[font=footnotesize]{caption}
+%\usepackage{fontawesome} % Symbole cadenas 
+\usepackage{../package/mathpartir}
+\usepackage{../package/drawstack}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usepackage{titlesec}
+\usepackage[]{todonotes}
+\usepackage{../package/formal-grammar}
+\usepackage{wrapfig}
+%\usepackage[backref=true]{biblatex}
+% hyperref doit être chargé en dernier
+\usepackage{hyperref}
+\hypersetup{
+	colorlinks=true,
+	hidelinks=true,
+}
+\input{commands.tex}
+%\addbibresource{ref.bib}
+
+
+%%%%%% Macro %%%%%%
+
+\newcommand{\TLA}{\ensuremath{TLA^+}}
+\newcommand{\nats}{\ensuremath{\mathbb{N}}}
+
+
+\newcommand{\ruleFmt}[1]{\textsc{(#1)}}
+\newcommand{\ruleDef}[1]{\hypertarget{#1}{\ruleFmt{#1}}}
+\newcommand{\ruleRef}[1]{\hyperlink{#1}{\ruleFmt{#1}}}
+
+%% Trains
+\definecolor{traincolor}{rgb}{0.2, 0.2, 0.6}
+\newcommand{\trainFmt}[1]{{\color{traincolor} #1}}
+\newcommand{\trainTuple}[4]{\langle \trainFmt{#1}, \posFmt{#2}, \dirFmt{#3}, #4 \rangle}
+\newcommand{\trainSeq}{\ensuremath{\trainFmt{\Gamma}}\xspace}
+\newcommand{\trains}{{\trainFmt{\mathsf{T}}}}
+\newcommand{\tid}[1]{\ensuremath{\trainFmt{t_{#1}}}}
+
+
+\newcommand{\forward}{\ensuremath{\mathtt{f}}\xspace}
+\newcommand{\backward}{\ensuremath{\mathtt{b}}\xspace}
+\newcommand{\sucblock}{{\mathtt{suc}}}
+\newcommand{\throughS}{{\mathtt{through}}}
+\newcommand{\directions}{\dirFmt{\mathcal{D}}}
+%% Train directions
+\definecolor{dircolor}{rgb}{1.0, 0.13, 0.32}
+\newcommand{\dirFmt}[1]{{\color{dircolor} #1}}
+\newcommand{\dirForward}{\ensuremath{\dirFmt{\forward}}\xspace}
+\newcommand{\dirBackward}{\ensuremath{\dirFmt{\backward}}\xspace}
+\newcommand{\dirStop}{\ensuremath{\dirFmt{\star}}\xspace}
+
+%% Positions
+\definecolor{poscolor}{rgb}{0.6, 0.45, 0.32}
+\newcommand{\posFmt}[1]{{\color{poscolor}{#1}}}
+\newcommand{\blocks}{{\posFmt{\mathsf{B}}}}
+\newcommand{\bid}[1]{\ensuremath{\posFmt{b_{#1}}}}
+\newcommand{\suc}[3]{\ensuremath{\sucblock(\posFmt{#1}, \dirFmt{#2}, \swFmt{#3})}}
+
+%% Train program
+\newcommand{\su}[2]{{\mbox{$\mathtt{startuntil}(\dirFmt{#1}, \posFmt{#2})$}}}
+\newcommand{\trainConcat}[2]{#1 \cdot #2}
+\newcommand{\emptyTrainProg}{\varepsilon}
+
+%% Regulator
+\newcommand{\handlerOf}[2]{\ensuremath{#1[\trainFmt{#2}]}}
+\newcommand{\popHandlerHead}[2]{\ensuremath{{\tt pop}(#1[\trainFmt{#2}])}}
+\newcommand{\substHandlerHead}[3]{\ensuremath{#1[\trainFmt{#2} \leftarrow #3]}}
+\newcommand{\actionsOf}[1]{\ensuremath{#1.{\tt act}}}
+\newcommand{\blockOf}[1]{\ensuremath{#1.{\tt block}}}
+\newcommand{\handler}[2]{\tuple{#1, #2}}
+\newcommand{\nextAct}[1]{\ensuremath{#1.{\tt cont}}}
+
+%% Regulator's Program
+\newcommand{\regTuple}[3]{\tuple{#1, #2, #3}}
+\newcommand{\evGuard}[2]{\ensuremath{\mathtt{ev}(\trainFmt{#1}, #2)}}
+\newcommand{\ev}[3]{\evGuard{#1}{#2}: #3}
+\newcommand{\incr}[1]{{\mbox{\ensuremath{\mathtt{incr}(\posFmt{#1})}}}}
+\newcommand{\turnOrder}[2]{{\mbox{\ensuremath{\mathtt{turn}(#1, #2)}}}}
+\newcommand{\authOrder}{{\mbox{\ensuremath{\mathtt{auth}}}}}
+\newcommand{\tokens}{\ensuremath{T}}
+\newcommand{\tokenOf}[1]{\ensuremath{T(\posFmt{#1})}}
+\newcommand{\regulator}{\ensuremath{R}}
+\newcommand{\wait}[2]{{\mbox{\ensuremath{\mathtt{wait}(\posFmt{#1}, #2)}}}}
+\newcommand{\regConcat}[2]{#1 \cdot #2}
+\newcommand{\incrToken}[2]{\ensuremath{#1. {\tt incr}(\posFmt{#2})}}
+
+%% Switches
+\definecolor{swcolor}{rgb}{0.4, 0.23, 0.56}
+\newcommand{\swFmt}[1]{{\color{swcolor}{#1}}}
+\newcommand{\sid}[1]{\ensuremath{\swFmt{s_{#1}}}}
+\newcommand{\turnouts}{\swFmt{\mathsf{\Theta}}}
+\newcommand{\switches}{\ensuremath{\swFmt{\sigma}}}
+\newcommand{\networkConf}{\ensuremath{\swFmt{\Sigma}}}
+\newcommand{\nosuc}{\ensuremath{\swFmt{\bot}}}
+\newcommand{\updateSwitch}[3]{\ensuremath{#1[\swFmt{#2}\leftarrow #3]}}
+
+%% Buffer
+\newcommand{\bufferFmt}[1]{#1}
+\newcommand{\head}[1]{\ensuremath{{\tt hd}(#1)}}
+\newcommand{\buflen}[1]{\ensuremath{{\tt len}(\bufferFmt{#1})}}
+\newcommand{\bufhead}[1]{\head{\bufferFmt{#1}}}
+\newcommand{\buftail}[1]{\ensuremath{{\tt tl}(\bufferFmt{#1})}}
+\newcommand{\emptyList}{\ensuremath{\varepsilon}}
+\newcommand{\bufTrainSet}{\ensuremath{\bufferFmt{\mathbb{B}_t}}\xspace}
+\newcommand{\bufSigSet}{\ensuremath{\bufferFmt{\mathbb{B}_s}}\xspace}
+\newcommand{\bufTrain}{\ensuremath{\bufferFmt{B_t}}\xspace}
+\newcommand{\bufSig}{\ensuremath{\bufferFmt{B_s}}\xspace}
+
+
+
+\newcommand{\reduces}{\ensuremath{\rightarrow}}
+\newcommand{\redTuple}[4]{\ensuremath{\tuple{#1, \bufferFmt{#2}, \bufferFmt{#3}, #4}}}
+
+%%%%% regle m0 %%%%%
+\newcommand\concatM[2]{#1;#2}
+\newcommand\train[4]{ \langle #1, #2, #3, #4 \rangle}
+\newcommand\trainfull[4]{\langle \trainFmt{\Gamma} \cup \{ \train{#1}{#2}{#3}{#4} \} \rangle}
+\newcommand\reg[6]{\langle #1, #2, #3, #4, #5, #6 \rangle}
+\newcommand\majtab[3]{#1[#2] \gets #3}
+
+
+
+
+\titleformat{\chapter}[display]
+	{\normalfont\bfseries}{}{1em}{\Large\thechapter\hspace{1em}}
+
+
+%%%%%%% Document %%%%%%%%
+
+
+\title{Rapport}
+\author{Moi}
+
+
+\begin{document}
+
+\frontmatter
+\maketitle
+
+\chapter*{Remerciements}
+
+\tableofcontents
+
+\mainmatter
+
+\chapter{Introduction}
+\label{sec:intro}
+
+\section{Contexte et objectifs}
+
+\begin{wrapfigure}[12]{r}{0.28\textwidth}
+	\begin{minipage}{0.28\textwidth}
+		\centering
+		\vspace{-0mm}
+		\includegraphics[height=40mm, angle=-90]{../paper/maquette.png}
+		\caption{La maquette}
+		\label{fig:maquette}
+	\end{minipage}
+\end{wrapfigure}
+
+\paragraph{}
+Aujourd'hui, le transport ferroviaire représente une grande partie des déplacements de personnes et de marchandises, ce qui en fait un enjeu sociétal majeur.
+Sa sécurité doit être mise au premier plan, un accident pouvant engendrer des pertes humaines et économiques considérables. C'est pourquoi la Société Nationale des Chemins de fer Français (SNCF) est considérée comme un opérateur d'importance vitale (OIV) par l'État français, ce qui implique un respect par cette dernière de normes de sécurité strictes, tant sur le plan "physique" que sur le plan "cyber". 
+Dans le même temps, les besoins cyber dans l'industrie, mais également dans d'autres secteurs, poussent aux recrutements et à la formation de nouveaux profils.
+C'est dans ce contexte que s'inscrit la création d'une maquette de train, simulant un réseau ferroviaire à l'échelle d'une ville. Cette dernière est utilisée pour offrir une plateforme d'entraînement aux étudiants participant à Cyber Humanun Est (CHE), dans l'optique de leur faire découvrir la défense et l'attaque de ce type de système.
+\todo{Motivé la présence de la maquette~: on veut davoir pq des pb arrivent}L'objectif de ce stage consiste en la vérification d'un programme d'ordonnancement de trains~: être capable de certifier qu'une suite d'instructions précises n'engendre pas d'accidents et achemine les trains à bon port.
+Cependant, avant de pouvoir vérifier ce programme, il est essentiel de modéliser notre système afin de simuler son comportement. Par la suite, nous pourrons utiliser des outils de vérification formelle, comme un model checker, pour confirmer que notre programme respecte bien les propriétés attendues.
+
+\paragraph{Vocabulaire.}
+Avant d'avancer dans la réflexion, il est important de définir quelques termes qui reviendront souvent dans ce document. On nomme canton une portion de voie ferrée, délimitée par des feux de signalisation, suivie par une impasse, un aiguillage ou un autre canton. 
+Un aiguillage représente une portion de voie qui offre un choix entre plusieurs cantons. Le réseau quant à lui représente l'ensemble des cantons et aiguillages. Enfin, un régulateur est une entité qui gère tout ou partie du réseau, dans notre cas, nous n'aurons qu'un seul régulateur. 
+
+\section{Outils}
+
+\paragraph{modèle}
+\paragraph{règles}
+\paragraph{tla}
+\todo{mettre des paragraphes meme s'ils disparaissent, surtout pour voir si j'en dis assez}
+
+
+
+\paragraph{}
+Pour nous aider à atteindre notre objectif, nous avons utilisé plusieurs outils, aussi bien théoriques que pratiques.
+Pour la modélisation, nous avons besoin d'outils théoriques comme les automates à états finis, une construction courante en informatique. Elle se présente comme un graphe orienté
+où chaque sommet représente un état du système, et chaque arête une transition entre deux états, parfois étiquetée.
+Dans notre cas, un état du système est représenté par l'état de tous les sous-systèmes qui le composent, comme les trains, le régulateur, etc... 
+Mais nous verrons cela plus loin dans la section \ref{sec:modele}.
+Chaque action modifiant un état d'un des sous-systèmes est représentée par une arête partant d'un état $e$ vers un état $e'$, on a donc ~: $e \xrightarrow{action} e'$.
+Ici, on peut faire appel à un autre outil~: les règles d'inférences, qui vont représenter nos règles de transitions entre états, elles régissent les conditions sous lesquelles une transition peut se produire.
+
+\begin{wrapfigure}{r}{0.35\textwidth}
+	\centering
+	\resizebox{0.3\textwidth}{!}{
+		\begin{tikzpicture}[
+			vertex/.style={circle, draw=gray, fill=gray!15, very thick, minimum size=7mm, text width=1.5cm, align=center},
+		]
+		\node[vertex] (q0) at (4,0)	  {Attend pièce};
+		\node[vertex] (q1) at (4,-5)  {Attend choix};
+		\node[vertex] (q2) at (0,-10) {Prépare thé};
+		\node[vertex] (q3) at (8,-10) {Prépare café};
+
+		\draw[->] (q0.south) -- (q1.north) node[midway, right] {Pièce insérée};
+		\draw[->] (q1.south) -- (q2.east)  node[midway, right] {Choix thé};
+		\draw[->] (q1.south) -- (q3.west)  node[midway, right] {Choix café};
+
+		\draw[->] (q2.north) .. controls (0,0) .. (q0.west) node[midway, right] {Thé prêt};
+		\draw[->] (q3.north) .. controls (8,0) .. (q0.east) node[midway, right] {Café prêt};
+
+		\end{tikzpicture}
+	}
+	\caption{Automate d'une machine à café}
+	\label{fig:cafe}
+\end{wrapfigure}
+
+
+\noindent
+Une règle d'inférence se compose en deux parties, les prémisses et la conclusion. Nous utilisons les prémisses comme condition d'application de la règle, par exemple~: "le feu est vert", et la conclusion comme "effet" de la transition~: la voiture avance.
+On écrira alors ~: $\inferrule*[left={règle}]{\text{feu = vert}}{\text{e $\rightarrow$ e'}}$. 
+L'écriture de ces règles est cruciale pour la modélisation, car c'est le "moteur" du système, une condition mal formulée peut empêcher une transition légitime à nos yeux de se produire, alors qu'une condition trop permissive peut engendrer des transitions non souhaitées et fausser la "simulation".
+Si l'utilisation d'automates à états finis nous permets de modéliser le système, nous pouvons nous en servir également pour imager notre problématique, un état peut avoir plusieurs transitions possibles, il faut donc que, pour un programme donné, toutes les combinaisons de transitions possibles mènent vers un état final qui respecte nos propriétés.
+Dans ce cadre, nous pouvons utiliser des outils de visualisation pour mieux comprendre les interactions entre les différents états et transitions.
+Sur la figure \ref{fig:zoomCollision}, on remarque qu'à partir de certains états, on tombera forcément sur une collision (en rouge) ou sur un blocage (en jaune).
+
+\begin{wrapfigure}{l}{0.5\textwidth}
+	\centering
+	\includegraphics[width=0.5\textwidth]{../graph/collision.jpg}
+	\caption{Morceau d'un automate de notre système}
+	\label{fig:zoomCollision}
+\end{wrapfigure}
+
+\noindent
+Passons désormais en revue le dernier outil de notre panoplie principale~: \TLA. 
+Ce dernier à été développé par Leslie Lamport dans les années 1990, il est utilisé pour modéliser et vérifier des programmes, notamment sur des systèmes distribués. \todo{Ajouter une citation / "pourquoi avoir choisi TLA"}
+L'aspect le plus important de \TLA, pour nous, repose sur son model checker, TLC, qui permet d'explorer toutes les combinaisons de transitions évoquées précédemment.
+\\
+\paragraph{Plan.} Au cours de ce rapport, nous présenterons en détail le processus de modélisation et les différents modèles, en section \ref{sec:modele}. Puis, nous poursuivrons vers l'implémentation de ces modèles en \TLA dans la section \ref{sec:tla}.
+Enfin, la section \ref{sec:experiences} présentera les expériences menées sur nos modèles, du protocole de test aux résultats obtenus.
+
+
+
+
+
+
+
+
+\chapter{Cadre de travail}
+\paragraph{} 
+Ce stage prend place au sein du LORIA, le laboratoire lorrain de recherche en informatique et ses applications, il est divisé en 5 départements dans lesquels s'intègrent 28 équipes en fonctions de leurs spécialités.
+L'équipe Véridis, qui m'accueille, est dirigée par Stephen Merz et se trouve au sein du département 2, consacré aux méthodes formelles. Quant à eux, les départements 1, 3, 4 et 5 sont respectivement dédiés aux thèmes suivants~: "Algoritmique, calculs, images et géométrie", "Réseaux, systèmes et services", "Traitement automatique des langues et des connaissances" et "Systèmes complexes et intelligence artificielle".
+Pendant la durée de mon stage, j'ai été encadré par Guillaume Bonfante et Martin Vassor, un suivi régulier à raison d'une réunion par semaine permettait de faire le point sur l'avancement du sujet et de recentrer au besoin.
+Bien qu'essayant de m'imposer une autonomie dans mon travail, mes encadrants ont toujours été présents pour répondre à mes questions ou me guider dans mes réflexions.
+L'intégration au sein de l'équipe s'est déroulée naturellement, les échanges avec plusieurs membres de l'équipe m'ont permis d'élargir ma culture scientifique et de mieux comprendre les mécanismes de la recherche scientifique.
+
+\todo{Peut-etre faire un truc chronologique : facile au début pour rentrer dans le sujet, puis de plus en plus complexe}
+
+
+
+
+
+
+
+
+\chapter{Modélisation}
+\label{sec:modele}
+
+\todo{rattacher la maquette au réel, ce qui existe}
+
+\begin{wrapfigure}{r}{0.3\textwidth}
+	\centering
+	\resizebox{0.3\textwidth}{!}{
+		\begin{tikzpicture}[
+			vertex/.style={circle, draw=gray, fill=gray!15, very thick, minimum size=7mm, text width=1cm, align=center},
+			white/.style={circle, draw=white, fill=white, very thick, minimum size=7mm, text width=1cm, align=center},
+			edge/.style={thick}
+		]
+		%\node[vertex] (q0) at (4,0)	  {Circuit maquette};
+		\node[vertex] (q3)	  {3};
+		\node[white]  (w0) [right=of q3] {};
+		\node[white]  (w1) [below=of q3] {};
+		\node[white]  (w3) [right=of w0] {};
+		\node[vertex] (q4) [right=of w3] {4};
+		\node[vertex] (q2) [above=of w3] {2};
+		\node[vertex] (q1) [above=of q2] {1};
+		\node[white]  (w2) [below=of q4] {};
+		\node[vertex] (q5) [below=of w2] {5};
+		\node[vertex] (q7) [below=of w1] {7};
+		\node[vertex] (q8) [right=of w1] {8};
+		\node[vertex] (q6) [left=of w2] {6};
+
+		\draw[edge] (q1.west)  -- (q3.east)  node[midway, above, sloped] {9d/10v};
+		\draw[edge] (q2.west)  -- (q3.east)  node[pos=0.3, above, sloped] {9v/10v};
+		\draw[edge] (q4.west)  -- (q3.east)  node[midway, above, sloped] {10d};
+		\draw[edge] (q3.south) -- (q8.west)  node[midway, above, sloped] {11v};
+		\draw[edge] (q3.south) -- (q7.north) node[midway, above, sloped] {11d};
+		\draw[edge] (q7.east)  -- (q5.west)  node[midway, above, sloped] {12d};
+		\draw[edge] (q7.east)  -- (q6.south) node[midway, above, sloped] {12v};
+		\draw[edge] (q5.north) -- (q4.south) node[midway, above, sloped] {13d};
+		\draw[edge] (q6.north) -- (q4.south) node[midway, above, sloped] {13v};
+		\end{tikzpicture}
+	}
+	\caption{Graphe modélisant le réseau (réseau ??) de la maquette}
+	\label{fig:grapheMaquette}
+\end{wrapfigure}
+
+\paragraph{} 
+La modélisation est un outil essentiel pour décrire de manière formelle un système afin d'en extraire un comportement se rapprochant de la réalité et d'observer son évolution dans le temps. De cette manière, il est possible d'étudier ce système pour trouver des propriétés ou résoudres des problèmes.
+Avant de rentrer en détail dans le processus de modélisation, rappelons rapidement notre problématique~: il nous faut vérifier un programme d'ordonnancement de trains.
+Nous allons donc commencer par modéliser la maquette \todo{pas ok avec le pourquoi, à revoir} pour obtenir un espace dans lequel nos trains évolueront. Cependant, elle contient beaucoup de données inutiles, on va donc se concentrer sur les éléments qui nous intéressent en la représentant sous forme de graphe, c'est la figure \ref{fig:grapheMaquette}.
+Ce dernier simplifie l'information sur la manière dont est structuré le réseau et nous renseigne sur l'adjacence des différents éléments.
+Chaque sommet représente un canton, ils sont reliés entre eux par des arêtes symbolisant les aiguillages. Ces dernières portent une étiquette pour indiquer l'état des aiguillages concernés~: ainsi, "9d/10v" indique qu'il faut que les aiguillages 9 et 10 soient respectivement "direct" et "dévié" pour accéder à l'autre sommet. Nous verrons plus tard ce que ces termes désignent.
+[parler de \suc{b_i}{d}{\sigma} qui traduit le graphe en fonction]
+
+%\textbf{Expliquer le graph / définir position et id des aiguillages}
+
+
+\section{Premières approches}
+\todo{décrire pk itératif et la méthodo}
+
+\paragraph{} 
+Dans cette section, nous allons aborder différents modèles et leurs différences, il est important de comprendre notre méthode de travail pour mieux appréhender les évolutions futures.
+Comme vue plus haut, la modélisation tend à exprimer des comportements au plus proche de la réalité sans en reproduire les détails jugée inutiles.
+C'est pourquoi nous faisont évoluer le modèle de manière itérative, ajoutant progressivement de plus en plus d'éléments.
+Une fois un modèle établie et son implémentation réalisée, nous pouvons tester son comportement et ses limites pour apporter des ajustements ou préparer le prochain modèle.
+Le modèle 0 est le plus basique, ne refletant que peu le comportement de la maquette, tandis que le modèle 3 se rapproche davantage de l'implémentation réelle de cette dernière.
+
+\paragraph{aiguillages.} 
+La modélisation des aiguillages est constante sur les différents modèles, nous allons donc la définir ici. Nous ne travaillons qu'avec des aiguillages "1-to-2", c'est à dire qu'il permet de choisir entre deux voies.
+Au départ du canton 3 il est possible de se diriger vers les cantons 1, 2 ou 4 grâce à un montage spécifique~: 
+\begin{itemize}
+	\item L'aiguillage 10 nous donne la possibilité d'aller vers le canton 4 ou l'aiguillage 9.
+	\item L'aiguillage 9 nous permet d'accéder au canton 1 ou 2.
+\end{itemize}
+Vous l'avez sans doute remarqué mais les aiguillages possèdent des identifiants dans la continuité des cantons, ils sont considérer comme des cantons particuliers. Dans notre cas, les identifiants des cantons vont de 1 à 8 et ceux des aiguillages de 9 à 13.
+Enfin, comme il est possible de choisir entre deux voies, ces derniers possèdent deux états~: un desservant chaque voie. Cet ensemble d'états est noté $\{d,v\}$, respectivement pour "direct" et "dévié". 
+
+\subsection{Modèle 0}
+
+\paragraph{} Notre premier modèle sera simple, il va permettre d'entrer dans le sujet, de se familiariser avec les concepts nouveaux, notamment les règles de transitions, et de servir de base pour les futures évolutions.
+Pour cela, on souhaite modéliser le déplacement des trains en ne prenant en compte que les aiguillages et les cantons, laissant sur le côté les feux de signalisation.
+
+\paragraph{Problématiques.} %Besoin de gérer des ressources critiques donc mise en place de jeton et d'ordres att/incr | définir un évènement
+Au travers de ce modèle, nous cherchons à résoudre un des problèmes de l'ordonnancement~: la gestion de ressources critiques. 
+Une ressources devient critique lorsqu'elle est convoitée par plusieurs trains, dans notre cas, il s'agit des cantons.
+Parfois, il y a une manière intelligente de considérer les ressources critiques~:
+
+\begin{example}[Ressources critiques]
+	~\\
+	Soient $c_1 = [1,2,3]$ et $c_2 = [4,2,1]$ les cantons empruntés par les trains $t_1$ et $t_2$.
+	\\Méthode 1 : on considère les ressources critiques comme étant $c_1 \cap c_2 = [1,2]$.
+	\\Méthode 2 : on considère le canton 2 comme un "goulot d'étranglement", si on gère le problème sur 2 alors le problème sur 1 sera résolu également.
+	\\Voir le scénario \ref{scenar:goodEnding} pour un exemple concret.
+\end{example}
+\noindent
+La solution pour résoudre ce problème est de mettre en place un système de jetons, s'inspirant des sémaphores, permettant de donner à un train l'accès temporaire à une ressource.
+Une fois la ressource consommée, le train indique qu'il a terminé en incrémentant la valeur de son jeton. 
+La "réservation" ou la libération de ressource doit se faire via des évènements, des actions déclenchées par le régulateur lorsqu'un train entre dans un canton.
+\\Une seconde problèmatique de taille à émergée pendant la réalisation de ce modèle~: le déclenchement des évènements doit se faire avant un moment précis.
+Par exemple, si un train à besoin qu'un aiguillage soit dévié pour continuer sa route, il faut être certain que le régulateur à exécuté l'événement de déviation avant que le train n'arrive à l'aiguillage.
+On aimerait donc être capable de réaliser l'action avant que le train n'atteigne l'aiguillage, sans pour autant bloquer explicitement le train. L'idée serait de le bloquer uniquement si l'action doit être réalisée.
+Nous verrons comment résoudre cela plus loin.
+
+
+\paragraph{Trains.} 
+Les trains sont représentés par un quadruplet contenant un identifiant, une position, une direction et un programme interne, on note cela $t_{id} = \trainTuple{id}{pos}{dir}{P}$, on appel $\trainFmt{\Gamma}$ l'ensemble des trains et $\trainFmt{\gamma}$ l'ensemble des identifiants de $\trainFmt{\Gamma}$.
+Le type de l'identifiant varie selon le contexte, une forme géométrique ($\vartriangle,\square,\bigcirc,\dots$) sur les exemples pour faciliter la compréhension, ou un entier pour les implémentations (indexé sur 1 ou 0 selon le langage).
+On définit la position comme un entier tel que $\posFmt{pos} \in \mathcal{B}$, avec $\mathcal{B}$ l'ensemble des cantons. 
+%L'ensemble des directions est noté \directions = \{ \dirForward, \dirBackward, \dirStop \}, avec \dirForward pour forward, \dirBackward pour backward et \dirStop pour l'arrêt.
+L'ensemble des directions est noté $\directions = \{ \dirFmt{f}, \dirFmt{b}, \dirFmt{\star} \}$, avec $\dirFmt{f}$ pour forward, $\dirFmt{b}$ pour backward et $\dirFmt{\star}$ pour l'arrêt.
+Enfin, notre train doit être capable de réaliser trois actions de lui même~: démarrer, avancer et s'arrêter.
+Le programme interne d'un train est représenté par une liste d'ordres succéssifs, sous la forme "StartUntil(\dirFmt{dir}, \posFmt{dest})".
+Un ordre indique au train de se déplacer jusqu'à la position $\posFmt{dest}$ dans la direction $\dirFmt{dir}$. À l'arrivée, l'ordre est consommé pour laisser place au suivant.
+
+\begin{sidebox}
+	À l'origine, on comptait trois types d'ordre pour le train~: "Start(\dirFmt{dir})", "Until(\posFmt{dest})" et "Stop()", respectivement pour démarrer le train dans la bonne direction, avancer jusqu'à la cible et s'arrêter.
+	Cependant, nous avons remarqué que tout programme bien formé comportait forcément une série d'ordre "Start(\dots)/Until(\dots)/Stop()". Admettons qu'un train souhaite faire demi-tour, notre modèle l'oblige à s'arrêter avant de repartir. On a donc la suite "Start(\dirFmt{d1})/Until(\posFmt{p1})/Stop()/Start(\dirFmt{d2})/Until(\posFmt{p2})/Stop()".
+	Ainsi, pour simplifier l'écriture du programme des trains, nous avons fusionné les trois ordres pour devenir "StartUntil(\dirFmt{dir}, \posFmt{dest})", l'ordre stop est désormais implicite.
+	\\La construction du programme du train reste, presque, inchangée jusque dans le dernier modèle, il est sans doute utile de présenter sa grammaire~:
+	\vspace{0.3cm}\\
+	\begin{grammar}
+		\firstcasesubtil{T}{\concatM{seq}{T} \gralt \varepsilon}{}
+		\firstcasesubtil{seq}{StartUntil(D,\nats)}{ N : naturels}
+		\firstcasesubtil{D}{f \gralt b}{}
+		\firstcasesubtil{N}{1 .. \infty}{}
+	\end{grammar}
+\end{sidebox}
+
+\todo{Mettre ce paragraphe en dehors et laisser la grammaire ?}
+
+\noindent
+Les informations que le train possède sont limitées, nous l'avons construit dans l'optique d'un "train ignorant" dont la fonction est de se déplacer en fonction de son programme interne.
+Les feux de signalisation n'existent pas encore, il faut donc que le train demande au régulateur l'autorisation pour se déplacer entre chaque tronçon.
+Nous avons choisi cette modélisation pour centraliser l'aspect "commandement" dans le régulateur, qui sera présenté plus loin.
+
+\paragraph{Régulateur.} %(until attend que les events soient tous dépiler pour s'exécuter, c'est de la triche mais ça explique pourquoi il n'y a pas besoin de auth)
+Seconde partie de notre modèle, le régulateur contrôle l'ensemble du système, il donne les autorisations d'avancer aux trains et agit sur le trafic via des évènements.
+Ce dernier est composé de six éléments~:
+
+\begin{itemize}
+	\item Les jetons : Notés \textbf{J}, ils représentent l'accès à une ressource, ici un canton. Il suffit d'incrémenter la valeur du jeton pour libérer cette ressource.
+	 On les définit par $J = \mathcal{B} \mapsto \nats$.
+	\item La file d'attente : Noté \textbf{W}, elle permet de garder en mémoire les trains qui attendent une ressource, nous verrons plus loin sont utilité. Elle est définie par $W = \mathcal{B} \times \nats \mapsto \trainFmt{\gamma}$.
+	\item Les autorisations : Notées \textbf{A}, elles représentent le nombre d'autorisations restantes pour chaque train, en clair, le nombre de cantons que chacun peut encore parcourir.
+	 On les définit par $A = \trainFmt{\gamma} \mapsto \nats$.
+	\item Le programme du régulateur : Noté \textbf{E}, il contient toute l'information sur les transformations futures du système. 
+	 Il se compose de gestionnaires d'évènements, un par train, qui dictent les actions à réaliser en fonction des évènements déclenchés.
+	\item Les pointeurs d'évènements : Notés \textbf{Ne}, ils sont indispensables aux gestionnaires d'évènements puisqu'ils indiquent quel évènement doit être traité. Il est définit de la même manière que A.
+	\item L'état des aiguillages : Noté \textbf{$\swFmt{\sigma}$}, cet élément reflète la configuration actuelle des aiguillages du réseau. On définit le définit comme $S = \sigma \mapsto \{d, v\}$.
+\end{itemize}
+Dans les règles de transition, on représente le régulateur de deux manières, par un R ou par un sextuplet~: $\langle J,W,A,E,{\text Ne},\swFmt{\sigma} \rangle$.
+
+\paragraph{Les évènements.}
+Comme vue avant, chaque train est rattaché, virtuellement par le régulateur, à un gestionnaire d'évènements pour traiter les évènements qui le concernent.
+Ce gestionnaire n'est autre qu'une liste d'ordres.
+
+[Expliquer le choix d'avoir un pointeur sur le gestionnaire plutôt que la position du train dans le handler (redondance).
+Aussi, expliqué qu'on à besoin d'un numéro d'event (implicite avec l'index dans la liste) $\rightarrow$ pour ça qu'il faut des events vides.
+Passer en revue les ordres du gestionnaire d'évènements]
+
+Avec ça, on peut représenter un état de système par $\langle \trainFmt{\Gamma}, R \rangle$.
+
+\begin{example}[GoodEnding M0]
+	~\\
+	Modélisation de l'état initale d'un scénario en utilisant le modèle 0~: (goodEnding / mettre schéma en annexe ?)
+	\\$\Gamma~: \{t_1, t_2\}$ avec,
+	\begin{itemize}
+		\item[] $t_1 = \trainTuple{\square}{1}{*}{[\su{R}{3}]}$
+		\item[] $t_2 = \trainTuple{\vartriangle}{4}{*}{[\su{L}{1}]}$
+	\end{itemize}
+	\vspace{0.3cm}
+	$R~: \langle J,W,A,E,{\text Ne},S \rangle$ avec,	
+	\begin{itemize}
+		\item[] $J = [0,0,0,0,0,0,0,0]$
+		\item[] $W = [(1,0) : 0, (1,1) : 0, .., (8,1) : 0]$
+		\item[] $A = [2,0]$
+		\item[] $E = \langle g_1, g_2 \rangle$
+		\item[] ${\text Ne} = [0, 0]$
+		\item[] $\swFmt{\sigma} = [d]$
+	\end{itemize}
+	\vspace{0.3cm}
+	$g_1 = [[],[],[\turnOrder{1}{v}, \incr{2}]]$
+	\\$g_2 = [[\wait{2}{1}],[],[]]$
+	\vspace{0.5cm}\\
+	\underline{Rappel}~: à ce stade, nous ne fournissons qu'un modèle sur lequel il est possible de créer des programmes d'ordonnancement. La création d'un programme, correcte ou non, reste à la charge de l'utilisateur.
+\end{example}
+
+
+\paragraph{Dynamique.} 
+Les présentations avec les éléments du modèle terminées, il est temps de voir comment le modèle peut évoluer au fil du temps.
+Comme expliqué dans l'introduction, ce sont les règles de transitions qui vont apporter du mouvement à notre modèle, permettant de modifier son état règles après règles.
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{Until}]{
+		\suc{\posFmt{b_i}}{\dirFmt{d}}{\swFmt{\sigma}} = \posFmt{b_j} \neq \nosuc
+		\and 
+		A[\trainFmt{t_m}] \neq 0
+		\and 
+		{\tt len}(E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]) = 0
+	}{
+		\langle \trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{\trainConcat{\su{d}{N}}{P'}}, \reg{J}{W}{A}{E}{{\text Ne}}{\swFmt{\sigma}} \rangle
+		\\\reduces
+		\langle \trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{\trainConcat{\su{d}{N}}{P'}}, \reg{J}{W}{A.{\tt decr}(\trainFmt{t_m})}{E}{{\text Ne}.{\tt incr}(\trainFmt{t_m})}{\swFmt{\sigma}} \rangle
+	}
+\end{mathpar}
+
+\noindent
+La règle \ruleDef{Until} permet de déplacer un train $\trainFmt{t_m} \in \trainFmt{\Gamma}$ sur un canton adjacent. Si on regarde du côté des prémisses, on retrouve notre demande d'autorisation~: $A[\trainFmt{t_m}] \neq 0$, le train est immobilisé si le compteur tombe à 0.
+Pour trouver le prochain canton, on utilise la fonction $\suc{\posFmt{b_i}}{\dirFmt{d}}{\swFmt{\sigma}}$ définit plus tôt. Enfin, la dernière prémisse est un peu particulière~: ${\tt len}(E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]) = 0$, elle nous assure que le gestionnaire d'évènements du train est vide.
+Cela règle le second point de la problèmatique de ce modèle. (pas convaincu que les gens comprennent pour le dernier)
+\\Du côté de la conclusion, on remarque que la position du train est mise à jour, en passant de \posFmt{$b_i$} à \posFmt{$b_j$}. 
+Évolution naturelle des choses, un canton de franchi signifie une autorisation en moins, avec une décrémentation du compteur~: $A.{\tt decr}(\trainFmt{t_m})$, et une mise à jour du pointeur d'évènements, avec une incrémentation de sa valeur~: ${\text Ne}.{\tt incr}(\trainFmt{t_m})$.
+
+\noindent
+Les règles doivent pouvoir traiter les ordres des événements, on pourrait s'attendre à avoir une règles \ruleDef{Wait} et une règle \ruleDef{Incr}. Cependant, nous avons besoin de comportements plus fin, nous allons voir ça dès maintenant. 
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{WaitBefore}]{
+			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = wait(j, y) \\ J[j] \neq y
+		}{
+			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J}{E}{Ne}{A}{W}{S}
+			\\\reduces
+			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J}{{\tt pop}(E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]])}{Ne}{A}{\majtab{W}{(j,y)}{\trainFmt{t_m}}}{S}
+		}
+\end{mathpar}
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{IncrAfter}]{
+			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = incr(j)
+			\and
+			J[j] = x \\ W[(j, x+1)] = \trainFmt{w_{id}} \\ nextWait(\trainFmt{w_{id}},R) = cptAuth
+		}{
+			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J}{E}{Ne}{A}{W}{S}
+			\\\reduces 
+			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J.{\tt incr}(j)}{{\tt pop}(E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]])}{Ne}{\majtab{A}{\trainFmt{w_{id}}}{cptAuth}}{W}{S}
+		}
+\end{mathpar}
+
+Les règles \ruleDef{WaitBefore} et \ruleDef{IncrAfter} vont de pair pour le cas où l'ordre d'attente est traité avant celui d'incrémentation pour une valeur de jeton donnée.
+Ainsi, la première permet d'inscrire la train à la file d'attente~: $\majtab{W}{(j,y)}{\trainFmt{t_m}}$, tandis que la seconde incrémente le jeton et mets à jour les autorisations~: $\majtab{A}{\trainFmt{w_{id}}}{cptAuth}$.
+Si l'on regarde les prémisses de la règles d'incrémentation, on remarque que l'on fait appel à la fonction $nextWait(\trainFmt{w_{id}},R)$
+
+%Paragraphe "imperfection"
+%\subparagraph{téléportation des trains de canton à canton}
+%\subparagraph{Event non atomique, donc attention à l'ordre }
+%\subparagraph{forme du att} dire que att(3,1) c'est moins facile pour l'implem mais plus simple (moralement) pour la création du programme donc on a garder comme ça.
+
+
+
+
+\paragraph{Python.} Décrire le rôle du python
+Notre méthode de travail implique un développement conjoint du modèle théorique et de son implémentation, il est alors plus simple de valider des "morceaux" de modèle grâce à nos scénarios de test.
+Cependant, il était prévue que l'implémentation soit faite en \TLA, langage de spécification formelle dont le fonctionnement était assez obscur à ce moment du stage.
+Il a donc été décidé de développé un petit moteur de simulation en Python, permettant de tester les balbutiements du modèle 0 et d'avoir une intuition sur le fonctionnement de \TLA, voir plus section \ref{sec:tla}.
+\todo{expliquer ce que fait grossièrement le code, l'architecture et les "features" (chargement de scénarios et visualisation sur graph) Et commentaire sur le besoin de passer à TLA}
+
+\subsection{Modèle 1}
+\paragraph{Raffinement}
+
+
+\subsection{Modèle 2}
+\paragraph{Raffinement}
+
+
+
+\chapter{Implémentation}
+\label{sec:implem}
+\section{TLA+}
+\label{sec:tla}
+\section{Expériences}
+\label{sec:experiences}
+
+
+
+
+
+\chapter{Side Quests}
+\label{sec:sidequests}
+
+\section{Maquette de maquette}
+\section{Article}
+(pas certains de l'intégrer)
+
+
+
+
+\chapter{Conclusion}
+
+
+
+
+
+\appendix
+
+\chapter{Annexes}
+\section{scénarios}
+\subsection{GoodEnding}
+\label{scenar:goodEnding}
+
+\backmatter
+%\printbibliography
+%\bibliographystyle{acm}
+%\bibliography{ref}
+\printindex
+
+
+\end{document}
+
+
