@@ -1,4 +1,4 @@
-from composer import compose, createProgram, build_troncons
+from composer import compose, createProgram
 from TLAModel import trajet2model
 from math import ceil
 from multiprocessing import Process, Array, Value, Event
@@ -11,10 +11,11 @@ import random
 import signal
 import os
 import sys
+import copy
 
 
 ######## Constants ########
-NBPROCESS = 1
+NBPROCESS = 3
 TIMEOUT = 10 # real timeout is TIMEOUT * SLEEPTIME
 SLEEPTIME = 3600 #in seconds, 1 hour by default
 
@@ -45,7 +46,7 @@ def setup(e1, e2, e3, dir="model"):
     o2 = createProgram(e2, e3, p2)
     o3 = compose(o1, o2)
 
-    model = trajet2model(o3, build_troncons(o3.trains))
+    model = trajet2model(o3)
     with open(f"{dir}/composition.tla", "w") as file:
         file.write(model)
 
@@ -72,7 +73,7 @@ def check(etat1, etat2, etat3):
 
 
 def execution(dir="model"):
-    command = ["java", "-jar", f"model/tla2tools.jar", "-noGenerateSpecTE", "-config", f"model/compo.cfg", f"{dir}/model2.tla"]
+    command = ["java", "-jar", f"model/tla2tools.jar", "-noGenerateSpecTE", "-config", f"model/compo.cfg", f"{dir}/model3.tla"]
     if dir != "model":
         command.insert(4,"-metadir")
         command.insert(5, dir+"/tmp")
@@ -94,15 +95,17 @@ def execution(dir="model"):
 
 def analyse(data=None, dir=None, term_event=None, tab=None):
 
-    print(f"Taille du graph : {len(etats)} états")
+    #print(f"Taille du graph : {len(etats)} états")
     if data is None:
         data = etats
+
+    work_data = copy.deepcopy(data)
 
     cpt = 0
     total_erreurs = 0
 
-    while len(data) > 0 and not term_event.is_set():
-        etat1 = random.choice(list(data.keys()))
+    while len(work_data) > 0 and not term_event.is_set():
+        etat1 = random.choice(list(work_data.keys()))
         for etat2 in etats[etat1].keys():
             for etat3 in etats[etat2].keys():
                 try:
@@ -119,7 +122,7 @@ def analyse(data=None, dir=None, term_event=None, tab=None):
                             print(f"Execution {cpt} : {etat1} -> {etat2} -> {etat3} en {time.time() - t:.2f} secondes")
                         else:
                             tab[1] += 1"""
-                        with open("model/succes.log", "a") as file:
+                        with open(f"{dir}/succes.log", "a") as file:
                             file.write(f"{etat1} -> {etat2} -> {etat3} en {time.time() - t:.2f} secondes\n")
                 except Exception as e:
                     total_erreurs += 1
@@ -130,18 +133,15 @@ def analyse(data=None, dir=None, term_event=None, tab=None):
                         print(f"Erreur entre {etat1}, {etat2} et {etat3}: {e} / Nombre total d'erreurs: {tab[1]}") """
                     with open("model/errors.log","a") as error_file:
                         error_file.write(f"Erreur {etat1} -> {etat2} -> {etat3} : {e}\n")
-                    exit(1)
+                        exit(1)
         with open(f"{dir}/progress.log", "a") as progress_file:
             progress_file.write(etat1 + "\n")
-        data.pop(etat1)
+        work_data.pop(etat1)
 
-    print(f"Travail terminé. Sauvegarde en cours...")
-    save_path = "model/save_etats.json"
-    if dir is not None:
-        save_path = f"{dir}/save_etats.json"
+    print("Travail terminé. Sauvegarde en cours...")
 
-    with open(save_path,"w") as save_file:
-        json.dump(data, save_file, indent=4)
+    with open(f"{dir}/save_etats.json","w") as save_file:
+        json.dump(work_data, save_file, indent=4)
 
 
 def affichage(array, term):

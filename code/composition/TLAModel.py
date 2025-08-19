@@ -114,14 +114,14 @@ def eventTraitement(evs):
 
 
 
-def trajet2model(trajet,troncons):
+def trajet2model(trajet):
     model = "----------------------------- MODULE composition -----------------------------\n\n"+\
              "EXTENDS Integers, TLC, Sequences\n"+\
              "VARIABLE gamma, reg, sigma, feux, meta, rule\n\n"
     gamma = ""
     mtrains = ""
     tl = ""
-    mevents = 'events == [ [x \in (1..8) \X {"L","R"} |-> << >>] EXCEPT '
+    mevents = 'events == [x \in (1..8) \X {"L","R"} |-> << >>] '
     maxVal = 5
     buffer = []
 
@@ -142,12 +142,12 @@ def trajet2model(trajet,troncons):
     for k,v in sorted(formatEvent.items()):
         pos = k[0]
         direction = k[1]
-        if mevents == 'events == [ [x \in (1..8) \X {"L","R"} |-> << >>] EXCEPT ':
-            mevents += f'![{pos},"{direction}"] = {str(v).replace("[", "<<").replace("]", ">>").replace("(", "<<").replace(")", ">>").replace("'", '"')}'
+        if mevents == 'events == [x \in (1..8) \X {"L","R"} |-> << >>] ':
+            mevents =  mevents[:10] + "[" + mevents[10:]
+            mevents += f'EXCEPT ![{pos},"{direction}"] = {str(v).replace("[", "<<").replace("]", ">>").replace("(", "<<").replace(")", ">>").replace("'", '"')}'
         else:
             mevents += f'\t\t\t\t\t\t\t\t\t\t ![{pos},"{direction}"] = {str(v).replace("[", "<<").replace("]", ">>").replace("(", "<<").replace(")", ">>").replace("'", '"')}'
         mevents += ",\n" if k != sorted(formatEvent.keys())[-1] else "]\n" #todo: eviter de trier à chaque fois
-
 
     #events au démarrage
     for i in range(len(trajet.trains)):

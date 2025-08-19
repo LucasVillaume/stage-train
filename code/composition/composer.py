@@ -239,7 +239,7 @@ def search_prec_histo(histo, switch, train, numEv):
 # TODO : revoir le nom de la fonction
 def sync_train(program, ev):
     ev -= 1  # prendre en compte le premier canton (caché du programme)
-    print(f"ev : {ev} / program : {program}")
+    #print(f"ev : {ev} / program : {program}")
     for o in range(len(program)):
         if program[o][0] == "SU":
             for i in range(len(program[o][2])):
@@ -259,7 +259,7 @@ def add_sync(o1, troncons_o1):
         for ev in range(o1.trains[t].last_sync+1, len(o1.events[t])):
             for order in o1.events[t][ev]:
                 if order[0] == "auth" or order[0] == "att":
-                    print(ev)
+                    #print(ev)
                     if troncons_o1[t][last_sync:ev+1].count(troncons_o1[t][ev]) > 1: # boucle
                         sync_train(o1.trains[t].prog, ev)
                         o1.checkpoints[t].append(-1)
@@ -313,7 +313,7 @@ def compose(o1,o2,save=False):
         else:
             histo_o3[aig] = hist
 
-    print(f"o2 Event : {o2.events}")
+    #print(f"o2 Event : {o2.events}")
 
     #ressources critiques
     for i in range(len(o1.trains)):
@@ -347,10 +347,10 @@ def compose(o1,o2,save=False):
 
     for i in range(len(o1.trains)):
         o1.trains[i].last_crit = [o1.trains[i].last_crit[j] if o2.trains[i].last_crit[j] == 0 else o2.trains[i].last_crit[j]+len(troncons_o1[i])-1 for j in range(len(o1.trains[i].last_crit))]
-    print(f"last crit o1 : {[x.last_crit for x in o1.trains]}")
+    #print(f"last crit o1 : {[x.last_crit for x in o1.trains]}")
 
     troncons_o3 = [troncons_o1[i] + troncons_o2[i][1:] for i in range(len(troncons_o1))]
-    print(f"troncons o3 : {troncons_o3}")
+    #print(f"troncons o3 : {troncons_o3}")
 
     #ajout des auth
     for e in range(len(o2.trains)):
@@ -504,9 +504,9 @@ if __name__ == "__main__":
     print(f"o9\n{o9}")
     print(f"o9 switch historique : {o9.histo_switch}")
 
-    print(f"\n\n\n\n\no9 MODEL : \n{trajet2model(o9, [x.troncons for x in o9.trains])}")
+    print(f"\n\n\n\n\no9 MODEL : \n{trajet2model(o9)}")
     with open("model/composition.tla", "w") as file:
-        file.write(trajet2model(o9, [x.troncons for x in o9.trains])) """
+        file.write(trajet2model(o9)) """
 
 
     #Boucle 2
@@ -520,14 +520,14 @@ if __name__ == "__main__":
     print(f"o3\n{o3}")
     print(f"o3 switch historique : {o3.histo_switch}")
 
-    print(f"\n\n\n\n\n{trajet2model(o3, [x.troncons for x in o3.trains])}")
+    print(f"\n\n\n\n\n{trajet2model(o3)}")
 
     with open("model/composition.tla", "w") as file:
-        file.write(trajet2model(o3, [x.troncons for x in o3.trains])) """
+        file.write(trajet2model(o3)) """
 
 
     #Start
-    s1 = etats["N2*1*4L -> N2L1*8L"].split("__")
+    """ s1 = etats["N2*1*4L -> N2L1*8L"].split("__")
     o1 = createProgram("N2*1*4L", "N2L1*8L", s1)
     print(f"o1\n{o1}")
     s2 = etats["N2L1*8L -> N7L1*8*"].split("__")
@@ -537,12 +537,27 @@ if __name__ == "__main__":
     print(f"o3\n{o3}")
     print(f"o3 switch historique : {o3.histo_switch}")
 
-    print(f"\n\n\n\n\n{trajet2model(o3, [x.troncons for x in o3.trains])}")
+    print(f"\n\n\n\n\n{trajet2model(o3)}")
 
     with open("model/composition.tla", "w") as file:
-        file.write(trajet2model(o3, [x.troncons for x in o3.trains]))
+        file.write(trajet2model(o3)) """
+    
 
+    #test
+    s1 = etats["N2R8R6R -> N2*8*4R"].split("__")
+    o1 = createProgram("N2R8R6R", "N2*8*4R", s1)
+    print(f"o1\n{o1}")
+    s2 = etats["N2*8*4R -> N2*8*1R"].split("__")
+    o2 = createProgram("N2*8*4R", "N2*8*1R", s2)
+    print(f"o2\n{o2}")
+    o3 = compose(o1, o2)
+    print(f"o3\n{o3}")
+    print(f"o3 switch historique : {o3.histo_switch}")
 
+    print(f"\n\n\n\n\n{trajet2model(o3)}")
+    
+    with open("model/composition.tla", "w") as file:
+        file.write(trajet2model(o3))
 
 
     """cpt = 0
@@ -580,7 +595,7 @@ if __name__ == "__main__":
 
 
 
-#Temporaire, pour vérifier les compositions
+""" #Temporaire, pour vérifier les compositions
 import subprocess
 def verifTMP(e1,e2, e3):
     s6 = etats[f"{e2} -> {e3}"].split("__")
@@ -588,7 +603,7 @@ def verifTMP(e1,e2, e3):
     #print(f"o6\n{o6}")
     #o7 = compose(o5, o6)
 
-    with open(f"model/pickle/{e1.replace("*","o")}-{e2.replace("*","o")}.pkl", "rb") as file:
+    with open(f"model/pickle/{e1.replace('*','o')}_{e2.replace('*','o')}.pkl", "rb") as file:
         tmp = file.read()
         saved = pickle.loads(tmp)
     #print(f"saved\n{saved}")
@@ -604,7 +619,7 @@ def verifTMP(e1,e2, e3):
     f = open(f"model/out.log", "w")
     p = subprocess.Popen(command, stdout=f, stderr=f)
     p.wait()
-    f.close()
+    f.close() """
 
 
 

@@ -492,7 +492,7 @@ Auth ==
         event == Head(reg.E[id])
         order == Head(event)
         tid == CHOOSE i \in DOMAIN reg.H : reg.H[i][1] = id[1]
-        target == Head(reg.CP[tid])
+        target == Head(Tail(reg.CP[tid]))
     IN
         /\ meta.garde.state = "event"
         /\ Len(meta.msg[1]) /= 0

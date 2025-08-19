@@ -531,7 +531,7 @@ Auth ==
         event == Head(reg.E[id])
         order == Head(event)
         tid == CHOOSE i \in DOMAIN reg.H : reg.H[i][1] = id[1]
-        target == Head(reg.CP[tid])
+        target == Head(Tail(reg.CP[tid]))
     IN
         /\ meta.garde.state = "event"
         /\ Len(meta.msg[1]) /= 0
@@ -670,5 +670,5 @@ Eval == Stalk(<< <<1,"R">>, <<3,"L">> >>, <<"d">>, <<2,"R">>) \*\E seq \in set :
 
 =============================================================================
 \* Modification History
-\* Last modified Mon Aug 04 14:47:00 CEST 2025 by lucas
+\* Last modified Thu Aug 07 15:19:30 CEST 2025 by lucas
 \* Created Fri May 09 16:46:37 CEST 2025 by lucas
