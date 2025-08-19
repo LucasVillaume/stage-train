@@ -1,7 +1,7 @@
 import json
 import re
 import copy
-from TLAModel import trajet2model
+from TLAModel import trajet2model, format_events
 import pickle
 
 
@@ -35,6 +35,7 @@ class Train:
         self.arr = arrivee
         self.prog = []
         self.last_crit = [0]*nb_trains #position du dernier critique
+        self.last_sync = 0
         self.troncons = []
 
     def __str__(self):
@@ -44,14 +45,13 @@ class Trajet:
     def __init__(self, trains, events):
         self.trains = trains
         self.events = events
-        # "numAiguillage" : ("état", "free") / free à False si l'aiguillage doit être ainsi dans l'état initial
         self.switch_init = {"9": ("d",True), "10": ("d",True), "11": ("d",True), "12": ("d",True), "13": ("d",True)}
         self.histo_switch = {"9": [], "10": [], "11": [], "12": [], "13": []} #pour l'historique des aiguillages
-        self.wait_list = [] # liste d'attente pour les trains
+        self.checkpoints = [[],[],[]] #checkpoints de chaque train
+        self.histo = []
         self.posInitial = ""
         self.posFinal = ""
-        #self.tokens = [0]*9 #un token par canton
-        #self.first_stop = [] #(id,pos)
+        
 
     """ def firstStop(self):
         first_stop = [-1]*len(self.trains)
@@ -64,7 +64,7 @@ class Trajet:
         for i in range(len(self.trains)):
             string += f"{str(self.trains[i])}\n"
             string += f"  Events : {self.events[i]}\n"
-        string += f"Histo switch : {self.histo_switch}\nWaiting list : {self.wait_list}\nposInitial : {self.posInitial} | posFinal : {self.posFinal}\n"
+        string += f"Histo switch : {self.histo_switch}\nCheckpoints : {self.checkpoints}\nposInitial : {self.posInitial} | posFinal : {self.posFinal}\n"
         return string
 
 
@@ -131,6 +131,7 @@ def createProgram(start, end, paths, nb_trains=3):
         if trains[i].arr[1] != "*":
             trains[i].prog.append(("SU",trains[i].arr[1],trains[i].troncons[1:]))
 
+
     final_events = copy.deepcopy(events)
     histo_aiguillages = {"9": [], "10": [], "11": [], "12": [], "13": []}
     switch_init = {"9": ("d",True), "10": ("d",True), "11": ("d",True), "12": ("d",True), "13": ("d",True)} 
@@ -145,11 +146,8 @@ def createProgram(start, end, paths, nb_trains=3):
 
     sillon = Trajet(trains, final_events)
     sillon.histo_switch = histo_aiguillages
-    sillon.switch_init = switch_init
+    sillon.switch_init = switch_init        
 
-    for train in sillon.trains:
-        sillon.wait_list.append((train.id, train.dep[0], train.dep[0], 1)) # ajoute le train à la liste d'attente
-        sillon.events[train.id][0].append(("incr", int(train.dep[0])))
     sillon.posInitial = start
     sillon.posFinal = end
     return sillon
@@ -216,10 +214,10 @@ def findCritical(t1, troncons_o1, t2, troncons_o2):
 
     for i in range(len(troncons_o2[t2.id])):
         endT1 = t1.last_crit[t2.id]
-        for j in range(len(troncons_o1[t1.id])-1, endT1, -1): #avant modif : EndT1-1, mais moins de sens que EndT1
+        for j in range(len(troncons_o1[t1.id])-1, endT1-1, -1):
             if troncons_o2[t2.id][i] == troncons_o1[t1.id][j]:
-                crit.append(j)
-                t1.last_crit[t2.id] = j
+                crit.append(i)
+                t1.last_crit[t2.id] = j+1
                 t2.last_crit[t1.id] = i
                 break
     return crit
@@ -238,6 +236,54 @@ def search_prec_histo(histo, switch, train, numEv):
         if histo[switch][i+1][1] == train and histo[switch][i+1][2] == numEv:
             return histo[switch][i]
 
+# TODO : revoir le nom de la fonction
+def sync_train(program, ev):
+    ev -= 1  # prendre en compte le premier canton (caché du programme)
+    #print(f"ev : {ev} / program : {program}")
+    for o in range(len(program)):
+        if program[o][0] == "SU":
+            for i in range(len(program[o][2])):
+                if ev == 0:
+                    if i+1 < len(program[o][2]): #dans le until, on le fractionne
+                        program.insert(o+1, ["SU", program[o][1], program[o][2][i+1:]])
+                        program[o] = ["SU", program[o][1], program[o][2][:i+1]]
+                    program.insert(o+1, ["sync"])
+                    return
+                else:
+                    ev -= 1
+
+#TODO : revoir le nom de la fonction
+def add_sync(o1, troncons_o1):
+    for t in range(len(o1.trains)):
+        last_sync = o1.trains[t].last_sync
+        for ev in range(o1.trains[t].last_sync+1, len(o1.events[t])):
+            for order in o1.events[t][ev]:
+                if order[0] == "auth" or order[0] == "att":
+                    #print(ev)
+                    if troncons_o1[t][last_sync:ev+1].count(troncons_o1[t][ev]) > 1: # boucle
+                        sync_train(o1.trains[t].prog, ev)
+                        o1.checkpoints[t].append(-1)
+                    else :
+                        o1.checkpoints[t].append(troncons_o1[t][ev])
+                        last_sync = ev
+        o1.checkpoints[t].append(-1)
+        o1.trains[t].last_sync = last_sync
+
+
+def optimisation(o1):
+    #reduire les programmes des trains
+    for i in range(len(o1.trains)):
+        prog_tmp = copy.deepcopy(o1.trains[i].prog)
+        offset = 0
+        for j in range(len(o1.trains[i].prog)-1):
+            if o1.trains[i].prog[j][0] != "sync" and o1.trains[i].prog[j][1] == o1.trains[i].prog[j+1][1]: #même direction
+                tmp = list(o1.trains[i].prog[j+1]) # bricolage temporaire
+                tmp[2] = o1.trains[i].prog[j][2] + o1.trains[i].prog[j+1][2]
+                prog_tmp[j+1-offset] = tuple(tmp)
+                prog_tmp.remove(o1.trains[i].prog[j])
+                offset += 1
+        o1.trains[i].prog = prog_tmp
+
 
 def compose(o1,o2,save=False):
     tokens_o1 = build_token(o1)
@@ -246,10 +292,6 @@ def compose(o1,o2,save=False):
 
     troncons_o1 = build_troncons(o1.trains)
     troncons_o2 = build_troncons(o2.trains)
-
-    #supprime les att du début dans o2
-    for i in range(len(o2.trains)):
-        o2.events[i][0] = []
 
     #simplifier les turns
     for aig, hist in histo_o2.items():
@@ -260,7 +302,7 @@ def compose(o1,o2,save=False):
                     event = hist[i][2]
                     o2.events[train][event].append(("turn", aig, hist[i][0]))
             else: #pas d'init
-                o1.switch_init[aig] = (histo_o2[aig][i][0], False) #met à jour l'état de l'aiguillage
+                o1.switch_init[aig] = (histo_o2[aig][i][0], False) #mets à jour l'état de l'aiguillage
 
     #fusionne les historiques
     histo_o3 = copy.deepcopy(histo_o1)
@@ -270,6 +312,8 @@ def compose(o1,o2,save=False):
                 histo_o3[aig].append((init[0], init[1], init[2]+len(o1.events[init[1]])-1))
         else:
             histo_o3[aig] = hist
+
+    #print(f"o2 Event : {o2.events}")
 
     #ressources critiques
     for i in range(len(o1.trains)):
@@ -285,6 +329,7 @@ def compose(o1,o2,save=False):
                     tokens_o1[int(sec_crit)] += 1
                     o1.events[i][index_incr].append(("incr", sec_crit))
                     o2.events[j][index_att].append(("att", sec_crit, tokens_o1[int(sec_crit)]))
+                    #o2.checkpoints[j].append(o2.trains[j].troncons[index_att])
                     if len(o2.events[j][index_att]) != 0:
                         cpy_events = copy.deepcopy(o2.events[j][index_att])
                         for order in cpy_events:
@@ -298,12 +343,14 @@ def compose(o1,o2,save=False):
                                     event = index_incr
                                 o1.events[train][event].append(("turn", order[1], order[2]))
                                 o2.events[j][index_att].remove(order)
-    
+
 
     for i in range(len(o1.trains)):
         o1.trains[i].last_crit = [o1.trains[i].last_crit[j] if o2.trains[i].last_crit[j] == 0 else o2.trains[i].last_crit[j]+len(troncons_o1[i])-1 for j in range(len(o1.trains[i].last_crit))]
-    print(f"last crit o1 : {[x.last_crit for x in o1.trains]}")
+    #print(f"last crit o1 : {[x.last_crit for x in o1.trains]}")
 
+    troncons_o3 = [troncons_o1[i] + troncons_o2[i][1:] for i in range(len(troncons_o1))]
+    #print(f"troncons o3 : {troncons_o3}")
 
     #ajout des auth
     for e in range(len(o2.trains)):
@@ -311,10 +358,6 @@ def compose(o1,o2,save=False):
             for o in range(len(o2.events[e][n])):
                 if o2.events[e][n][o][0] == "turn":
                     o2.events[e][n].append(["auth"])
-    
-
-    for t in range(len(o2.trains)):
-        o2.events[t][0].append(["auth"])
 
 
     #fusion des événements
@@ -328,15 +371,39 @@ def compose(o1,o2,save=False):
     for t in range(len(o2.trains)):
         o3_trains[t].prog += o2.trains[t].prog
         o3_trains[t].arr = o2.trains[t].arr
-    
+        o3_trains[t].troncons = troncons_o3[t]
+
     o3 = Trajet(o3_trains, o3_events)
     o3.switch_init = o1.switch_init
     o3.histo_switch = histo_o3
-    o3.wait_list = o1.wait_list
     o3.posInitial = o1.posInitial
     o3.posFinal = o2.posFinal
-    
+    o3.checkpoints = [o1.checkpoints[i][:-1] + o2.checkpoints[i] for i in range(len(o1.checkpoints))]
+
+    #historique des trains
+    for i in range(len(o3.trains)):
+        if o3.trains[i].prog != []:
+            if o3.trains[i].prog[0][0] == "sync":
+                o3.histo.append([o3.trains[i].troncons[0], o3.trains[i].prog[1][1]])
+            else:
+                o3.histo.append([o3.trains[i].troncons[0], o3.trains[i].prog[0][1]])
+        else:
+            o3.histo.append([o3.trains[i].troncons[0], "L"])
+
+
+    #event de départ
+    for i in range(len(o3.trains)):
+        if o3.trains[i].prog != [] and o3.trains[i].prog[0][0] != "sync" and o3.events[i][0] != []:
+            o3.trains[i].prog.insert(0, ["sync"])
+            for ev in o3.events[i][0]:
+                if ev[0] == "auth" or ev[0] == "att":
+                    o3.checkpoints[i].insert(0, o3.trains[i].troncons[0])
+
+
+
     optimisation(o3)
+    add_sync(o3, troncons_o3)
+
     if save:
         filename = f"model/pickle/{o3.posInitial.replace('*', 'o')}-{o3.posFinal.replace('*', 'o')}.pkl"
         with open(filename, "wb") as file:
@@ -344,75 +411,6 @@ def compose(o1,o2,save=False):
     return o3
 
 
-def majTokens(o1, token, value):
-    for t in range(len(o1.trains)):
-        for e in range(len(o1.events[t])):
-            for o in range(len(o1.events[t][e])):
-                if o1.events[t][e][o][0] == "att" and o1.events[t][e][o][1] == token:
-                    if o1.events[t][e][o][2] > value:
-                        o1.events[t][e][o] = ("att", token, value-1)
-
-
-def optimisation(o1):
-    #reduire les programmes des trains
-    for i in range(len(o1.trains)):
-        prog_tmp = copy.deepcopy(o1.trains[i].prog)
-        offset = 0
-        for j in range(len(o1.trains[i].prog)-1):
-            if o1.trains[i].prog[j][1] == o1.trains[i].prog[j+1][1]: #même direction
-                tmp = list(o1.trains[i].prog[j+1]) # bricolage temporaire
-                tmp[2] = o1.trains[i].prog[j][2] + o1.trains[i].prog[j+1][2]
-                prog_tmp[j+1-offset] = tuple(tmp)
-                prog_tmp.remove(o1.trains[i].prog[j])
-                offset += 1
-        o1.trains[i].prog = prog_tmp
-    
-    #supprimer les doublons
-    """ for t in range(len(o1.trains)):
-        for e in range(len(o1.events[t])):
-            orders_cpy = copy.deepcopy(o1.events[t][e])
-            rmv = []
-            for o in range(len(o1.events[t][e])):
-                if o1.events[t][e][o][0] == "att":
-                    for p in range(len(o1.events[t][e])):
-                        if o != p and o1.events[t][e][p][0] == "att" and o1.events[t][e][p][1] == o1.events[t][e][o][1]:
-                            orders_cpy.remove(o1.events[t][e][p])
-                            majTokens(o1, o1.events[t][e][p][1], o1.events[t][e][p][2])
-                if o1.events[t][e][o][0] == "incr":
-                    for p in range(len(o1.events[t][e])):
-                        if o != p and o1.events[t][e][p][0] == "incr" and o1.events[t][e][p][1] == o1.events[t][e][o][1]:
-                            rmv.append(o1.events[t][e][p])
-            for elem in rmv:
-                orders_cpy.remove(elem)
-            o1.events[t][e] = orders_cpy """
-
-
-import subprocess
-
-
-def verifTMP(e1,e2, e3):
-    s6 = etats[f"{e2} -> {e3}"].split("__")
-    o6 = createProgram(e2, e3, s6)
-    #print(f"o6\n{o6}")
-    #o7 = compose(o5, o6)
-
-    with open(f"model/pickle/{e1.replace("*","o")}-{e2.replace("*","o")}.pkl", "rb") as file:
-        tmp = file.read()
-        saved = pickle.loads(tmp)
-    #print(f"saved\n{saved}")
-    o7 = compose(saved, o6)
-    
-    #print(f"o7\n{o7}")
-    #print(f"o7 switch historique : {o7.histo_switch}")
-
-    with open("model/composition.tla", "w") as file:
-        file.write(trajet2model(o7, build_troncons(o7.trains)))
-
-    command = ["java", "-jar", f"model/tla2tools.jar", "-config", f"model/compo.cfg", f"model/model2.tla"]
-    f = open(f"model/out.log", "w")
-    p = subprocess.Popen(command, stdout=f, stderr=f)
-    p.wait()
-    f.close()
 
 
 if __name__ == "__main__":
@@ -421,7 +419,8 @@ if __name__ == "__main__":
     with open("etat_elem.json", "r") as file:
         etats = json.load(file)
 
-    s4_1 = etats["N4L5R2* -> N8L7R2*"].split("__")
+    #Maquette
+    """ s4_1 = etats["N4L5R2* -> N8L7R2*"].split("__")
     o1 = createProgram("N4L5R2*", "N8L7R2*",s4_1) 
     s4_2 = etats["N8L7R2* -> N8*4R2*"].split("__")
     o2 = createProgram("N8L7R2*", "N8*4R2*",s4_2)
@@ -429,6 +428,7 @@ if __name__ == "__main__":
     print(f"o2\n{o2}")
     o3 = compose(o1, o2)
     print(f"\no3\n{o3}")
+
 
     s5 = etats["N8*4R2* -> N8R4*2*"].split("__")
     o4 = createProgram("N8*4R2*", "N8R4*2*", s5)
@@ -438,7 +438,129 @@ if __name__ == "__main__":
     print(f"o5 switch historique : {o5.histo_switch}")
     
 
-    """ cpt = 0
+    s6 = etats["N8R4*2* -> N3R4*2*"].split("__")
+    o6 = createProgram("N8R4*2*", "N3R4*2*", s6)
+    print(f"o6\n{o6}")
+    o7 = compose(o5, o6)
+    print(f"o7\n{o7}")
+
+    s8 = etats["N3R4*2* -> N3*4*2*"].split("__")
+    o8 = createProgram("N3R4*2*", "N3*4*2*", s8)
+    print(f"o8\n{o8}")
+    o9 = compose(o7, o8)
+    print(f"o9\n{o9}")
+    print(f"o9 switch historique : {o9.histo_switch}")
+
+    s10 = etats["N3*4*2* -> N3L4*2*"].split("__")
+    o10 = createProgram("N3*4*2*", "N3L4*2*", s10)
+    print(f"o10\n{o10}")
+    o11 = compose(o9, o10)
+    print(f"o11\n{o11}")
+    print(f"o11 switch historique : {o11.histo_switch}")
+
+    s12 = etats["N3L4*2* -> N7L4*2*"].split("__")
+    o12 = createProgram("N3L4*2*", "N7L4*2*", s12)
+    print(f"o12\n{o12}")
+    o13 = compose(o11, o12)
+    print(f"o13\n{o13}")
+    print(f"o13 switch historique : {o13.histo_switch}")
+
+    a = format_events(o13.trains, o13.events)
+    for k, v in sorted(a.items()):
+        print(f"{k} : {v}")
+
+    with open("model/composition.tla", "w") as file:
+        file.write(trajet2model(o13, [x.troncons for x in o13.trains])) """
+
+    #Boucle 1
+    """ s1 = etats["N3L1*8* -> N4L1*8*"].split("__")
+    o1 = createProgram("N3L1*8*", "N4L1*8*", s1)
+    print(f"o1\n{o1}")
+    s2 = etats["N4L1*8* -> N3L1*8*"].split("__")
+    o2 = createProgram("N4L1*8*", "N3L1*8*", s2)
+    print(f"o2\n{o2}")
+    o3 = compose(o1, o2)
+    print(f"o3\n{o3}")
+    print(f"o3 switch historique : {o3.histo_switch}")
+
+    s4 = etats["N3L1*8* -> N3*1*8*"].split("__")
+    o4 = createProgram("N3L1*8*", "N3*1*8*", s4)
+    print(f"o4\n{o4}")
+    o5 = compose(o3, o4)
+    print(f"o5\n{o5}")
+    print(f"o5 switch historique : {o5.histo_switch}")
+    
+    s6 = etats["N3*1*8* -> N3R1*8*"].split("__")
+    o6 = createProgram("N3*1*8*", "N3R1*8*", s6)
+    print(f"o6\n{o6}")
+    o7 = compose(o5, o6)
+    print(f"o7\n{o7}")
+    print(f"o7 switch historique : {o7.histo_switch}")
+    
+    s8 = etats["N3R1*8* -> N2R1*8*"].split("__")
+    o8 = createProgram("N3R1*8*", "N2R1*8*", s8)
+    print(f"o8\n{o8}")
+    o9 = compose(o7, o8)
+    print(f"o9\n{o9}")
+    print(f"o9 switch historique : {o9.histo_switch}")
+
+    print(f"\n\n\n\n\no9 MODEL : \n{trajet2model(o9)}")
+    with open("model/composition.tla", "w") as file:
+        file.write(trajet2model(o9)) """
+
+
+    #Boucle 2
+    """ s1 = etats["N3L1*2* -> N4L1*2*"].split("__")
+    o1 = createProgram("N3L1*2*", "N4L1*2*", s1)
+    print(f"o1\n{o1}")
+    s2 = etats["N4L1*2* -> N8L1*2*"].split("__")
+    o2 = createProgram("N4L1*2*", "N8L1*2*", s2)
+    print(f"o2\n{o2}")
+    o3 = compose(o1, o2)
+    print(f"o3\n{o3}")
+    print(f"o3 switch historique : {o3.histo_switch}")
+
+    print(f"\n\n\n\n\n{trajet2model(o3)}")
+
+    with open("model/composition.tla", "w") as file:
+        file.write(trajet2model(o3)) """
+
+
+    #Start
+    """ s1 = etats["N2*1*4L -> N2L1*8L"].split("__")
+    o1 = createProgram("N2*1*4L", "N2L1*8L", s1)
+    print(f"o1\n{o1}")
+    s2 = etats["N2L1*8L -> N7L1*8*"].split("__")
+    o2 = createProgram("N2L1*8L", "N7L1*8*", s2)
+    print(f"o2\n{o2}")
+    o3 = compose(o1, o2)
+    print(f"o3\n{o3}")
+    print(f"o3 switch historique : {o3.histo_switch}")
+
+    print(f"\n\n\n\n\n{trajet2model(o3)}")
+
+    with open("model/composition.tla", "w") as file:
+        file.write(trajet2model(o3)) """
+    
+
+    #test
+    s1 = etats["N2R8R6R -> N2*8*4R"].split("__")
+    o1 = createProgram("N2R8R6R", "N2*8*4R", s1)
+    print(f"o1\n{o1}")
+    s2 = etats["N2*8*4R -> N2*8*1R"].split("__")
+    o2 = createProgram("N2*8*4R", "N2*8*1R", s2)
+    print(f"o2\n{o2}")
+    o3 = compose(o1, o2)
+    print(f"o3\n{o3}")
+    print(f"o3 switch historique : {o3.histo_switch}")
+
+    print(f"\n\n\n\n\n{trajet2model(o3)}")
+    
+    with open("model/composition.tla", "w") as file:
+        file.write(trajet2model(o3))
+
+
+    """cpt = 0
     with open("allErrors.log", "r") as file:
         for line in file:
             cpt += 1
@@ -446,10 +568,10 @@ if __name__ == "__main__":
             
             #state =  "N5R8R4R -> N3R2*6* -> N1R2*6*"
             e = chemin.split(" -> ")
-            verifTMP(e[0], e[1], e[2]) """
+            verifTMP(e[0], e[1], e[2])"""
 
 
-    """ s6 = etats["N2*8*7R -> N2*8*6R"].split("__")
+    """s6 = etats["N2*8*7R -> N2*8*6R"].split("__")
     o6 = createProgram("N2*8*7R", "N2*8*6R", s6)
     print(f"o6\n{o6}")
     #o7 = compose(o5, o6)
@@ -465,3 +587,43 @@ if __name__ == "__main__":
 
     with open("model/composition.tla", "w") as file:
         file.write(trajet2model(o7, build_troncons(o7.trains))) """
+
+
+
+
+
+
+
+
+""" #Temporaire, pour vérifier les compositions
+import subprocess
+def verifTMP(e1,e2, e3):
+    s6 = etats[f"{e2} -> {e3}"].split("__")
+    o6 = createProgram(e2, e3, s6)
+    #print(f"o6\n{o6}")
+    #o7 = compose(o5, o6)
+
+    with open(f"model/pickle/{e1.replace('*','o')}_{e2.replace('*','o')}.pkl", "rb") as file:
+        tmp = file.read()
+        saved = pickle.loads(tmp)
+    #print(f"saved\n{saved}")
+    o7 = compose(saved, o6)
+    
+    #print(f"o7\n{o7}")
+    #print(f"o7 switch historique : {o7.histo_switch}")
+
+    with open("model/composition.tla", "w") as file:
+        file.write(trajet2model(o7, build_troncons(o7.trains)))
+
+    command = ["java", "-jar", f"model/tla2tools.jar", "-config", f"model/compo.cfg", f"model/model2.tla"]
+    f = open(f"model/out.log", "w")
+    p = subprocess.Popen(command, stdout=f, stderr=f)
+    p.wait()
+    f.close() """
+
+
+
+
+
+
+
