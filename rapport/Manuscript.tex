@@ -216,12 +216,12 @@ Ici, on peut faire appel à un autre outil~: les règles d'inférences, qui vont
 		\node[vertex] (q2) at (0,-10) {Prépare thé};
 		\node[vertex] (q3) at (8,-10) {Prépare café};
 
-		\draw[->] (q0.south) -- (q1.north) node[midway, right] {Pièce insérée};
-		\draw[->] (q1.south) -- (q2.east)  node[midway, right] {Choix thé};
-		\draw[->] (q1.south) -- (q3.west)  node[midway, right] {Choix café};
+		\draw[->] (q0) -- (q1) node[midway, right] {Pièce insérée};
+		\draw[->] (q1) -- (q2)  node[midway, right] {Choix thé};
+		\draw[->] (q1) -- (q3)  node[midway, right] {Choix café};
 
-		\draw[->] (q2.north) .. controls (0,0) .. (q0.west) node[midway, right] {Thé prêt};
-		\draw[->] (q3.north) .. controls (8,0) .. (q0.east) node[midway, right] {Café prêt};
+		\draw[->] (q2) .. controls (0,0) .. (q0) node[pos=0.3, right] {Thé prêt};
+		\draw[->] (q3) .. controls (8,0) .. (q0) node[pos=0.3, right] {Café prêt};
 
 		\end{tikzpicture}
 	}
@@ -304,15 +304,15 @@ L'intégration au sein de l'équipe s'est déroulée naturellement, les échange
 		\node[vertex] (q8) [right=of w1] {8};
 		\node[vertex] (q6) [left=of w2] {6};
 
-		\draw[edge] (q1.west)  -- (q3.east)  node[midway, above, sloped] {9d/10v};
-		\draw[edge] (q2.west)  -- (q3.east)  node[pos=0.3, above, sloped] {9v/10v};
-		\draw[edge] (q4.west)  -- (q3.east)  node[midway, above, sloped] {10d};
-		\draw[edge] (q3.south) -- (q8.west)  node[midway, above, sloped] {11v};
-		\draw[edge] (q3.south) -- (q7.north) node[midway, above, sloped] {11d};
-		\draw[edge] (q7.east)  -- (q5.west)  node[midway, above, sloped] {12d};
-		\draw[edge] (q7.east)  -- (q6.south) node[midway, above, sloped] {12v};
-		\draw[edge] (q5.north) -- (q4.south) node[midway, above, sloped] {13d};
-		\draw[edge] (q6.north) -- (q4.south) node[midway, above, sloped] {13v};
+		\draw[edge] (q1)  -- (q3)  node[midway, above, sloped] {9d/10v};
+		\draw[edge] (q2)  -- (q3)  node[pos=0.3, above, sloped] {9v/10v};
+		\draw[edge] (q4)  -- (q3)  node[midway, above, sloped] {10d};
+		\draw[edge] (q3) -- (q8)  node[midway, above, sloped] {11v};
+		\draw[edge] (q3) -- (q7) node[midway, above, sloped] {11d};
+		\draw[edge] (q7)  -- (q5)  node[midway, above, sloped] {12d};
+		\draw[edge] (q7)  -- (q6) node[midway, above, sloped] {12v};
+		\draw[edge] (q5) -- (q4) node[midway, above, sloped] {13d};
+		\draw[edge] (q6) -- (q4) node[midway, above, sloped] {13v};
 		\end{tikzpicture}
 	}
 	\caption{Graphe modélisant le réseau (réseau ??) de la maquette}
@@ -372,7 +372,7 @@ La solution pour résoudre ce problème est de mettre en place un système de je
 Une fois la ressource consommée, le train indique qu'il a terminé en incrémentant la valeur de son jeton. 
 La "réservation" ou la libération de ressource doit se faire via des évènements, des actions déclenchées par le régulateur lorsqu'un train entre dans un canton.
 \\Une seconde problèmatique de taille à émergée pendant la réalisation de ce modèle~: le déclenchement des évènements doit se faire avant un moment précis.
-Par exemple, si un train à besoin qu'un aiguillage soit dévié pour continuer sa route, il faut être certain que le régulateur à exécuté l'événement de déviation avant que le train n'arrive à l'aiguillage.
+Par exemple, si un train à besoin qu'un aiguillage soit dévié pour continuer sa route, il faut être certain que le régulateur à exécuté l'évènement de déviation avant que le train n'arrive à l'aiguillage.
 On aimerait donc être capable de réaliser l'action avant que le train n'atteigne l'aiguillage, sans pour autant bloquer explicitement le train. L'idée serait de le bloquer uniquement si l'action doit être réalisée.
 Nous verrons comment résoudre cela plus loin.
 
@@ -414,26 +414,48 @@ Ce dernier est composé de six éléments~:
 
 \begin{itemize}
 	\item Les jetons : Notés \textbf{J}, ils représentent l'accès à une ressource, ici un canton. Il suffit d'incrémenter la valeur du jeton pour libérer cette ressource.
-	 On les définit par $J = \mathcal{B} \mapsto \nats$.
-	\item La file d'attente : Noté \textbf{W}, elle permet de garder en mémoire les trains qui attendent une ressource, nous verrons plus loin sont utilité. Elle est définie par $W = \mathcal{B} \times \nats \mapsto \trainFmt{\gamma}$.
+	 On les définit par $J~:~\mathcal{B} \mapsto \nats$.
+	\item La file d'attente : Noté \textbf{W}, elle permet de garder en mémoire les trains qui attendent une ressource, nous verrons plus loin sont utilité. Elle est définie par $W~:~\mathcal{B} \times \nats \mapsto \trainFmt{\gamma}$.
 	\item Les autorisations : Notées \textbf{A}, elles représentent le nombre d'autorisations restantes pour chaque train, en clair, le nombre de cantons que chacun peut encore parcourir.
-	 On les définit par $A = \trainFmt{\gamma} \mapsto \nats$.
+	 On les définit par $A~:~\trainFmt{\gamma} \mapsto \nats$.
 	\item Le programme du régulateur : Noté \textbf{E}, il contient toute l'information sur les transformations futures du système. 
 	 Il se compose de gestionnaires d'évènements, un par train, qui dictent les actions à réaliser en fonction des évènements déclenchés.
 	\item Les pointeurs d'évènements : Notés \textbf{Ne}, ils sont indispensables aux gestionnaires d'évènements puisqu'ils indiquent quel évènement doit être traité. Il est définit de la même manière que A.
-	\item L'état des aiguillages : Noté \textbf{$\swFmt{\sigma}$}, cet élément reflète la configuration actuelle des aiguillages du réseau. On définit le définit comme $S = \sigma \mapsto \{d, v\}$.
+	\item L'état des aiguillages : Noté \textbf{$\swFmt{\sigma}$}, cet élément reflète la configuration actuelle des aiguillages du réseau. On définit le définit comme $S~:~\sigma \mapsto \{d, v\}$.
 \end{itemize}
 Dans les règles de transition, on représente le régulateur de deux manières, par un R ou par un sextuplet~: $\langle J,W,A,E,{\text Ne},\swFmt{\sigma} \rangle$.
 
-\paragraph{Les évènements.}
+
+
+\paragraph{Évènements.}
 Comme vue avant, chaque train est rattaché, virtuellement par le régulateur, à un gestionnaire d'évènements pour traiter les évènements qui le concernent.
-Ce gestionnaire n'est autre qu'une liste d'ordres.
+Ce gestionnaire n'est autre qu'une liste de listes d'ordres. \textit{Si un évènements est relié à un canton, pourquoi ne pas intégrer ce numéro dans le gestionnaire à la place d'utiliser un pointeur ?}
+Cette question est pertinente puisqu'elle soulève la problématique de la redondance d'informations dans le modèle. Initialement, nous n'avions pas de champ \textbf{Ne} pour le régulateur, les gestionnaires étaient de la forme~: $g_1 = [(\posFmt{b_i},[-]), (\posFmt{b_j},[-]),\dots]$, avec $b_i$ et $b_j$ les numéros de cantons représentant la position du train.
+Cependant, la redondance du numéro de canton avec la position du train apporte un potentiel problème de cohérence, il est impératif que ces deux éléments soient toujours égaux.
+Pour ne pas nous rajouter ce problème en plus, nous avons opter pour la forme actuelle~: $g_1 = [[-],[-],\dots]$. Ainsi, l'index de la liste d'ordre agit comme un numéro d'évènement.
+Ce qui nous amène au cas des évènements vides. Il est nécéssaire que chaque déplacement de train entraîne un évènement, même si celui-ci est vide, l'index de la liste d'ordre servant de numéro d'évènement celle-ci s'en retrouverait décalé dans le cas contraire.
+Il aurait été possible de ne pas utiliser les indexes comme numéro d'évènement et d'intégrer ceux-ci directement dans les gestionnaires, cependant, il aurait fallu diviser la règle \ruleDef{Until} pour traiter le cas avec des évènements, \ruleDef{Until$_{ev}$}, et sans évènements, \ruleDef{Until$_{no\_ev}$}.
+Or, la suppréssion des évènements vides n'est pas une assez grande motivation pour justifier la création d'une règles supplémentaire.
+Parlons maintenant des ordres, en voici une liste exhaustive~:
+\begin{itemize}
+	\item \texttt{wait(j, x)} : Attendre que le jeton \texttt{j} atteigne la valeur \texttt{x}.
+	\item \texttt{incr(j)} : Incrémenter le jeton \texttt{j}.
+	\item \texttt{turn(\swFmt{$s_i$}, e)} : Mettre l'aiguillage \swFmt{$s_i$} dans la position \texttt{e}.
+\end{itemize}
 
-[Expliquer le choix d'avoir un pointeur sur le gestionnaire plutôt que la position du train dans le handler (redondance).
-Aussi, expliqué qu'on à besoin d'un numéro d'event (implicite avec l'index dans la liste) $\rightarrow$ pour ça qu'il faut des events vides.
-Passer en revue les ordres du gestionnaire d'évènements]
+\noindent
+Nous verrons comment ils intéragissent avec le modèle plus loin, lorsque nous parlerons des règles de transitions. Penchons nous plus en détail sur l'ordre \texttt{wait(j, x)}, il représente bien les dilemmes lié à la modélisation.
+Ce dernier nous indique la ressource que le train attend, ainsi, d'un coup d'oeil sur le programme, nous sommes capable de savoir qu'un train $t_1$ avec l'évènement \texttt{wait(3, x)} est prioritaire au train $t_2$ avec l'évènement \texttt{wait(3, x+1)}.
+Cependant, pour l'implémentation, nous avons besoin de connaitre la position du train pour le positionner dans la file d'attente, il serait donc plus pratique que $j$ désigne la position d'attente et non la ressource.
+\todo{pas certain de la position de ce paragraphe, peut-être dans le modèle 2 parce que modèle 0 pas touché par ce phénomène}
+Ce qui, pour le même exemple donnerait, \texttt{wait(7, x)} et \texttt{wait(4, y)}, moins intuitif pour l'humain.
+C'est pourquoi nous avons fait le choix de garder $j$ comme la ressource, pour faciliter l'écriture et la lecture du programme du régulateur.
 
-Avec ça, on peut représenter un état de système par $\langle \trainFmt{\Gamma}, R \rangle$.
+%\subparagraph{forme du att} dire que att(3,1) c'est moins facile pour l'implem mais plus simple (moralement) pour la création du programme donc on a garder comme ça.
+
+
+\noindent
+Avec ça, on peut représenter un état du système par $\langle \trainFmt{\Gamma}, R \rangle$.
 
 \begin{example}[GoodEnding M0]
 	~\\
@@ -463,7 +485,7 @@ Avec ça, on peut représenter un état de système par $\langle \trainFmt{\Gamm
 
 \paragraph{Dynamique.} 
 Les présentations avec les éléments du modèle terminées, il est temps de voir comment le modèle peut évoluer au fil du temps.
-Comme expliqué dans l'introduction, ce sont les règles de transitions qui vont apporter du mouvement à notre modèle, permettant de modifier son état règles après règles.
+Comme expliqué dans l'introduction, ce sont les règles de transitions qui vont apporter du mouvement à notre modèle, permettant de modifier son état règles après règles. Nous allons voir ensemble quelques règles mais elles ne seront pas toutes couvertes.
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{Until}]{
@@ -487,15 +509,15 @@ Cela règle le second point de la problèmatique de ce modèle. (pas convaincu q
 Évolution naturelle des choses, un canton de franchi signifie une autorisation en moins, avec une décrémentation du compteur~: $A.{\tt decr}(\trainFmt{t_m})$, et une mise à jour du pointeur d'évènements, avec une incrémentation de sa valeur~: ${\text Ne}.{\tt incr}(\trainFmt{t_m})$.
 
 \noindent
-Les règles doivent pouvoir traiter les ordres des événements, on pourrait s'attendre à avoir une règles \ruleDef{Wait} et une règle \ruleDef{Incr}. Cependant, nous avons besoin de comportements plus fin, nous allons voir ça dès maintenant. 
+Les règles doivent pouvoir traiter les ordres des évènements, on pourrait s'attendre à avoir une règle \ruleDef{Wait} et une règle \ruleDef{Incr}. Cependant, nous avons besoin de comportements plus fin, nous allons voir ça dès maintenant. 
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{WaitBefore}]{
-			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = wait(j, y) \\ J[j] \neq y
+			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = wait(j, x) \\ J[j] \neq x
 		}{
 			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J}{E}{Ne}{A}{W}{S}
 			\\\reduces
-			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J}{{\tt pop}(E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]])}{Ne}{A}{\majtab{W}{(j,y)}{\trainFmt{t_m}}}{S}
+			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J}{{\tt pop}(E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]])}{Ne}{A}{\majtab{W}{(j,x)}{\trainFmt{t_m}}}{S}
 		}
 \end{mathpar}
 
@@ -503,7 +525,7 @@ Les règles doivent pouvoir traiter les ordres des événements, on pourrait s'a
 	\inferrule*[left=\ruleDef{IncrAfter}]{
 			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = incr(j)
 			\and
-			J[j] = x \\ W[(j, x+1)] = \trainFmt{w_{id}} \\ nextWait(\trainFmt{w_{id}},R) = cptAuth
+			J[j] = x \\ W[(j, x+1)] = \trainFmt{w_{id}} \\ nextWait(\trainFmt{w_{id}},E[\trainFmt{w_{id}}]) = cptAuth
 		}{
 			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J}{E}{Ne}{A}{W}{S}
 			\\\reduces 
@@ -511,31 +533,84 @@ Les règles doivent pouvoir traiter les ordres des événements, on pourrait s'a
 		}
 \end{mathpar}
 
+\noindent
 Les règles \ruleDef{WaitBefore} et \ruleDef{IncrAfter} vont de pair pour le cas où l'ordre d'attente est traité avant celui d'incrémentation pour une valeur de jeton donnée.
-Ainsi, la première permet d'inscrire la train à la file d'attente~: $\majtab{W}{(j,y)}{\trainFmt{t_m}}$, tandis que la seconde incrémente le jeton et mets à jour les autorisations~: $\majtab{A}{\trainFmt{w_{id}}}{cptAuth}$.
-Si l'on regarde les prémisses de la règles d'incrémentation, on remarque que l'on fait appel à la fonction $nextWait(\trainFmt{w_{id}},R)$
+Ainsi, la première permet d'inscrire le train à la file d'attente~: $\majtab{W}{(j,y)}{\trainFmt{t_m}}$, tandis que la seconde incrémente le jeton et met à jour les autorisations~: $\majtab{A}{\trainFmt{w_{id}}}{cptAuth}$.
+On remarque que les deux règles dépilent l'ordre de l'évènement actuel avec ${\tt pop}(E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]])$.
+Si l'on regarde les prémisses de la règle d'incrémentation, on remarque que l'on fait appel à la fonction $nextWait(\trainFmt{w_{id}},E[\trainFmt{w_{id}}])$ qui cherche dans le gestionnaire d'évènements du train \trainFmt{$t_m$} le prochain ordre $wait(j,x)$ et calcule le nombre de cantons avant d'y accéder.
 
-%Paragraphe "imperfection"
-%\subparagraph{téléportation des trains de canton à canton}
-%\subparagraph{Event non atomique, donc attention à l'ordre }
-%\subparagraph{forme du att} dire que att(3,1) c'est moins facile pour l'implem mais plus simple (moralement) pour la création du programme donc on a garder comme ça.
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{IncrBefore}]{
+			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = incr(j) \\ J[j] = x \\ W[(j, x+1)] = \varepsilon
+		}{
+			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J}{E}{Ne}{A}{W}{S}
+			\\\reduces
+			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J.{\tt incr}(j)}{{\tt pop}(E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]])}{Ne}{A}{W}{S}
+		}
+\end{mathpar}
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{WaitAfter}]{
+			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = wait(j, x) \\ J[j] = x \\ nextWait(\trainFmt{t_m},E[\trainFmt{t_m}]) = cptAuth
+		}{
+			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J}{E}{Ne}{A}{W}{S} 
+			\\\Rightarrow
+			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J}{{\tt pop}(E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]])}{Ne}{\majtab{A}{\trainFmt{t_m}}{cptAuth}}{W}{S}
+		}
+\end{mathpar}
+
+\noindent
+À l'inverse, il arrive que l'ordre d'attente soit traité après celui d'incrémentation, c'est alors le couple \ruleDef{IncrBefore} / \ruleDef{WaitAfter} qui prend le relais.
+Ces deux règles reposent sur les mêmes mécanismes que les précédentes, à la différence que c'est \ruleDef{WaitAfter} qui va mettre à jour les autorisations du train \trainFmt{$t_m$}.
+Il est important de remarquer que, dans ce cas, le train n'est pas ajouter à la file d'attente, ce qui a peu d'influence sur le comportement du modèle.
 
 
+\paragraph{Limitations.}
+Ce modèle étant très simple, il présente de nombreuses limitations et "simplification de la réalité", notamment la gestion des évènements. 
+Actuellement, le lien entre le régulateur et les trains est très fort, un train est capable de savoir si l'évènement qu'il a déclenché est entièrement traité ou non, ce qui n'est pas convenable dans notre idée du "train ignorant".
+De plus, cette manière de faire entraîne un problème d'atomicité des évènements~: il est possible qu'un morceau d'un évènement soit traité, de rendre la main à un train, puis de reprendre le traitement de l'évènement.
+Pour limiter les problèmes, on voudrait rendre les évènements atomiques, c'est-à-dire que si le modèle commence le traitement d'un évènement, alors il va devoir terminer le traitement avant de faire avancer les trains ou de traiter un autre évènement.
 
 
-\paragraph{Python.} Décrire le rôle du python
+\begin{example}[Atomicité]
+	On se place sur le graphe de la maquette, voir \ref{fig:grapheMaquette}. Considérons les trains $t_1$ et $t_2$ respectivement dans les cantons 3 et 4, et l'aiguillage 11 à la position "v". Supposons que l'évènement d'attente de $t_1$ pour aller en 7 ait eu lieu.
+	Dans le cas où l'évènement qui doit être traité est $[incr(7),turn(11,d)]$ il est possible d'avoir l'exécution suivante~:
+	\begin{itemize}
+		\item \ruleDef{IncrAfter} : débloque le train $t_1$.
+		\item \ruleDef{Until} : le train $t_1$ avance dans le canton 8 grâce à l'aiguillage 11 en position "v".
+		\item \ruleDef{Turn} : l'aiguillage est tourné en position "d".
+	\end{itemize}
+	Ce comportement aboutit à une impasse, $t_1$ est bloqué dans le canton 8 alors qu'il pensait entrer dans le canton 7. L'ordre au sein des évènements est important.
+\end{example}
+
+
+\paragraph{Python.}
 Notre méthode de travail implique un développement conjoint du modèle théorique et de son implémentation, il est alors plus simple de valider des "morceaux" de modèle grâce à nos scénarios de test.
 Cependant, il était prévue que l'implémentation soit faite en \TLA, langage de spécification formelle dont le fonctionnement était assez obscur à ce moment du stage.
 Il a donc été décidé de développé un petit moteur de simulation en Python, permettant de tester les balbutiements du modèle 0 et d'avoir une intuition sur le fonctionnement de \TLA, voir plus section \ref{sec:tla}.
-\todo{expliquer ce que fait grossièrement le code, l'architecture et les "features" (chargement de scénarios et visualisation sur graph) Et commentaire sur le besoin de passer à TLA}
+
+
+\begin{wrapfigure}{ht}{0.5\textwidth}
+	\missingfigure{Schéma du moteur de simulation}
+\end{wrapfigure}
+
+Ces petits scripts Python nous permettaient de charger des scénarios de test et de visualiser le comportement du modèle sur un graphe. Les scénarios étant assez simple, il est facile de voir si le comportement attendu est respecté ou non.
+La visualisation de la solution se faisait via la génération d'un fichier \texttt{svg} obtenus à partir d'un \texttt{.dot}. L'inconvénient majeur réside dans la vérification de la solution, si le graphe gagne en complexité, il ne pourra plus être analysé, voir affiché.
+Le besoin de passer à un formalisme plus rigoureux comme \TLA+ s'est alors fait sentir.
+
+\todo{étoffer ? Ajouter une side box pour l'archi du moteur ?}
 
 \subsection{Modèle 1}
 \paragraph{Raffinement}
+
+%ajout du numéro de canton dans le gestionnaire, mais pas de problème de cohérence :  c'est pas la position actuel du train mais l'endroit où le train à déclencher l'event, nuance.
 
 
 \subsection{Modèle 2}
 \paragraph{Raffinement}
 
+%paragraph{limitations}
+%\subparagraph{téléportation des trains de canton à canton}
 
 
 \chapter{Implémentation}
