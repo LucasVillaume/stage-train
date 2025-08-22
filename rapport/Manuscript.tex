@@ -261,7 +261,7 @@ Sur la figure \ref{fig:zoomCollision}, on remarque qu'à partir de certains éta
 
 \begin{wrapfigure}{l}{0.5\textwidth}
 	\centering
-	\includegraphics[width=0.5\textwidth]{../graph/collision.jpg}
+	\includegraphics[width=0.5\textwidth]{collision.jpg}
 	\caption{Morceau d'un automate de notre système}
 	\label{fig:zoomCollision}
 \end{wrapfigure}
@@ -413,6 +413,7 @@ L'ensemble des directions est noté $\directions = \{ \dirFmt{f}, \dirFmt{b}, \d
 Enfin, notre train doit être capable de réaliser trois actions de lui même~: démarrer, avancer et s'arrêter.
 Le programme interne d'un train est représenté par une liste d'ordres succéssifs, sous la forme "StartUntil(\dirFmt{dir}, \posFmt{dest})".
 Un ordre indique au train de se déplacer jusqu'à la position $\posFmt{dest}$ dans la direction $\dirFmt{dir}$. À l'arrivée, l'ordre est consommé pour laisser place au suivant.
+On dit qu'un programme est bien formé s'il ne contient pas deux ordres \su{d}{\bid{i}} consécutifs avec la même direction.
 
 \begin{sidebox}
 	À l'origine, on comptait trois types d'ordre pour le train~: "Start(\dirFmt{dir})", "Until(\posFmt{dest})" et "Stop()", respectivement pour démarrer le train dans la bonne direction, avancer jusqu'à la cible et s'arrêter.
@@ -427,7 +428,6 @@ Un ordre indique au train de se déplacer jusqu'à la position $\posFmt{dest}$ d
 		\firstcasesubtil{N}{1 .. \infty}{}
 	\end{grammar}
 	\vspace{0.3cm}\\
-	On dit qu'un programme est bien formé s'il ne contient pas deux ordres \su{d}{b}.
 \end{sidebox}
 
 \todo{Mettre ce paragraphe en dehors et laisser la grammaire ?}
