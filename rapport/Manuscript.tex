@@ -123,7 +123,24 @@
 \newcommand{\bufTrain}{\ensuremath{\bufferFmt{B_t}}\xspace}
 \newcommand{\bufSig}{\ensuremath{\bufferFmt{B_s}}\xspace}
 
+%% Signals
+\newcommand{\sigred}{{\mbox{${\color{red!50!black}\mathtt{r}}$}}}
+\newcommand{\siggreen}{{\mbox{${\color{green!50!black}\mathtt{g}}$}}}
+\newcommand{\deviate}{{\mbox{$\mathtt{v}$}}\xspace}
+\newcommand{\direct}{{\mbox{$\mathtt{d}$}}\xspace}
+\newcommand{\signalF}[2]{\ensuremath{\signals(\posFmt{#1}, \dirFmt{#2})}}
+\newcommand{\signals}{\ensuremath{F}}
+\newcommand{\setSignalsTo}[2]{\signals.{\tt set\_to}(#1, #2)}
+\newcommand{\updateSfty}[4]{{\tt updateSfty}(\signals, #1, #2, #3, #4)}
+\newcommand{\updateSignal}[4]{\ensuremath{#1[\tuple{\swFmt{#2}, \dirFmt{#3}}\leftarrow #4]}}
 
+
+\newcommand{\push}[2]{\ensuremath{\mathtt{push}(#1, #2)}}
+\newcommand{\pop}[1]{\ensuremath{\mathtt{pop}(#1)}}
+
+%% Rule predicates
+\newcommand{\requestS}[3]{\ensuremath{{\tt RequestS}(\trainFmt{#1}, \posFmt{#2}, #3)}}
+\newcommand{\nextWait}[1]{\ensuremath{{\tt NextWait}(#1)}}
 
 \newcommand{\reduces}{\ensuremath{\rightarrow}}
 \newcommand{\redTuple}[4]{\ensuremath{\tuple{#1, \bufferFmt{#2}, \bufferFmt{#3}, #4}}}
@@ -135,8 +152,12 @@
 \newcommand\reg[6]{\langle #1, #2, #3, #4, #5, #6 \rangle}
 \newcommand\majtab[3]{#1[#2] \gets #3}
 
+%regle m1
+\newcommand{\regM}[7]{\langle #1, #2, #3, #4, #5, #6, #7 \rangle}
 
 
+\definecolor{commentcolor}{rgb}{0.45, 0.45, 0.45}
+\newcommand{\commentaire}[1]{{\color{commentcolor}{#1}}}
 
 \titleformat{\chapter}[display]
 	{\normalfont\bfseries}{}{1em}{\Large\thechapter\hspace{1em}}
@@ -260,6 +281,8 @@ Enfin, la section \ref{sec:experiences} présentera les expériences menées sur
 
 
 
+
+
 \chapter{Cadre de travail}
 \paragraph{} 
 Ce stage prend place au sein du LORIA, le laboratoire lorrain de recherche en informatique et ses applications, il est divisé en 5 départements dans lesquels s'intègrent 28 équipes en fonctions de leurs spécialités.
@@ -269,6 +292,8 @@ Bien qu'essayant de m'imposer une autonomie dans mon travail, mes encadrants ont
 L'intégration au sein de l'équipe s'est déroulée naturellement, les échanges avec plusieurs membres de l'équipe m'ont permis d'élargir ma culture scientifique et de mieux comprendre les mécanismes de la recherche scientifique.
 
 \todo{Peut-etre faire un truc chronologique : facile au début pour rentrer dans le sujet, puis de plus en plus complexe}
+
+
 
 
 
@@ -302,17 +327,19 @@ L'intégration au sein de l'équipe s'est déroulée naturellement, les échange
 		\node[vertex] (q5) [below=of w2] {5};
 		\node[vertex] (q7) [below=of w1] {7};
 		\node[vertex] (q8) [right=of w1] {8};
+		%\node[vertex] (q8) [below right=1cm and 2cm of q3] {8};
 		\node[vertex] (q6) [left=of w2] {6};
 
-		\draw[edge] (q1)  -- (q3)  node[midway, above, sloped] {9d/10v};
-		\draw[edge] (q2)  -- (q3)  node[pos=0.3, above, sloped] {9v/10v};
-		\draw[edge] (q4)  -- (q3)  node[midway, above, sloped] {10d};
-		\draw[edge] (q3) -- (q8)  node[midway, above, sloped] {11v};
-		\draw[edge] (q3) -- (q7) node[midway, above, sloped] {11d};
-		\draw[edge] (q7)  -- (q5)  node[midway, above, sloped] {12d};
-		\draw[edge] (q7)  -- (q6) node[midway, above, sloped] {12v};
-		\draw[edge] (q5) -- (q4) node[midway, above, sloped] {13d};
-		\draw[edge] (q6) -- (q4) node[midway, above, sloped] {13v};
+		\draw[edge] (q1)  -- (q3)  node[midway, above, sloped] {\swFmt{9d}/\swFmt{10v}};
+		\draw[edge] (q2)  -- (q3)  node[pos=0.3, above, sloped] {\swFmt{9v}/\swFmt{10v}};
+		\draw[edge] (q4)  -- (q3)  node[midway, above, sloped] {\swFmt{10d}};
+		%\draw[edge] (q4) to node[pos=.1] {f1} to node[midway] {10d} to node[pos=.9] {f2} (q3);
+		\draw[edge] (q3) -- (q8)  node[midway, above, sloped] {\swFmt{11v}};
+		\draw[edge] (q3) -- (q7) node[midway, above, sloped] {\swFmt{11d}};
+		\draw[edge] (q7)  -- (q5)  node[midway, above, sloped] {\swFmt{12d}};
+		\draw[edge] (q7)  -- (q6) node[midway, above, sloped] {\swFmt{12v}};
+		\draw[edge] (q5) -- (q4) node[midway, above, sloped] {\swFmt{13d}};
+		\draw[edge] (q6) -- (q4) node[midway, above, sloped] {\swFmt{13v}};
 		\end{tikzpicture}
 	}
 	\caption{Graphe modélisant le réseau (réseau ??) de la maquette}
@@ -380,7 +407,7 @@ Nous verrons comment résoudre cela plus loin.
 \paragraph{Trains.} 
 Les trains sont représentés par un quadruplet contenant un identifiant, une position, une direction et un programme interne, on note cela $t_{id} = \trainTuple{id}{pos}{dir}{P}$, on appel $\trainFmt{\Gamma}$ l'ensemble des trains et $\trainFmt{\gamma}$ l'ensemble des identifiants de $\trainFmt{\Gamma}$.
 Le type de l'identifiant varie selon le contexte, une forme géométrique ($\vartriangle,\square,\bigcirc,\dots$) sur les exemples pour faciliter la compréhension, ou un entier pour les implémentations (indexé sur 1 ou 0 selon le langage).
-On définit la position comme un entier tel que $\posFmt{pos} \in \mathcal{B}$, avec $\mathcal{B}$ l'ensemble des cantons. 
+On définit la position comme un entier tel que $\posFmt{pos} \in \posFmt{\mathcal{B}}$, avec $\posFmt{\mathcal{B}}$ l'ensemble des cantons. 
 %L'ensemble des directions est noté \directions = \{ \dirForward, \dirBackward, \dirStop \}, avec \dirForward pour forward, \dirBackward pour backward et \dirStop pour l'arrêt.
 L'ensemble des directions est noté $\directions = \{ \dirFmt{f}, \dirFmt{b}, \dirFmt{\star} \}$, avec $\dirFmt{f}$ pour forward, $\dirFmt{b}$ pour backward et $\dirFmt{\star}$ pour l'arrêt.
 Enfin, notre train doit être capable de réaliser trois actions de lui même~: démarrer, avancer et s'arrêter.
@@ -396,9 +423,11 @@ Un ordre indique au train de se déplacer jusqu'à la position $\posFmt{dest}$ d
 	\begin{grammar}
 		\firstcasesubtil{T}{\concatM{seq}{T} \gralt \varepsilon}{}
 		\firstcasesubtil{seq}{StartUntil(D,\nats)}{ N : naturels}
-		\firstcasesubtil{D}{f \gralt b}{}
+		\firstcasesubtil{D}{\dirFmt{f} \gralt \dirFmt{b}}{}
 		\firstcasesubtil{N}{1 .. \infty}{}
 	\end{grammar}
+	\vspace{0.3cm}\\
+	On dit qu'un programme est bien formé s'il ne contient pas deux ordres \su{d}{b}.
 \end{sidebox}
 
 \todo{Mettre ce paragraphe en dehors et laisser la grammaire ?}
@@ -414,8 +443,8 @@ Ce dernier est composé de six éléments~:
 
 \begin{itemize}
 	\item Les jetons : Notés \textbf{J}, ils représentent l'accès à une ressource, ici un canton. Il suffit d'incrémenter la valeur du jeton pour libérer cette ressource.
-	 On les définit par $J~:~\mathcal{B} \mapsto \nats$.
-	\item La file d'attente : Noté \textbf{W}, elle permet de garder en mémoire les trains qui attendent une ressource, nous verrons plus loin sont utilité. Elle est définie par $W~:~\mathcal{B} \times \nats \mapsto \trainFmt{\gamma}$.
+	 On les définit par $J~:~\posFmt{\mathcal{B}} \mapsto \nats$.
+	\item La file d'attente : Noté \textbf{W}, elle permet de garder en mémoire les trains qui attendent une ressource, nous verrons plus loin sont utilité. Elle est définie par $W~:~\posFmt{\mathcal{B}} \times \nats \mapsto \trainFmt{\gamma}$.
 	\item Les autorisations : Notées \textbf{A}, elles représentent le nombre d'autorisations restantes pour chaque train, en clair, le nombre de cantons que chacun peut encore parcourir.
 	 On les définit par $A~:~\trainFmt{\gamma} \mapsto \nats$.
 	\item Le programme du régulateur : Noté \textbf{E}, il contient toute l'information sur les transformations futures du système. 
@@ -433,7 +462,7 @@ Ce gestionnaire n'est autre qu'une liste de listes d'ordres. \textit{Si un évè
 Cette question est pertinente puisqu'elle soulève la problématique de la redondance d'informations dans le modèle. Initialement, nous n'avions pas de champ \textbf{Ne} pour le régulateur, les gestionnaires étaient de la forme~: $g_1 = [(\posFmt{b_i},[-]), (\posFmt{b_j},[-]),\dots]$, avec $b_i$ et $b_j$ les numéros de cantons représentant la position du train.
 Cependant, la redondance du numéro de canton avec la position du train apporte un potentiel problème de cohérence, il est impératif que ces deux éléments soient toujours égaux.
 Pour ne pas nous rajouter ce problème en plus, nous avons opter pour la forme actuelle~: $g_1 = [[-],[-],\dots]$. Ainsi, l'index de la liste d'ordre agit comme un numéro d'évènement.
-Ce qui nous amène au cas des évènements vides. Il est nécéssaire que chaque déplacement de train entraîne un évènement, même si celui-ci est vide, l'index de la liste d'ordre servant de numéro d'évènement celle-ci s'en retrouverait décalé dans le cas contraire.
+Ce qui nous amène au cas des évènements vides. Il est nécessaire que chaque déplacement de train entraîne un évènement, même si celui-ci est vide, l'index de la liste d'ordre servant de numéro d'évènement celle-ci s'en retrouverait décalé dans le cas contraire.
 Il aurait été possible de ne pas utiliser les indexes comme numéro d'évènement et d'intégrer ceux-ci directement dans les gestionnaires, cependant, il aurait fallu diviser la règle \ruleDef{Until} pour traiter le cas avec des évènements, \ruleDef{Until$_{ev}$}, et sans évènements, \ruleDef{Until$_{no\_ev}$}.
 Or, la suppréssion des évènements vides n'est pas une assez grande motivation pour justifier la création d'une règles supplémentaire.
 Parlons maintenant des ordres, en voici une liste exhaustive~:
@@ -495,9 +524,9 @@ Comme expliqué dans l'introduction, ce sont les règles de transitions qui vont
 		\and 
 		{\tt len}(E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]) = 0
 	}{
-		\langle \trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{\trainConcat{\su{d}{N}}{P'}}, \reg{J}{W}{A}{E}{{\text Ne}}{\swFmt{\sigma}} \rangle
+		\langle \trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{\trainConcat{\su{d}{N}}{P}}, \reg{J}{W}{A}{E}{{\text Ne}}{\swFmt{\sigma}} \rangle
 		\\\reduces
-		\langle \trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{\trainConcat{\su{d}{N}}{P'}}, \reg{J}{W}{A.{\tt decr}(\trainFmt{t_m})}{E}{{\text Ne}.{\tt incr}(\trainFmt{t_m})}{\swFmt{\sigma}} \rangle
+		\langle \trainfull{\trainFmt{t_m}}{\posFmt{b_j}}{\dirFmt{d}}{\trainConcat{\su{d}{N}}{P}}, \reg{J}{W}{A.{\tt decr}(\trainFmt{t_m})}{E}{{\text Ne}.{\tt incr}(\trainFmt{t_m})}{\swFmt{\sigma}} \rangle
 	}
 \end{mathpar}
 
@@ -513,7 +542,7 @@ Les règles doivent pouvoir traiter les ordres des évènements, on pourrait s'a
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{WaitBefore}]{
-			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = wait(j, x) \\ J[j] \neq x
+			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = \wait{j}{x}  \\ J[j] \neq x
 		}{
 			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J}{E}{Ne}{A}{W}{S}
 			\\\reduces
@@ -523,7 +552,7 @@ Les règles doivent pouvoir traiter les ordres des évènements, on pourrait s'a
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{IncrAfter}]{
-			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = incr(j)
+			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = \incr{j}
 			\and
 			J[j] = x \\ W[(j, x+1)] = \trainFmt{w_{id}} \\ nextWait(\trainFmt{w_{id}},E[\trainFmt{w_{id}}]) = cptAuth
 		}{
@@ -537,11 +566,11 @@ Les règles doivent pouvoir traiter les ordres des évènements, on pourrait s'a
 Les règles \ruleDef{WaitBefore} et \ruleDef{IncrAfter} vont de pair pour le cas où l'ordre d'attente est traité avant celui d'incrémentation pour une valeur de jeton donnée.
 Ainsi, la première permet d'inscrire le train à la file d'attente~: $\majtab{W}{(j,y)}{\trainFmt{t_m}}$, tandis que la seconde incrémente le jeton et met à jour les autorisations~: $\majtab{A}{\trainFmt{w_{id}}}{cptAuth}$.
 On remarque que les deux règles dépilent l'ordre de l'évènement actuel avec ${\tt pop}(E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]])$.
-Si l'on regarde les prémisses de la règle d'incrémentation, on remarque que l'on fait appel à la fonction $nextWait(\trainFmt{w_{id}},E[\trainFmt{w_{id}}])$ qui cherche dans le gestionnaire d'évènements du train \trainFmt{$t_m$} le prochain ordre $wait(j,x)$ et calcule le nombre de cantons avant d'y accéder.
+Si l'on regarde les prémisses de la règle d'incrémentation, on remarque que l'on fait appel à la fonction $nextWait(\trainFmt{w_{id}},E[\trainFmt{w_{id}}])$ qui cherche dans le gestionnaire d'évènements du train \trainFmt{$t_m$} le prochain ordre $wait(j,x)$ et calcule le nombre de cantons avant d'y accéder, s'il n'existe pas, il retourne la distance à l'arrivée.
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{IncrBefore}]{
-			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = incr(j) \\ J[j] = x \\ W[(j, x+1)] = \varepsilon
+			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = \incr{j} \\ J[j] = x \\ W[(j, x+1)] = \varepsilon
 		}{
 			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J}{E}{Ne}{A}{W}{S}
 			\\\reduces
@@ -551,10 +580,10 @@ Si l'on regarde les prémisses de la règle d'incrémentation, on remarque que l
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{WaitAfter}]{
-			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = wait(j, x) \\ J[j] = x \\ nextWait(\trainFmt{t_m},E[\trainFmt{t_m}]) = cptAuth
+			\bufhead{E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]]} = \wait{j}{x} \\ J[j] = x \\ nextWait(\trainFmt{t_m},E[\trainFmt{t_m}]) = cptAuth
 		}{
 			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J}{E}{Ne}{A}{W}{S} 
-			\\\Rightarrow
+			\\\reduces
 			\trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{P}, \reg{J}{{\tt pop}(E[\trainFmt{t_m}][{\text Ne}[\trainFmt{t_m}]])}{Ne}{\majtab{A}{\trainFmt{t_m}}{cptAuth}}{W}{S}
 		}
 \end{mathpar}
@@ -587,7 +616,7 @@ Pour limiter les problèmes, on voudrait rendre les évènements atomiques, c'es
 \paragraph{Python.}
 Notre méthode de travail implique un développement conjoint du modèle théorique et de son implémentation, il est alors plus simple de valider des "morceaux" de modèle grâce à nos scénarios de test.
 Cependant, il était prévue que l'implémentation soit faite en \TLA, langage de spécification formelle dont le fonctionnement était assez obscur à ce moment du stage.
-Il a donc été décidé de développé un petit moteur de simulation en Python, permettant de tester les balbutiements du modèle 0 et d'avoir une intuition sur le fonctionnement de \TLA, voir plus section \ref{sec:tla}.
+Il a donc été décidé de développer un petit moteur de simulation en Python, permettant de tester les balbutiements du modèle 0 et d'avoir une intuition sur le fonctionnement de \TLA, voir plus section \ref{sec:tla}.
 
 
 \begin{wrapfigure}{ht}{0.5\textwidth}
@@ -600,14 +629,249 @@ Le besoin de passer à un formalisme plus rigoureux comme \TLA+ s'est alors fait
 
 \todo{étoffer ? Ajouter une side box pour l'archi du moteur ?}
 
+
+
+
+
+
+
+
+
+
+
+\newpage
 \subsection{Modèle 1}
-\paragraph{Raffinement}
 
-%ajout du numéro de canton dans le gestionnaire, mais pas de problème de cohérence :  c'est pas la position actuel du train mais l'endroit où le train à déclencher l'event, nuance.
+\begin{wrapfigure}{r}{0.3\textwidth}
+	\centering
+	\resizebox{0.3\textwidth}{!}{
+		\begin{tikzpicture}[
+			vertex/.style={circle, draw=gray, fill=gray!15, very thick, minimum size=7mm, text width=1cm, align=center},
+			edge/.style={thick}
+		]
+		\node[vertex] (q3)	  {3};
+		\node[vertex] (q4) [right=6cm of q3] {4};
+		\node[vertex] (q2) [above right=1cm and 4cm of q3] {2};
+		\node[vertex] (q1) [above=of q2] {1};
+		\node[vertex] (q5) [below=3cm of q4] {5};
+		\node[vertex] (q7) [below=3cm of q3] {7};
+		\node[vertex] (q8) [below right=1cm and 1.5cm of q3] {8};
+		\node[vertex] (q6) [below left=1.5cm and 2cm of q4] {6};
 
+		\draw[edge] (q1)  -- (q3)  node[midway, above, sloped] {\swFmt{9d}/\swFmt{10v}} node[pos=0.1,above,sloped] {1L} node[pos=0.9,above,sloped] {3R};
+		\draw[edge] (q2)  -- (q3)  node[pos=0.4, above, sloped] {\swFmt{9v}/\swFmt{10v}} node[pos=0.1,above,sloped] {2L} node[pos=0.9,above,sloped] {3R};
+		\draw[edge] (q4)  -- (q3)  node[midway, above, sloped] {\swFmt{10d}} node[pos=0.1,above,sloped] {4L} node[pos=0.9,above,sloped] {3R};
+		\draw[edge] (q3) -- (q8)  node[midway, above, sloped] {\swFmt{11v}} node[pos=0.1,above,sloped] {3L} node[pos=0.9,above,sloped] {8R};
+		\draw[edge] (q3) -- (q7) node[midway, above, sloped] {\swFmt{11d}} node[pos=0.1,above,sloped] {3L} node[pos=0.9,above,sloped] {7R};
+		\draw[edge] (q7)  -- (q5)  node[midway, above, sloped] {\swFmt{12d}} node[pos=0.1,above,sloped] {7L} node[pos=0.9,above,sloped] {5R};
+		\draw[edge] (q7)  -- (q6) node[midway, above, sloped] {\swFmt{12v}} node[pos=0.1,above,sloped] {7L} node[pos=0.9,above,sloped] {6R};
+		\draw[edge] (q5) -- (q4) node[midway, above, sloped] {\swFmt{13d}} node[pos=0.1,above,sloped] {5L} node[pos=0.9,above,sloped] {4R};
+		\draw[edge] (q6) -- (q4) node[midway, above, sloped] {\swFmt{13v}} node[pos=0.1,above,sloped] {6L} node[pos=0.9,above,sloped] {4R};
+		\end{tikzpicture}
+	}
+	\caption{Graphe modélisant le réseau de la maquette avec les feux de signalisation}
+	\label{fig:grapheMaquetteM1}
+\end{wrapfigure}
+
+Le modèle 0 terminé, il est l'heure de recommencer l'itération pour donner vie au modèle 1.
+\todo{Figure \ref{fig:grapheMaquetteM1} surchargée ??}
+
+\paragraph{Raffinement.} Le modèle précédent était très basique, nous avons soulevé plusieurs points d'amélioration, notamment sur l'atomicité des évènements ou avec l'ajout de nouveaux éléments. Nous allons donc façonner ce modèle de manière à corriger ces limitations, en terme d'ajout, les feux de signalisation entrerons en jeu.
+L'autre grand changement qui doit être fait est la séparation de \trainFmt{$\Gamma$} et de R, il faut limiter leurs intéractions le plus possible afin de se rapprocher du comportement réel.
+
+\paragraph{Problématique.} Le découplage complet de \trainFmt{$\Gamma$} et R pose plusieurs défis, principalement sur l'exécution des évènements~: il n'est plus autorisé qu'un train vérifie si l'évènement courant est vide pour avancer, il avance s'il le peut.
+Pour transmettre son avancement, le train pourra communiquer avec le régulateur via un canal de communication unidirectionnel. Ces messages ne seront pas traités instantanément, réalisme oblige, ce qui introduit un problème majeur~: le train peut avancer sans attendre la fin de l'évènement.
+Dans certain cas cela ne pose aucun problème, cependant, si l'évènement comporte un ordre "wait(-)", alors il est impératif que le train s'arrête pour ne pas provoquer d'accident.
+L'introduction des feux de signalisation va nous permettre de gérer ça en remplacant le système d'autorisation précédente, impossible à maintenir dans ce nouveau cadre.
+
+\paragraph{Buffer.} Un troisème éléments fait son apparition dans l'état du système, le buffer, il est utilisé comme canal de communication entre les trains et le régulateur. C'est une file qui stocke les messages des trains en attendant que le régulateur les traite. 
+Il est noté \textbf{B} et défini par \todo{Pas certain de la définition} $B~:~\nats \mapsto \trainFmt{\gamma} \times \posFmt{\mathcal{B}}$, les messages étant de la forme (\trainFmt{$t_m$},\posFmt{$b_i$}) avec $\trainFmt{t_m} \in \trainFmt{\gamma}$ et $\posFmt{b_i} \in \posFmt{\mathcal{B}}$.
+Ainsi, un message (\trainFmt{$\triangle$},\posFmt{8}) indique au régulateur que le train $\triangle$, à un moment donné, est passé par le canton 8. Avec ce nouvel élément, la réprésentation d'un état du système évolue~: $\langle B, \trainFmt{\Gamma}, R\rangle$.
+
+
+\paragraph{Trains.} Très peu de changement du coté des trains, seul le programme à été impacté, il contient désormais la liste des cantons que le train doit parcourir, sans le départ, plutôt que simplement sa destination.
+C'est une limitation qui a été observée au cours de la création du modèle 1, il était impossible de modéliser un parcours du type~: "débuter en 3, traverser les cantons 7,6,4,3,7,5,4 puis s'arrêter en 3", il n'existait aucun moyen de distinguer le 3 de passage et le 3 fnal.
+Désormais, on gère ce genre de trajet aisément. Aussi, maintenant que \trainFmt{$\Gamma$} et R sont découplés, il faut envoyer des messages via le buffer pour déclencher les évènements. Pour cela, la quasi-totalité des règles concernant le train envoient des messages au buffer, excepté \ruleDef{UntilNext}.
+Nous avons passé cette règle sous silence car elle n'apportait rien à la compréhension du modèle, cette dernière est similaire à \ruleDef{Until} à la différence qu'elle dépile un ordre du train lorsque la destination d'un \su{d}{[\dots]} est atteinte. Pour mieux comprendre ce choix, voici un petit exemple dans lequel toutes les règles du train envoient des messages au buffer~:
+
+
+\begin{example}
+	Soit un train $\train{\tid{i}}{7}{\dirFmt{\star}}{P}$ dont le programme est le suivant~: $P = [\su{d}{[3,4]}, \su{f}{[3]}]$, un demi-tour est donc effectué sur le canton 4. 
+	Voyons l'exécution de cette portion~:
+	\begin{itemize}
+		\item \ruleDef{UntilNext} : Le train passe du canton 3 au canton 4, le programme devient $P = [\su{f}{[3]}]$ et le message (\trainFmt{$\tid{i}$},\posFmt{4}) est envoyé au buffer.
+		\item \ruleDef{Start} : Le train change de direction et le message (\trainFmt{$\tid{i}$},\posFmt{4}) est envoyé au buffer.
+	\end{itemize}
+	Le buffer contient donc les messages suivants~: [\dots,(\trainFmt{$\tid{i}$},\posFmt{4}), (\trainFmt{$\tid{i}$},\posFmt{4}),\dots].
+\end{example}
+
+\noindent
+Dans l'exemple ci-dessus, nous pouvons voir que le demi-tour à dupliquer les messages. Il est possible d'en tenir compte et d'ajouter un évènement vide, cependant cela rendrait la création de programme du régulateur plus complexe.
+Parmi les différentes solutions envisageables, nous avons choisi de reporter l'envoi de messages sur la règle \ruleDef{Stop} car, dans un programme bien formé, après la règle \ruleDef{UntilNext}~: soit le train repart dans une autre direction, \ruleDef{Start} envoie un message, soit il s'arrête, \ruleDef{Stop} envoie un message.
+
+\begin{sidebox}
+	La modification précédente impacte peu la grammaire du programme des trains~:
+	\vspace{0.3cm}\\
+	\begin{grammar}
+		\firstcasesubtil{T}{\dots}{inchangée}
+		\firstcasesubtil{seq}{StartUntil(D,N)}{}
+		\firstcasesubtil{D}{\dots}{inchangée}
+		\firstcasesubtil{N}{[ sections ]}{}
+		\firstcasesubtil{sections}{\concatM{section}{sections} \gralt section \gralt \varepsilon}{} 
+		\firstcasesubtil{section}{ 1..\infty }{}
+	\end{grammar}
+\end{sidebox}
+
+
+\paragraph{Régulateur.}	Côté régulateur plus de chose ont évolués, comme la disparition du pointeur d'évènements, \textbf{Ne}, ce dernier n'était plus utile car maintenant on ne dépile plus que les ordres mais aussi les évènements lorsqu'ils sont vides.
+De cette manière, le premier évènement de chaque gestionnaire est toujours le prochain à traiter. On introduit ensuite l'historique, une contre-mesure à la désynchronisation entre les trains et le régulateur, ce dernier pouvant avoir une image des choses bien en retard par rapport à la réalité des trains. On note l'historique \textbf{H}, que l'on définit $H~:~\trainFmt{\gamma} \mapsto \posFmt{\mathcal{B}}$.
+Même si l'historique peut sembler redondant avec la position des trains, il n'en est rien. En effet, ce dernier représente la position des trains vue par le régulateur et non la véritable position. Même si à la fin ces variables convergent, elles ne représentent pas la même chose et n'ont donc pas besoin d'être cohérente entre-elles, il n'y a pas de redondance.
+
+\begin{wrapfigure}{r}{0.3\textwidth}
+	\centering
+	\resizebox{0.3\textwidth}{!}{
+		\begin{tikzpicture}[
+			vertex/.style={circle, draw=white, fill=white, very thick, minimum size=7mm, text width=1.5cm, align=center},
+		]
+
+			\node[vertex] (trains)	  {Trains};
+			\node[vertex] (regulator) [right=3cm of trains] {R};
+			\node[vertex] (feux) [below right=2cm and 1cm of trains] {Feux};
+
+			\draw[->] (trains) -- (regulator) node[midway,above,sloped] {Messages} node[midway,below,sloped] {positions} ;
+			\draw[->] (regulator) -- (feux) node[midway,above,sloped] {Évènements} node[midway,below,sloped] {mise à jour};
+			\draw[->] (feux) -- (trains) node[midway,above,sloped] {Signal} node[midway,below,sloped] {{\siggreen,\sigred}} ;
+
+		\end{tikzpicture}
+	}
+	\caption{Schéma de la communication entre les différents acteurs. En haut de l'arête, la méthode de communication, en bas, le type de données échangées.}
+	\label{fig:infos}
+\end{wrapfigure}
+
+\noindent
+Ensuite, pour régler le problème d'atomicité, on introduit un mécanisme de garde, un booléen que l'on note \textbf{G}. On est alors capable de simuler une approche grand pas, tous les ordres sont traités d'un coup, avec une approche petit pas, chaque ordre de l'évènement est traité individuellement, le problème d'atomicité s'efface.
+Pour être plus clair, si la garde est active, il faut traiter tous les ordres de l'évènement en cours pour la désactiver. Bien entendu, aucun train ne peut se déplacer si la garde est active.
+Dernière modification, l'intégration des feux de signalisation, noté \textbf{F}. Il sont présent à chaque extrémité d'un canton, pouvant prendre la couleur rouge ou verte, définit par $F~:~\posFmt{\mathcal{B}} \times \{\dirFmt{f},\dirFmt{b}\} \mapsto \{\siggreen, \sigred\}$. Ils permettent un contrôle des trains par le régulateur sans communiquer directement avec eux, ce système remplace les demandes d'autorisation pour avancer. Bien que plus complexe à gérer, il nous permets un plus grand découplage.
+Avec toutes ces modifications, la nouvelle représentation du régulateur est la suivante~: $\regM{E}{J}{\swFmt{\sigma}}{W}{G}{H}{F}$.
+\todo{La figure \ref{fig:infos} est compréhensible ?}
+
+
+\paragraph{Évènements.} \todo[inline]{Ajout de Auth}
+
+\begin{example}[GoodEnding M1]
+	~\\
+	Modélisation de l'état initale d'un scénario en utilisant le modèle 1~: (goodEnding / mettre schéma en annexe ?)
+	\\$B~: []$ \commentaire{// vide}
+	\vspace{0.3cm}
+	\\$\Gamma~: \{t_1, t_2\}$ avec,
+	\begin{itemize}
+		\item[] $t_1 = \trainTuple{\square}{1}{*}{[\su{R}{[2,3]}]}$
+		\item[] $t_2 = \trainTuple{\vartriangle}{4}{*}{[\su{L}{[2,1]}]}$
+	\end{itemize}
+	\vspace{0.3cm}
+	$R~: \langle J,W,A,E,{\text Ne},S \rangle$ avec,	
+	\begin{itemize}
+		\item[] $E = \langle g_1, g_2 \rangle$
+		\item[] $J = [0,0,0,0,0,0,0,0]$
+		\item[] $\swFmt{\sigma} = [d]$
+		\item[] $W = [(1,0) : 0, (1,1) : 0, .., (8,1) : 0]$
+		\item[] $G = \texttt{false}$
+		\item[] $H = [0, 0]$
+		\item[] $F = [(\posFmt{3},\dirFmt{f}) : \sigred,(\posFmt{4},\dirFmt{b}) : \sigred]$ \commentaire{// De base, tous les feux sont au vert}
+	\end{itemize}
+	\vspace{0.3cm}
+	$g_1 = [[],[],[\turnOrder{1}{v}, \incr{2}]]$
+	\\$g_2 = [[\wait{2}{1}],[],[]]$
+\end{example}
+
+
+\paragraph{Dynamique.}
+
+Des modifications assez importantes sur le déplacements des trains ont été appliquées, voyons l'évolution de \ruleDef{until}~:
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{Until}]{
+		\suc{\bid{i}}{d}{\switches} = \bid{j} \neq \nosuc
+		\and
+		R.\signalF{\bid{i}}{d} = \siggreen
+		\\\and
+		\posFmt{N} = \posFmt{n} \cdot \posFmt{N'}
+		\and
+		\posFmt{N'} \neq \emptyList
+		\and
+		R.G = \texttt{false}
+	}{
+		\langle B, \trainfull{\trainFmt{t_m}}{\posFmt{b_i}}{\dirFmt{d}}{\trainConcat{\su{d}{{N}}}{P}}, R \rangle
+		\\\reduces
+		\langle \push{B}{(\trainFmt{t_m},\bid{j})}, \trainfull{\trainFmt{t_m}}{\posFmt{b_j}}{\dirFmt{d}}{\trainConcat{\su{d}{N'}}{P}}, R \rangle
+	}
+\end{mathpar}
+
+\noindent
+Premier changement, le régulateur s'écrit sous sa forme contractée, R. On remarque que notre découplage à bien fonctionné puisqu'aucune écriture dans R n'est présente, uniquement une lecture sur F, ce qui représente ce que le train voit, et G, nécessaire pour le bon fonctionnement du système.
+Pour transmettre l'avancement du train, nous utilisons la fonction $\push{B}{(\trainFmt{t_m},\bid{j})}$, qui ajoute le message $(\trainFmt{t_m},\bid{j})$ au buffer B.
+
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{StartEvent}]{
+			\bufhead{B} = (\tid{m}, \bid{i})
+		}{
+			\langle B, \trainFmt{\Gamma}, \regM{E}{J}{\swFmt{\sigma}}{W}{false}{H}{F} \rangle
+			\reduces
+			\langle B, \trainFmt{\Gamma}, \regM{E}{J}{\swFmt{\sigma}}{W}{true}{\majtab{H}{\tid{m}}{\bid{i}}}{F} \rangle
+		}
+\end{mathpar}
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{EndEvent}]{
+			\bufhead{B} = (\tid{m}, \bid{i})
+			\and
+			\bufhead{E[\tid{m}]} = \varepsilon
+		}{
+			\langle B, \trainFmt{\Gamma}, \regM{E}{J}{\swFmt{\sigma}}{W}{true}{H}{F} \rangle
+			\reduces
+			\langle \pop{B}, \trainFmt{\Gamma}, \regM{\pop{\handlerOf{E}{\tid{m}}}}{J}{\swFmt{\sigma}}{W}{false}{H}{F} \rangle
+		}
+\end{mathpar}
+
+\noindent
+Nous avons ici les deux piliers permettant de rendre la gestion des évènements atomique. Ces deux règles sont assez simples, la première active la garde si un message est dans le buffer, tandis que la seconde la désactive et nettoie, suppression de l'évènement vide et du message actuel.
+Ainsi, si nous appliquons la règles \ruleDef{StartEvent}, il faudra atteindre \ruleDef{EndEvent} pour déplacer un train ou exécuter un autre évènement.
+
+\begin{mathpar}
+	\inferrule*[left=\ruleDef{WaitAfter}]{
+			\bufhead{B} = (\tid{m}, \bid{i})
+			\and
+			\bufhead{E[\tid{m}]} = \regConcat{\wait{\bid{\text{crit}}}{x}}{O^\prime}
+			\and 
+			\tokenOf{\bid{\text{crit}}} = x
+			\\
+			\nextWait{\handlerOf{E}{\tid{m}}} = \bid{\text{stop}}
+			\and
+			\texttt{handleTL}(\bid{i}, \bid{crit}) = F^\prime
+		}{
+			\langle B, \trainFmt{\Gamma},  \regM{E}{J}{\swFmt{\sigma}}{W}{\texttt{true}}{H}{F} \rangle
+			\reduces
+			\langle B, \trainFmt{\Gamma},  \regM{\pop{\head{E[\tid{m}]}[0]}}{J}{\swFmt{\sigma}}{W}{\texttt{true}}{H}{F^\prime} \rangle
+		}
+\end{mathpar}
+
+\noindent
+Maintenant au tour de la règle \ruleDef{WaitAfter}, c'est un bonne exemple de gestion des feux. On aperçoit que la règle utilise la fonction \texttt{handleTL} pour transformer l'état des feux de signalisation.
+Elle nous sert de "macro" pour ne pas avoir à écrire tous les changements dans la règle, mais elle assigne le vert aux feux du canton sur lequel le train attend, \bid{i}, et le rouge au canton désigné par le \nextWait{~}.
+De cette manière, le train est débloqué, son feu est vert, et le régulateur est certain qu'il ne ratera pas le prochain évènement grâce aux feux rouge.
+Pour revenir sur \nextWait{~}, même si la fonction porte le même nom, elle ne cherche plus uniquement l'ordre \wait{\bid{i}}{x}, mais aussi \authOrder.
+\ruleDef{WaitAfter} fait partie des trois règles pouvant influencer l'état des feux de signalisation, avec \ruleDef{IncrAfter} et \ruleDef{Auth}.
+
+\paragraph{Limitations.}
+Le modèle 1 à plutôt bien répondu aux limitations précédemment évoqué pour le modèle 0, notamment au niveau du découplage $\Gamma/R$ et de l'atomicité des évènements. Cependant, ce modèle est encore loin d'être parfait et compte de nombreuses imperfections.
+Tous d'abord, le régulateur contrôle les feux de signalisation, mais il n'y a pas de raison pour que ceux-ci en fassent partie, il est possible de les considérer comme éléments du système à part entière. De plus, cela nous rapprocherait de la réalité en modélisant un comportement "fail-safe" pour ces derniers, nous reviendrons sur ce point dans la prochaine section.
 
 \subsection{Modèle 2}
-\paragraph{Raffinement}
+\paragraph{Raffinement.}
+
+%comportement fail safe des feux
+%ajout du numéro de canton dans le gestionnaire, mais pas de problème de cohérence :  c'est pas la position actuel du train mais l'endroit où le train à déclencher l'event, comme histo du modèle 0
 
 %paragraph{limitations}
 %\subparagraph{téléportation des trains de canton à canton}
