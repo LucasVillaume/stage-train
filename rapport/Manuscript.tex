@@ -314,14 +314,6 @@ L'intégration au sein de l'équipe s'est déroulée naturellement, les échange
 \todo{Peut-etre faire un truc chronologique : facile au début pour rentrer dans le sujet, puis de plus en plus complexe}
 
 
-
-
-
-
-
-
-
-
 \chapter{Modélisation}
 \label{sec:modele}
 
@@ -337,29 +329,36 @@ L'intégration au sein de l'équipe s'est déroulée naturellement, les échange
 		]
 		%\node[vertex] (q0) at (4,0)	  {Circuit maquette};
 		\node[vertex] (q3)	  {3};
-		\node[white]  (w0) [right=of q3] {};
-		\node[white]  (w1) [below=of q3] {};
-		\node[white]  (w3) [right=of w0] {};
-		\node[vertex] (q4) [right=of w3] {4};
-		\node[vertex] (q2) [above=of w3] {2};
-		\node[vertex] (q1) [above=of q2] {1};
-		\node[white]  (w2) [below=of q4] {};
-		\node[vertex] (q5) [below=of w2] {5};
-		\node[vertex] (q7) [below=of w1] {7};
-		\node[vertex] (q8) [right=of w1] {8};
+		\node[vertex] (q4) [right=40mm of q3] {4};
+		\node[vertex] (q2) [above right=25mm and 35mm of q3] {2};
+		\node[vertex] (q1) [above=20mm of q3] {1};
+		\node[vertex] (q7) [below=30mm of q3] {7};
+		\node[vertex] (q5) [below right=-3mm and 45mm of q7] {5};
+		\node[vertex] (q8) [below right=10mm and 15mm of q3] {8};
 		%\node[vertex] (q8) [below right=1cm and 2cm of q3] {8};
-		\node[vertex] (q6) [left=of w2] {6};
+		\node[vertex] (q6) [above right=2mm and 25mm of q7] {6};
 
-		\draw[edge] (q1)  -- (q3)  node[midway, above, sloped] {\swFmt{9d}/\swFmt{10v}};
-		\draw[edge] (q2)  -- (q3)  node[pos=0.3, above, sloped] {\swFmt{9v}/\swFmt{10v}};
-		\draw[edge] (q4)  -- (q3)  node[midway, above, sloped] {\swFmt{10d}};
-		%\draw[edge] (q4) to node[pos=.1] {f1} to node[midway] {10d} to node[pos=.9] {f2} (q3);
-		\draw[edge] (q3) -- (q8)  node[midway, above, sloped] {\swFmt{11v}};
-		\draw[edge] (q3) -- (q7) node[midway, above, sloped] {\swFmt{11d}};
-		\draw[edge] (q7)  -- (q5)  node[midway, above, sloped] {\swFmt{12d}};
-		\draw[edge] (q7)  -- (q6) node[midway, above, sloped] {\swFmt{12v}};
-		\draw[edge] (q5) -- (q4) node[midway, above, sloped] {\swFmt{13d}};
-		\draw[edge] (q6) -- (q4) node[midway, above, sloped] {\swFmt{13v}};
+		\draw[->] 
+		(q3)  edge[bend left=5]  node[midway, above=-1mm, sloped] {\backward,\swFmt{9d}/\swFmt{10v}} (q1)
+		(q1) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{9d}/\swFmt{10v}}  (q3)
+		(q2) edge[bend left=5] node[midway, below=-1mm, sloped] {\forward,\swFmt{9v}/\swFmt{10v}}  (q3)
+		(q3) edge[bend left=5] node[midway, above=-1mm, sloped] {\backward,\swFmt{9v}/\swFmt{10v}}  (q2)
+		(q3) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{11v}}  (q8)
+		(q8) edge[bend left=5] node[midway, below=-1mm, sloped] {\backward,\swFmt{11v}}  (q3)
+		(q3) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{10d}}  (q4)
+		(q4) edge[bend left=5] node[midway, below=-1mm, sloped] {\backward,\swFmt{10d}}  (q3)
+		(q3) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{11d}}  (q7)
+		(q7) edge[bend left=5] node[midway, above=-1mm, sloped] {\backward,\swFmt{11d}}  (q3)
+		(q7) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{12d}}  (q5)
+		(q5) edge[bend left=5] node[midway, below=-1mm, sloped] {\backward,\swFmt{12vd}}  (q7)
+		(q4) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{13d}}  (q5)
+		(q5) edge[bend left=5] node[midway, below=-1mm, sloped] {\backward,\swFmt{13d}}  (q4)
+		(q7) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{12v}}  (q6)
+		(q6) edge[bend left=5] node[midway, below=-1mm, sloped] {\backward,\swFmt{12v}}  (q7)
+		(q6) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{13v}}  (q4)
+		(q4) edge[bend left=5] node[midway, below=-1mm=-1mm, sloped] {\backward,\swFmt{13v}}  (q6)
+
+		;
 		\end{tikzpicture}
 	}
 	\caption{Graphe modélisant le réseau (réseau ??) de la maquette}
@@ -367,7 +366,7 @@ L'intégration au sein de l'équipe s'est déroulée naturellement, les échange
 \end{wrapfigure}
 
 \paragraph{} 
-La modélisation représente une étape essentielle, elle nous permet de construire un outil, le modèle, pour décrire un système. Ce modèle est un double formel du système réel \todoMV{Le modèle est un outil, la modélisation est une étape, dont le but est d'avoir un double formel du système réel.}, nous pouvons en extraire un comportement se rapprochant de la réalité et observer son évolution dans le temps. De cette manière, il est possible d'étudier ce système pour trouver des propriétés ou résoudres des problèmes.
+La modélisation représente une étape essentielle, elle nous permet de construire un outil, le modèle, pour décrire un système. Ce modèle est un double formel du système réel \todoMV{Le modèle est un outil, la modélisation est une étape, dont le but est d'avoir un double formel du système réel.}, nous pouvons en extraire un comportement se rapprochant de la réalité et observer son évolution dans le temps. De cette manière, il est possible d'étudier ce système pour trouver des propriétés ou résoudre des problèmes.
 Avant de rentrer en détail dans le processus de modélisation, rappelons rapidement notre problématique~: il nous faut vérifier un programme d'ordonnancement de trains.
 
 \subparagraph{}
