@@ -228,11 +228,11 @@ Aujourd'hui, le transport ferroviaire représente une grande partie des déplace
 Sa sécurité doit être mise au premier plan, un accident pouvant engendrer des pertes humaines et économiques considérables. C'est pourquoi la Société Nationale des Chemins de fer Français (SNCF) est considérée comme un opérateur d'importance vitale (OIV) par l'État français, ce qui implique un respect par cette dernière de normes de sécurité strictes, tant sur le plan "physique" que sur le plan "cyber". 
 Dans le même temps, les besoins cyber dans l'industrie, mais également dans d'autres secteurs, poussent aux recrutements et à la formation de nouveaux profils.
 C'est dans ce contexte que s'inscrit la création d'une maquette de train, simulant un réseau ferroviaire à l'échelle d'une ville. Cette dernière est utilisée pour offrir une plateforme d'entraînement aux étudiants participant à Cyber Humanun Est (CHE), dans l'optique de leur faire découvrir la défense et l'attaque de ce type de système.
-\todo{Motivé la présence de la maquette~: on veut davoir pq des pb arrivent}L'objectif de ce stage consiste en la vérification d'un programme d'ordonnancement de trains~: être capable de certifier qu'une suite d'instructions précises n'engendre pas d'accidents et achemine les trains à bon port.
+\todo{Motivé la présence de la maquette~: on veut davoir pq des pb arrivent}L'objectif de ce stage consiste en la vérification d'un programme d'ordonnancement de trains~: être capable de certifier qu'une suite d'instructions précises n'engendre pas d'accidents et qu'elle permet d'acheminer les trains à bon port.
 Cependant, avant de pouvoir vérifier ce programme, il est essentiel de modéliser notre système afin de simuler son comportement. Par la suite, nous pourrons utiliser des outils de vérification formelle, comme un model checker, pour confirmer que notre programme respecte bien les propriétés attendues.
 
 \paragraph{Vocabulaire.}
-Avant d'avancer dans la réflexion, il est important de définir quelques termes qui reviendront souvent dans ce document. On nomme canton une portion de voie ferrée, délimitée par des feux de signalisation, suivie par une impasse, un aiguillage ou un autre canton. 
+Avant d'avancer dans la réflexion, il est important de définir quelques termes qui reviendront souvent dans ce document. On nomme canton une portion de voie ferrée, délimitée par des feux de signalisation, suivie par une impasse, un appareil de voie ou un autre canton. 
 Un aiguillage représente une portion de voie qui offre un choix entre plusieurs cantons. Le réseau quant à lui représente l'ensemble des cantons et aiguillages. Enfin, un régulateur est une entité qui gère tout ou partie du réseau, dans notre cas, nous n'aurons qu'un seul régulateur. 
 
 \section{Outils}
@@ -250,8 +250,9 @@ Pour la modélisation, nous avons besoin d'outils théoriques comme les automate
 où chaque sommet représente un état du système, et chaque arête une transition entre deux états, parfois étiquetée.
 Dans notre cas, un état du système est représenté par l'état de tous les sous-systèmes qui le composent, comme les trains, le régulateur, etc... 
 Mais nous verrons cela plus loin dans la section \ref{sec:modele}.
-Chaque action modifiant un état d'un des sous-systèmes est représentée par une arête partant d'un état $e$ vers un état $e'$, on a donc ~: $e \xrightarrow{action} e'$.
+Chaque action modifie un état d'un des sous-systèmes, elle est alors représentée par une arête partant d'un état $e$ vers un état $e'$, on a donc ~: $e \xrightarrow{action} e'$.
 Ici, on peut faire appel à un autre outil~: les règles d'inférences, qui vont représenter nos règles de transitions entre états, elles régissent les conditions sous lesquelles une transition peut se produire.
+Ces dernières sont particulièrement utiles puisqu'elles permettent de représenter un comportement général~: une règle permet de décrire un ensemble d'arêtes dans l'espace d'états du système, voir figure \ref{fig:espaceEtat}.
 
 \begin{wrapfigure}{r}{0.35\textwidth}
 	\centering
@@ -278,10 +279,11 @@ Ici, on peut faire appel à un autre outil~: les règles d'inférences, qui vont
 \end{wrapfigure}
 
 
-\noindent
+
 Une règle d'inférence se compose en deux parties, les prémisses et la conclusion. Nous utilisons les prémisses comme condition d'application de la règle, par exemple~: "le feu est vert", et la conclusion comme "effet" de la transition~: la voiture avance.
 On écrira alors ~: $\inferrule*[left={règle}]{\text{feu = vert}}{\text{e $\rightarrow$ e'}}$. 
 L'écriture de ces règles est cruciale pour la modélisation, car c'est le "moteur" du système, une condition mal formulée peut empêcher une transition légitime à nos yeux de se produire, alors qu'une condition trop permissive peut engendrer des transitions non souhaitées et fausser la "simulation".
+Si on reformule, une condition trop stricte réduit l'ensemble de transition couvert par la règle, pouvant exclure des transitions légitimes, tandis qu'une condition trop permissive peut inclure des transitions indésirables, compromettant ainsi le modèle.
 Si l'utilisation d'automates à états finis nous permets de modéliser le système, nous pouvons nous en servir également pour imager notre problématique, un état peut avoir plusieurs transitions possibles, il faut donc que, pour un programme donné, toutes les combinaisons de transitions possibles mènent vers un état final qui respecte nos propriétés.
 Dans ce cadre, nous pouvons utiliser des outils de visualisation pour mieux comprendre les interactions entre les différents états et transitions.
 Sur la figure \ref{fig:zoomCollision}, on remarque qu'à partir de certains états, on tombera forcément sur une collision (en rouge) ou sur un blocage (en jaune).
@@ -442,11 +444,12 @@ Parfois, il y a une manière plus ou moins efficaces de considérer les ressourc
 	\todoMV[inline]{Pourquoi ? Qu'est-ce qui permet d'en arriver à la conclusion du goulot d'étranglement ? Pourquoi 1 n'est pas un goulot d'étranglement non plus ?}
 	%Voir le scénario \ref{scenar:goodEnding} pour un exemple concret.
 \end{example}
-\noindent
+
 La solution pour résoudre ce problème est de mettre en place un système de jetons, s'inspirant des sémaphores, permettant de donner à un train l'accès temporaire à une ressource.
 Une fois la ressource consommée, le train indique qu'il a terminé en incrémentant la valeur de son jeton. 
 La "réservation" ou la libération de ressource doit se faire via des évènements, des actions déclenchées par le régulateur lorsqu'un train entre dans un canton.
 
+\subparagraph{}
 Une seconde problématique de taille a émergée, lors de tests, pendant la réalisation de ce modèle~: le déclenchement des évènements doit se faire avant un moment précis.
 Par exemple, si un train a besoin qu'un aiguillage soit dévié pour continuer sa route, il faut être certain que le régulateur exécute l'évènement de déviation avant que le train n'arrive à l'aiguillage.
 Il faut donc nous assurer que l'aiguillage est dans la bonne position avant que le train ne le franchisse, si possible sans arrêter le train.
@@ -461,8 +464,8 @@ On définit la position comme un entier tel que $\posFmt{pos} \in \posFmt{\mathc
 
 L'ensemble des directions est noté $\directions = \{ \dirForward, \dirBackward, \dirStop \}$, avec $\dirForward$ pour forward, $\dirBackward$ pour backward et $\dirStop$ pour l'arrêt.
 
-Enfin, notre train doit être capable de réaliser trois actions de lui-même~: démarrer, avancer et s'arrêter.
-Le programme interne d'un train est représenté par une liste d'ordres successifs, sous la forme \su{dir}{dest}.
+Enfin, notre train est capable de réaliser trois actions de lui-même~: démarrer, avancer et s'arrêter.
+Le programme interne d'un train est représenté par une liste d'ordres successifs, sous la forme \su{d}{dest}, avec $\dirFmt{d} \in \directions \setminus \{\dirStop\}$, et $\posFmt{dest} \in \posFmt{\mathcal{B}}$.
 Un ordre indique au train de se déplacer jusqu'à la position $\posFmt{dest}$ dans la direction $\dirFmt{dir}$. À l'arrivée, l'ordre est consommé pour laisser place au suivant.
 On dit qu'un programme est bien formé s'il ne contient pas deux ordres \su{d}{\bid{i}} consécutifs avec la même direction.
 
@@ -506,8 +509,8 @@ Dans les règles de transition, on représente le régulateur de deux manières,
 
 
 
-
-Parlons maintenant des ordres, en voici une liste exhaustive~:
+\paragraph{Évènements.}
+Parlons maintenant des ordres du gestionnaire, en voici une liste exhaustive~:
 \begin{itemize}
 	\item \texttt{wait(j, x)} : Attendre que le jeton \texttt{j} atteigne la valeur \texttt{x}.
 	\item \texttt{incr(j)} : Incrémenter le jeton \texttt{j}.
@@ -515,41 +518,31 @@ Parlons maintenant des ordres, en voici une liste exhaustive~:
 \end{itemize}
 
 \begin{example}
-	Test avec un seul évènement : \texttt{wait(y, x)}.
+	Soient $\tid{1} = \train{\tid{1}}{\bid{3}}{\dirForward}{P}$ et $R = \langle J,W,A,E,{\text Ne},\swFmt{\sigma} \rangle$, on a $E[\tid{1}]~=~[[\wait{4}{1}],\dots]$ le gestionnaire d'évènements associé à \tid{1}.
+	Le prochain évènement de \tid{1} est donc \wait{4}{1}, il doit attendre sur le canton 3 que le jeton associé au canton 4 atteigne la valeur 1.
 \end{example}
 
 \todoMV{Peut-être qu'il vaut mieux commencer par présenter les ordres, donner un exemple avec un seul event, puis ensuite passer aux handlers généraux.}
 
 \noindent
 Nous verrons comment ils intéragissent avec le modèle plus loin, lorsque nous parlerons des règles de transitions.
-
-\subparagraph{Gestionnaires}
-Comme défini précédemment, les gestionnaires sont indexés sur les trains, les évènements du gestionnaire i sont donc déclenché par les mouvements du train \tid{i}.
+ \subparagraph{Gestionnaires.}
+Comme défini précédemment, les gestionnaires sont indexés sur les trains, les évènements du gestionnaire $g_i$ sont donc déclenché par les mouvements du train \tid{i}.
 Ce gestionnaire n'est autre qu'une liste de listes d'ordres~: $g_i = [[-],[-],\dots]$.
 
 \begin{example}
 	~\\
-	Soient \tid{1} = $\train{\trainFmt{\square}}{\bid{1}}{\dirStop}{[\su{\dirBackward}{3}]}$ avec son gestionnaire d'évènements $g_1~=~[[\wait{2}{1}],[\turnOrder{1}{d}],[\turnOrder{1}{v}, \incr{2}]]$.
+	Soit $\tid{1} = \train{\trainFmt{\square}}{\bid{1}}{\dirStop}{[\su{\dirBackward}{3}]}$ avec son gestionnaire d'évènements $g_1~=~[[\wait{2}{1}],[\turnOrder{1}{d}],[\turnOrder{1}{v}, \incr{2}]]$.
 
 	Lors du démarrage du train, l'évènement \wait{2}{1} est exécuté, puis c'est au tour de \turnOrder{1}{d} lors du premier déplacement. Enfin, la liste [\turnOrder{1}{v}, \incr{2}] est traitée après le dernier déplacement, laissant le gestionnaire dans l'état suivant : $g_1 = [[],[],[]]$.
 \end{example}
-
-\begin{sidebox}
-	Réécrire le passage 
-
-	\textit{Si un évènements est relié à un canton, pourquoi ne pas intégrer ce numéro dans le gestionnaire à la place d'utiliser un pointeur ?}
-	Cette question est pertinente puisqu'elle soulève la problématique de la redondance d'informations dans le modèle. Initialement, nous n'avions pas de champ \textbf{Ne} pour le régulateur, les gestionnaires étaient de la forme~: $g_1 = [(\posFmt{b_i},[-]), (\posFmt{b_j},[-]),\dots]$, avec $b_i$ et $b_j$ les numéros de cantons représentant la position du train.
-	Cependant, la redondance du numéro de canton avec la position du train apporte un potentiel problème de cohérence, il est impératif que ces deux éléments soient toujours égaux.
-	Pour ne pas nous rajouter ce problème en plus, nous avons opter pour la forme actuelle~: $g_1 = [[-],[-],\dots]$. Ainsi, l'index de la liste d'ordre agit comme un numéro d'évènement.
-\end{sidebox}
-
 
 \noindent
 Avec ça, on peut représenter un état du système par $\mathcal{M} : \langle \trainFmt{\Gamma}, R \rangle$.
 
 \begin{example}[GoodEnding M0]
 	~\\
-	Modélisation de l'état initale d'un scénario en utilisant le modèle zéro~: (goodEnding / mettre schéma en annexe ?)
+	Modélisation de l'état initial d'un scénario en utilisant le modèle zéro~: (goodEnding / mettre schéma en annexe ?)
 	\\$\trainFmt{\Gamma}~: \{t_1, t_2\}$ avec,
 	\begin{itemize}
 		\item[] $t_1 = \trainTuple{\square}{1}{*}{[\su{R}{3}]}$
@@ -578,7 +571,7 @@ Les présentations avec les éléments du modèle terminées, il est temps de vo
 Comme expliqué dans l'introduction, ce sont les règles de transitions qui vont apporter du mouvement à notre modèle, permettant de modifier son état règle après règle. Nous allons voir ensemble quelques règles mais elles ne seront pas toutes couvertes.
 
 La règle \ruleDef{Until} nous dit qu'un train \tid{m} à la position \bid{i}, qui se déplace dans la direction \dirFmt{d}, peut avancer à la position \bid{j} sous conditions que le régulateur ait donné son autorisation et que son évènement courant soit vide.
-
+Si le train avance en \bid{j}, alors son autorisation est décrémentée.
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{Until}]{
 		\suc{\posFmt{b_i}}{\dirFmt{d}}{\swFmt{\sigma}} = \posFmt{b_j} \neq \nosuc
@@ -727,7 +720,8 @@ Il a donc été décidé de développer un moteur de simulation en Python, perme
 \begin{wrapfigure}{ht}{0.5\textwidth}
 	\missingfigure{Schéma du moteur de simulation}
 \end{wrapfigure}
-\noindent
+
+
 Ces petits scripts Python nous permettaient de charger des scénarios de test et de visualiser le comportement du modèle sur un graphe. Les scénarios étant assez simple, il est facile de voir si le comportement attendu est respecté ou non.
 La visualisation de la solution se faisait via la génération d'un fichier \texttt{svg} obtenus à partir d'un \texttt{.dot}. L'inconvénient majeur réside dans la vérification de la solution, si le graphe gagne en complexité, il ne pourra plus être analysé, voir affiché.
 Le besoin de passer à un formalisme plus rigoureux comme \TLA+ s'est alors fait sentir.
@@ -747,26 +741,27 @@ Le besoin de passer à un formalisme plus rigoureux comme \TLA+ s'est alors fait
 %\newpage
 \section{Modèle découplage}
 
-Le modèle zéro terminé, il est l'heure de recommencer l'itération pour donner vie au modèle découplage.
-
 \paragraph{Raffinement.} Le modèle précédent était très basique, nous avons soulevé plusieurs points d'amélioration, notamment sur l'atomicité des évènements ou avec l'ajout de nouveaux éléments. Nous allons donc façonner ce modèle de manière à corriger ces limitations, en terme d'ajout, les feux de signalisation entrerons en jeu.
-L'autre grand changement qui doit être fait est la séparation de \trainFmt{$\Gamma$} et de R, il faut limiter leurs intéractions le plus possible afin de se rapprocher du comportement réel.
-\todo{Paragraphe utile ? Reprends juste les limitations sans apports}
+
+L'autre grand changement qui doit être fait est la séparation de \trainFmt{$\Gamma$} et du régulateur, nous les considérons désormais comme des agents autonomes. Ainsi, les règles régissant le comportement de l'un ne doivent pas dépendre de l'état interne de l'autre.
+
 
 
 \paragraph{Problématique.} Le découplage complet de \trainFmt{$\Gamma$} et R pose plusieurs défis, principalement sur l'exécution des évènements~: il n'est plus autorisé qu'un train vérifie si l'évènement courant est vide pour avancer, il avance s'il le peut.
 Pour transmettre son avancement, le train pourra communiquer avec le régulateur via un canal de communication unidirectionnel. Ces messages ne seront pas traités instantanément, réalisme oblige, ce qui introduit un problème majeur~: le train peut avancer sans attendre la fin de l'évènement.
 Dans certain cas cela ne pose aucun problème, cependant, si l'évènement comporte un ordre "wait(-)", alors il est impératif que le train s'arrête pour ne pas provoquer d'accident.
+
 L'introduction des feux de signalisation va nous permettre de gérer ça en remplacant le système d'autorisation précédente, impossible à maintenir dans ce nouveau cadre.
 
 \paragraph{Buffer.} Un troisème éléments fait son apparition dans l'état du système, le buffer, il est utilisé comme canal de communication entre les trains et le régulateur. C'est une file qui stocke les messages des trains en attendant que le régulateur les traite. 
-Il est noté \textbf{B} et défini par \todo{Pas certain de la définition} $B~:~\nats \mapsto \trainFmt{\gamma} \times \posFmt{\mathcal{B}}$, les messages étant de la forme (\trainFmt{$t_m$},\posFmt{$b_i$}) avec $\trainFmt{t_m} \in \trainFmt{\gamma}$ et $\posFmt{b_i} \in \posFmt{\mathcal{B}}$.
+Il est noté B, c'est une séquence de messages de la forme (\trainFmt{$t_m$},\posFmt{$b_i$}) avec $\trainFmt{t_m} \in \trainFmt{\gamma}$ et $\posFmt{b_i} \in \posFmt{\mathcal{B}}$.
 Ainsi, un message (\trainFmt{$\triangle$},\posFmt{8}) indique au régulateur que le train \trainFmt{$\triangle$}, à un moment donné, est passé par le canton \posFmt{8}. Avec ce nouvel élément, la réprésentation d'un état du système évolue~: $\langle B, \trainFmt{\Gamma}, R\rangle$.
 
 
-\paragraph{Trains.} Très peu de changement du coté des trains, seul le programme à été impacté, il contient désormais la liste des cantons que le train doit parcourir, sans le départ, plutôt que simplement sa destination.
-C'est une limitation qui a été observée au cours de la création du modèle découplage, il était impossible de modéliser un parcours du type~: "débuter en 3, traverser les cantons 7,6,4,3,7,5,4 puis s'arrêter en 3", il n'existait aucun moyen de distinguer le 3 de passage et le 3 fnal.
-Désormais, on gère ce genre de trajet aisément. Aussi, maintenant que \trainFmt{$\Gamma$} et R sont découplés, il faut envoyer des messages via le buffer pour déclencher les évènements. Pour cela, la quasi-totalité des règles concernant le train envoient des messages au buffer, excepté \ruleDef{UntilNext}.
+\paragraph{Trains.} Très peu de changement du coté des trains, seul le programme à été impacté. Il contient désormais la liste des cantons que le train doit parcourir, sans le départ, plutôt que simplement sa destination.
+C'est une limitation qui a été observée au cours de la création du modèle découplage, il était impossible de modéliser un parcours du type~: "débuter en 3, traverser les cantons 7,6,4,3,7,5,4 puis s'arrêter en 3", il n'existait aucun moyen de distinguer le 3 de passage et le 3 final. Désormais, on gère ce genre de trajet aisément.
+
+Aussi, maintenant que les trains et le régulateurs sont découplés, il faut envoyer des messages via le buffer pour déclencher les évènements. Pour cela, la quasi-totalité des règles concernant le train envoient des messages au buffer, excepté \ruleDef{UntilNext}.
 Nous avons passé cette règle sous silence car elle n'apportait rien à la compréhension du modèle, cette dernière est similaire à \ruleDef{Until} à la différence qu'elle dépile un ordre du train lorsque la destination d'un \su{d}{[\dots]} est atteinte. Pour mieux comprendre ce choix, voici un petit exemple dans lequel toutes les règles du train envoient des messages au buffer~:
 
 
@@ -781,7 +776,7 @@ Nous avons passé cette règle sous silence car elle n'apportait rien à la comp
 \end{example}
 
 \noindent
-Dans l'exemple ci-dessus, nous pouvons voir que le demi-tour à dupliquer les messages. Il est possible d'en tenir compte et d'ajouter un évènement vide, cependant cela rendrait la création de programme du régulateur plus complexe.
+Dans l'exemple ci-dessus, nous pouvons voir que le demi-tour à dupliqué les messages. Il est possible d'en tenir compte et d'ajouter un évènement vide, cependant cela rendrait la création de programme du régulateur plus complexe.
 Parmi les différentes solutions envisageables, nous avons choisi de reporter l'envoi de messages sur la règle \ruleDef{Stop} car, dans un programme bien formé, après la règle \ruleDef{UntilNext}~: soit le train repart dans une autre direction, \ruleDef{Start} envoie un message, soit il s'arrête, \ruleDef{Stop} envoie un message.
 Dans tous les cas, un seul message est envoyé, c'est le comportement que nous cherchons.
 
@@ -799,9 +794,8 @@ Dans tous les cas, un seul message est envoyé, c'est le comportement que nous c
 \end{sidebox}
 
 
-\paragraph{Régulateur.}	Côté régulateur plus de chose ont évolués, comme la disparition du pointeur d'évènements, \textbf{Ne}, ce dernier n'était plus utile car maintenant on ne dépile plus que les ordres mais aussi les évènements lorsqu'ils sont vides.
-De cette manière, le premier évènement de chaque gestionnaire est toujours le prochain à traiter. On introduit ensuite l'historique, une contre-mesure à la désynchronisation entre les trains et le régulateur, ce dernier pouvant avoir une image des choses bien en retard par rapport à la réalité des trains. On note l'historique \textbf{H}, que l'on définit $H~:~\trainFmt{\gamma} \mapsto \posFmt{\mathcal{B}}$.
-Même si l'historique peut sembler redondant avec la position des trains, il n'en est rien. En effet, ce dernier représente la position des trains vue par le régulateur et non la véritable position. Même si à la fin ces variables convergent, elles ne représentent pas la même chose et n'ont donc pas besoin d'être cohérente entre-elles, il n'y a pas de redondance.
+\paragraph{Régulateur.}	Côté régulateur plus de choses ont évolué, comme la disparition du pointeur d'évènements, Ne, ce dernier n'était plus utile car maintenant on ne dépile plus que les ordres mais aussi les évènements lorsqu'ils sont vides.
+De cette manière, le premier évènement de chaque gestionnaire est toujours le prochain à traiter. 
 
 \begin{wrapfigure}{r}{0.3\textwidth}
 	\centering
@@ -824,16 +818,20 @@ Même si l'historique peut sembler redondant avec la position des trains, il n'e
 	\label{fig:infos}
 \end{wrapfigure}
 
-\noindent
-Ensuite, pour régler le problème d'atomicité, on introduit un mécanisme de garde, un booléen que l'on note \textbf{G}. On est alors capable de simuler une approche grand pas, tous les ordres sont traités d'un coup, avec une approche petit pas, chaque ordre de l'évènement est traité individuellement, le problème d'atomicité s'efface.
+On introduit ensuite l'historique, une contre-mesure à la désynchronisation entre les trains et le régulateur, ce dernier pouvant avoir une image des choses bien en retard par rapport à la réalité des trains. On note l'historique H, que l'on définit $H~:~\trainFmt{\gamma} \mapsto \posFmt{\mathcal{B}}$.
+Même si l'historique peut sembler redondant avec la position des trains, il n'en est rien. En effet, ce dernier représente la position des trains vue par le régulateur et non la véritable position, il est important de garder ça en tête. Même si, à la fin, ces variables convergent, elles ne représentent pas la même chose et n'ont donc pas besoin d'être cohérente entre-elles, il n'y a pas de redondance.
+
+Ensuite, pour régler le problème d'atomicité, on introduit un mécanisme de garde, un booléen que l'on note G. On est alors capable de simuler une approche grand pas, tous les ordres sont traités d'un coup, avec une approche petit pas, chaque ordre de l'évènement est traité individuellement, le problème d'atomicité s'efface.
 Pour être plus clair, si la garde est active, il faut traiter tous les ordres de l'évènement en cours pour la désactiver. Bien entendu, aucun train ne peut se déplacer si la garde est active.
-Dernière modification, l'intégration des feux de signalisation, noté \textbf{F}. Il sont présent à chaque extrémité d'un canton, pouvant prendre la couleur rouge ou verte, définit par $F~:~\posFmt{\mathcal{B}} \times \{\dirForward,\dirBackward\} \mapsto \{\siggreen, \sigred\}$. Ils permettent un contrôle des trains par le régulateur sans communiquer directement avec eux, ce système remplace les demandes d'autorisation pour avancer. Bien que plus complexe à gérer, il nous permets un plus grand découplage.
+C'est un élément qui va gagner de l'importance dans les modèles suivants, ici, il pose les bases du méta-contrôle~: un contrôle des règles applicables. Par exemple, la phrase "\textit{il faut traiter tous les ordres de l'évènement en cours}" signifie que les règles de déplacement des trains sont désactivées si la garde est active.
+
+Dernière modification, l'intégration des feux de signalisation, noté F. Il sont présent à chaque extrémité d'un canton, pouvant prendre la couleur rouge ou verte, définit par $F~:~\posFmt{\mathcal{B}} \times \{\dirForward,\dirBackward\} \mapsto \{\siggreen, \sigred\}$. Ils permettent un contrôle des trains par le régulateur sans communiquer directement avec eux, ce système remplace les demandes d'autorisation pour avancer. Bien que plus complexe à gérer, il nous permets un plus grand découplage.
 Avec toutes ces modifications, la nouvelle représentation du régulateur est la suivante~: $\regM{E}{J}{\swFmt{\sigma}}{W}{G}{H}{F}$.
 
 
 \paragraph{Évènements.}
 Un nouvel évènement est introduit, noté \authOrder, il est la contraction des ordres \texttt{wait} et \texttt{incr}. C'est un ordre particulier car il n'est utile que dans un cas précis, quand l'évènement d'un train contient un ordre \texttt{turn} impliquant un aiguillage qu'il sera le prochain à utiliser, c'est souvent le cas lorsqu'un train effectue un demi-tour. Prenons par exemple le parcours 8,3,7 sur la maquette, voir \ref{fig:grapheMaquette}, l'aiguillage doit être dans l'état "v" puis "d".
-Maintenant que le train peut avancer sans avoir terminer l'évènement, il peut avancer vers le mauvais canton. C'est la que $\authOrder$ intervient, il indique que le train doit s'arrêter. Ainsi, la fonction \nextWait{~} ne recherche plus uniquement \texttt{wait} mais également $\authOrder$ pour gérer les feux, voir la règles \ruleDef{WaitAfter} plus loin.
+Maintenant que le train peut avancer sans avoir terminé l'évènement, il peut avancer vers le mauvais canton. C'est la que $\authOrder$ intervient, il indique que le train doit s'arrêter. Ainsi, la fonction \nextWait{~} ne recherche plus uniquement \texttt{wait} mais également $\authOrder$ pour gérer les feux, voir la règles \ruleDef{WaitAfter} plus loin.
 
 \begin{example}[GoodEnding M1]
 	~\\
@@ -885,7 +883,7 @@ Des modifications assez importantes sur le déplacements des trains ont été ap
 \end{mathpar}
 
 \noindent
-Premier changement, le régulateur s'écrit sous sa forme contractée, R. On remarque que notre découplage à bien fonctionné puisqu'aucune écriture dans R n'est présente, uniquement une lecture sur F, ce qui représente ce que le train voit, et G, nécessaire pour le bon fonctionnement du système.
+Premier changement, le régulateur s'écrit sous sa forme contractée, R. On remarque que notre découplage a bien fonctionné puisqu'aucun changement dans R n'est présent, uniquement une lecture des feux F, ce qui représente ce que le train voit, et de la garde G, nécessaire pour le bon fonctionnement du système.
 Pour transmettre l'avancement du train, nous utilisons la fonction $\push{B}{(\trainFmt{t_m},\bid{j})}$, qui ajoute le message $(\trainFmt{t_m},\bid{j})$ au buffer B.
 
 
@@ -983,10 +981,10 @@ Ainsi, si nous appliquons la règles \ruleDef{StartEvent}, il faudra atteindre \
 \end{figure}
 
 \noindent
-Maintenant au tour de la règle \ruleDef{WaitAfter}, c'est un bonne exemple de gestion des feux. On aperçoit que la règle utilise la fonction \texttt{handleTL} pour transformer l'état des feux de signalisation.
-Elle nous sert de "macro" pour ne pas avoir à écrire tous les changements dans la règle, mais elle assigne le vert aux feux du canton sur lequel le train attend, \bid{i}, et le rouge au canton désigné par le \nextWait{~}.
-De cette manière, le train est débloqué, son feu est vert, et le régulateur est certain qu'il ne ratera pas le prochain évènement grâce aux feux rouge.
-Pour revenir sur \nextWait{~}, même si la fonction porte le même nom, elle ne cherche plus uniquement l'ordre \wait{\bid{i}}{x}, mais aussi \authOrder.
+Maintenant au tour de la règle \ruleDef{WaitAfter}, c'est un bon exemple de gestion des feux. On aperçoit que la règle utilise la fonction \texttt{handleTL} pour transformer l'état des feux de signalisation.
+Cette dernière assigne le vert aux feux du canton sur lequel le train attend, \bid{i}, et le rouge au canton désigné par \texttt{nextWait}, \bid{stop}.
+De cette manière, le train est débloqué, son feu est vert, et le régulateur est certain qu'il ne ratera pas le prochain évènement grâce au feu rouge.
+Pour revenir sur \texttt{nextWait}, même si la fonction porte le même nom, elle ne cherche plus uniquement l'ordre \wait{\bid{i}}{x}, mais aussi \authOrder.
 \ruleDef{WaitAfter} fait partie des trois règles pouvant influencer l'état des feux de signalisation, avec \ruleDef{IncrAfter} et \ruleDef{Auth}.
 
 \paragraph{Limitations.}
@@ -1008,18 +1006,22 @@ Ce dernier sera noté \textbf{$B_s$} et défini par $B_s~: \nats \mapsto \posFmt
 Enfin, question de cohérence, le buffer entre les trains et le régulateur est renommé \textbf{$B_t$}.
 
 
-\paragraph{Feux.}Les feux de signalisation sont maintenant des entités indépendantes, notées \textbf{F}, il garde la même définition que précédemment. Avec ce changement nous allons pouvoir intégrer le comportement "fail-safe" des feux permettant de garantir qu'aucun accident ne puisse arriver.
+\paragraph{Feux.}Les feux de signalisation sont maintenant des entités indépendantes, notées \textbf{F}, ils gardent la même définition que précédemment. Avec ce changement nous allons pouvoir intégrer le comportement "fail-safe" des feux permettant de garantir qu'aucun accident ne puisse arriver.
 Ce comportement ne peut pas être contrôlé par d'autres éléments du système, il se traduit par la mise au rouge des feux dont le successeur est $\nosuc$ ou occupé par un train. 
 Pour garantir ce niveau de sécurité, les feux doivent être recalculés après chaque mouvement de train ou évènement.
 
 
-\paragraph{Régulateur.} Beaucoup de changement concernant le régulateur. Tout d'abord, la perte de la garde, des feux de signalisation et des aiguillages. La file d'attente à aussi été retravaillée, désormais c'est un ensemble $W \subseteq \posFmt{\mathcal{B}} \times \posFmt{\mathcal{B}} \times \nats \times \trainFmt{\gamma}$. Un quadruplet $\langle \bid{src}, \bid{dest}, n, \tid{m} \rangle$ dans $W$ signifie que le train \tid{m} attend au canton \bid{src} que le jeton \tokenOf{\bid{dest}} soit égal à $n$.
-De cette manière on simplifie notre modèle de plusieurs façons, plus besoin de stocker tous les couples (canton/jeton) comme avant, ce qui pouvait causer des problèmes pour des réseaux plus grand, mais également en centralisant les informations concernant l'attente des trains. Avec ce changement, nous pouvons écarter H, l'historique, qui n'est plus nécessaire car il servait principalement à retrouver le canton d'attente d'un train.
+\paragraph{Régulateur.} Le régulateur à subit de nombreux changements sur ce modèle. Tout d'abord, la perte de la garde, des feux de signalisation et des aiguillages.
+
+La file d'attente a aussi été retravaillée, désormais c'est une liste contenant des quadruplets $w$, où $w \in \posFmt{\mathcal{B}} \times \posFmt{\mathcal{B}} \times \nats \times \trainFmt{\gamma}$ \todo{Définition ok ?}. Un quadruplet $\langle \bid{src}, \bid{dest}, n, \tid{m} \rangle$ dans $W$ signifie que le train \tid{m} attend au canton \bid{src} que le jeton \tokenOf{\bid{dest}} soit égal à $n$.
+De cette manière on simplifie notre modèle de plusieurs façons, plus besoin de stocker tous les couples (canton/jeton) comme avant, ce qui pouvait causer des problèmes pour des réseaux plus grand, mais également en centralisant les informations concernant l'attente des trains. 
+
+Avec ce changement, nous pouvons écarter H, l'historique, qui n'est plus nécessaire car il servait principalement à retrouver le canton d'attente d'un train.
 Le régulateur s'écrit donc maintenant $\langle E, J, W \rangle$.
 \todo[inline]{renommer J en T}
 
 \paragraph{Évènements.} La perte de l'historique encourage la modification des gestionnaires d'évènements car ce dernier nous servait à retrouver le canton de l'évènement en cours. Ainsi, nous integrons directement le numéro du canton dans l'évènement associé~: $g_1 : [\langle \bid{i}, [-]\rangle, \langle \bid{j}, [-]\rangle,\dots]$.
-De nouveau, aucun problème de cohérence car c'est la position à laquelle l'évènement est déclenché et non la position actuelle du train.
+De nouveau, aucun problème de redondance car c'est la position à laquelle l'évènement est déclenché et non la position actuelle du train.
 
 \subparagraph{} Aussi, avec la modification de la file d'attente, il est intéressant de se pencher plus en détail sur l'ordre \wait{j}{x} car il représente bien les dilemmes lié à la modélisation.
 Ce dernier nous indique la ressource que le train attend, ainsi, d'un coup d'oeil sur le programme, nous sommes capable de savoir qu'un train \tid{1} avec l'évènement \wait{3}{x} est prioritaire au train \tid{2} avec l'évènement \wait{3}{x+1}.
@@ -1131,13 +1133,13 @@ La seconde règle \ruleDef{SignalReq} permet au régulateur d'intéragir avec le
 \end{mathpar}
 
 \noindent
-On remarque directement que la finalité de cette règle est de dépiler les requêtes, avec \buftail{\bufSig}, mais surtout de changer la signalisation d'un canton, \setSignalsTo{\bid{i}}{c}. Cette dernière met les feux du canton i à l'état c, avec c $\in \{\sigred, \siggreen\}$.
+On remarque que la finalité de cette règle est de dépiler les requêtes, avec \buftail{\bufSig}, mais surtout de changer la signalisation d'un canton, \setSignalsTo{\bid{i}}{c}. Cette dernière met les feux du canton i à l'état c, avec c $\in \{\sigred, \siggreen\}$.
 
 Si on se penche sur les conditions d'utilisation de cette règle, on remarque que la garde doit être dans l'état \guardS et que le buffer relatif aux feux ne doit pas être vide, \head{\bufSig} est défini. 
 \paragraph{Limitations.}
-Ce modèle parvient à surpasser les limites du modèle précédent en offrant une représentation plus fidèle avec d'un coté les méta-données et de l'autre l'état réel du système.
-De plus, un système de sécurité limitant les accidents à vu le jour grâce aux comportements "fail-safe" des feux de signalisation. Cependant, des problème subsiste, d'une part, les trains n'empruntent pas les aiguillages mais ils se téléportent de canton en canton, ce qui n'est pas réaliste.
-D'autre part, les gestionnaires d'évènements sont indexé sur les trains, ce qui n'a aucune cohérence avec la réalité du système~: un évènements est déclenché par un capteur à l'extrémité du canton. \todo{Trop vague ?}
+Ce modèle parvient à dépasser les limites du modèle précédent en offrant une représentation plus fidèle avec d'un coté les méta-données et de l'autre l'état réel du système.
+De plus, nous avons mis au point un système de sécurité limitant les accidents grâce aux comportements "fail-safe" des feux de signalisation. Cependant, des problèmes subsistent, d'une part, les trains n'empruntent pas les aiguillages mais ils se téléportent de canton en canton, ce qui n'est pas réaliste.
+D'autre part, les gestionnaires d'évènements sont indexés sur les trains, ce qui n'a aucune cohérence avec la réalité du système~: sur la maquette, un évènement est déclenché par un capteur à l'extrémité du canton.
 
 En plus de ces problèmes, nous avons rencontré un cas plutôt difficile à modéliser avec nos outils actuels~:
 \begin{example}[Cycle]
@@ -1165,7 +1167,7 @@ Nous allons introduire des capteurs aux extrémités des cantons afin de détect
 Une nouvelle fonction, \tsuc{b_i}{d}{\swFmt{\sigma}}, similaire à \suc{b_i}{d}{\sigma}, fait son apparition. Elle est utilisée en parallèle de \texttt{suc} pour déterminer le prochain élément sur lequel se déplacer, que ce soit un canton ou un aiguillage. Pour rappel, \suc{b_i}{d}{\sigma} ne renvoie que le prochain canton.
 Enfin, un nouvel ordre pour le programme des trains est introduit afin de régler le problème de cycle évoqué plus haut.
 
-\paragraph{Problématiques.} Ces améliorations entraînent quelques problèmes, notamment un besoin de refonte des gestionnaires d'évènements, dont la structure n'est plus alignée avec le comportement souhaité. \todo{Pertinant ?}
+\paragraph{Problématiques.} Ces améliorations entraînent quelques problèmes, notamment un besoin de refonte des gestionnaires d'évènements, dont la structure n'est plus alignée avec le comportement souhaité. \todoMV{Pertinant mais pas clair}
 
 \paragraph{Capteurs.} Ce modèle signe l'arrivée des capteurs dans le système, cependant, il n'existe pas d'objets les modélisant mais ces derniers sont abstraits dans la nouvelle structure des gestionnaires d'évènements et dans les règles de transitions.
 Les capteurs se placent derrière les feux de signalisation, de manière à être déclenchés si un train rentre ou sort d'un canton, les aiguillages en sont dépourvus, ne pouvant déclencher d'évènements. Les messages changent de contenu~: $(\bid{i},\dirFmt{d})$, ce format permet d'identifier le capteur ayant envoyé le message.
@@ -1187,10 +1189,13 @@ Son utilisation reste circonstancielle.
 	\end{grammar}
 \end{sidebox}
 
-\paragraph{Évènements.} Comme vue plus haut, les gestionnaires d'évènements ne sont plus indéxés sur les trains mais sur les capteurs, qu'est-ce que ça implique ? D'abord, pour être sur d'avoir compris, comparons les domaine de définition de l'ancien modèle, $\trainFmt{\gamma}$ , avec le nouveau, $\mathcal{\posFmt{B}} \times \{\dirForward, \dirBackward\}$. Dans les anciens modèles, les évènements étaient stockés en fonction du train ayant déclenché l'évènement, maintenant c'est l'identifiant du capteur.
-Cela entraîne un problème majeur, on ne peut plus lier les évènements aux trains, or, nous en avons besoin pour la fonction \nextWait{-}. De plus les évènements changent aussi, l'information du canton lié à l'évènement en cours est déjà présente dans le message~: les évènements sont, de nouveau, des listes d'ordres uniquement. 
+\paragraph{Évènements.} Comme vu plus haut, les gestionnaires d'évènements ne sont plus indéxés sur les trains mais sur les capteurs. Cela implique que les évènements sont donc liés à un capteur, et non plus à un train. Pour être sur d'avoir compris, comparons le domaine de définition de l'ancien modèle, $\trainFmt{\gamma}$, avec le nouveau, $\mathcal{\posFmt{B}} \times \{\dirForward, \dirBackward\}$. Dans les anciens modèles, les évènements étaient stockés en fonction du train ayant déclenché l'évènement, maintenant c'est l'identifiant du capteur.
+Cela entraîne un problème majeur, on ne peut plus lier les évènements aux trains, or, nous en avons besoin pour la fonction \texttt{nextWait}, nous verrons comment y remédier plus loin.
 
-\paragraph{Régulateur.} Cette fois pas de suppression mais des ajouts. Nous avons besoin d'introduire des checkpoints pour les trains, notés $CP$. Ils permettent de compenser la perte d'information causée par le changement de domaine des gestionnaires d'évènements. Il est défini par $CP~:~\trainFmt{\gamma} \mapsto \mathcal{L}$, avec $\mathcal{L}$ une liste de cantons. Ainsi, le premier élément de la liste pour un train \tid{i} est le prochain canton où il devra s'arrêter.
+De plus la structure des évènements changent aussi, l'information du canton lié à l'évènement en cours est déjà présente dans le message~: les évènements sont, de nouveau, des listes d'ordres uniquement. 
+
+
+\paragraph{Régulateur.} Nous avons besoin d'introduire des checkpoints pour les trains, notés $CP$. Ils permettent de compenser la perte d'information causée par le changement de domaine des gestionnaires d'évènements. Il est défini par $CP~:~\trainFmt{\gamma} \mapsto \mathcal{L}$, avec $\mathcal{L}$ une liste de cantons. Ainsi, le premier élément de la liste pour un train \tid{i} est le prochain canton où il devra s'arrêter.
 
 \begin{wrapfigure}{r}{0.3\textwidth}
 	\centering
@@ -1259,10 +1264,10 @@ Aussi, lorsque le régulateur commence à traiter des évènements, il le fait j
 \paragraph{Dynamique.}
 
 \begin{warnbox}
-	Le travail sur ce modèle n'est pas complétement terminé, nous avons une implémentation \TLA, mais nos règles de transitions n'ont pas été proprement définies. Voici un aperçu.
+	Le modèle présenté est en cours de développement, les règles de transitions, implémentées en \TLA, n'ont pas encore fait l'objet d'une formalisation sur papier.
 \end{warnbox}
 
-De nouvelles règles concernant les déplacements de trains sont introduites dans ce modèle, en accord avec les objectifs évoqués plus haut. La règle \ruleDef{Until} ne change que peut, on utilise la fonction \texttt{tsuc} plutôt que \texttt{suc}.
+De nouvelles règles concernant les déplacements de trains sont introduites dans ce modèle, en accord avec les objectifs évoqués plus haut. La règle \ruleDef{Until} change peu, on utilise maintenant la fonction \texttt{tsuc} plutôt que \texttt{suc}. De cette manière, on peut savoir si le successeur est un canton où non.
 
 La règle \ruleDef{ExitBlock} permet à un train de sortir d'un canton pour se rendre sur un aiguillage.
 
@@ -1270,7 +1275,7 @@ La règle \ruleDef{ExitBlock} permet à un train de sortir d'un canton pour se r
 	\inferrule*[left=\ruleDef{ExitBlock}] {
 		\tsuc{\bid{i}}{d}{\switches} = \bid{j} \neq \nosuc
 		\and
-		\bid{j} > 8
+		\texttt{aig(\bid{i})} = true
 		\and
 		\signalF{\bid{i}}{d} = \siggreen
 	}{
@@ -1281,16 +1286,16 @@ La règle \ruleDef{ExitBlock} permet à un train de sortir d'un canton pour se r
 \end{mathpar}
 
 \noindent
-Ici, on remarque bien que la $tpos$ du train est mise à jour, passant de \bid{i} à \bid{j}, mais que la position $pos$ reste inchangée~: aux yeux du système, le train \tid{m} est toujours dans le canton \bid{i}. On remarque également une nouvelle condition, $\bid{j} > 8$, qui nous assure que le successeur est bien un aiguillage, le réseau ne comptant que huit cantons.
+Ici, on remarque que la $tpos$ du train est mise à jour, passant de \bid{i} à \bid{j}, mais que la position $pos$ reste inchangée~: aux yeux du système, le train \tid{m} est toujours dans le canton \bid{i}. On remarque également une nouvelle condition, $\texttt{aig(\bid{i})} = true$, qui nous assure que le successeur est bien un aiguillage.
 Intéressons-nous maintenant au passage d'un train d'un aiguillage à un autre.
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{EnterSwitch}] {
 		\tsuc{\bid{i}}{d}{\switches} = \bid{j} \neq \nosuc
 		\and
-		\bid{i} > 8
+		\texttt{aig(\bid{i})} = true
 		\and
-		\bid{j} > 8
+		\texttt{aig(\bid{j})} = true
 	}{
 		\redTuple{\guardT}{\bufTrain}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTupleMF{\tid{m}}{\bid{c}}{d}{\trainConcat{\su{d}{\posFmt{N}}}{P}}{\bid{i}}\}}{\regulator}{\switches}{\signals}} \\
 		\reduces		
@@ -1298,17 +1303,17 @@ Intéressons-nous maintenant au passage d'un train d'un aiguillage à un autre.
 	}
 \end{mathpar}
 
-La règle \ruleDef{EnterSwitch} est similaire à la précédente, mise à part quelques détails. Tout d'abord, on note la disparition de la contrainte sur le feu et de l'envoi de message, le train se trouvant sur un aiguillages, aucun feux de signalisation ou capteurs ne sont présents.
-Enfin, pour utiliser cette règle nous avons besoin que le train se trouve sur un aiguillage, d'où la contrainte $\bid{i} > 8$. Dernière règle de cette section, nous allons voir comment un train passe d'un aiguillage à un canton.
+La règle \ruleDef{EnterSwitch} est prèsque similaire à la précédente. Tout d'abord, on note la disparition de la contrainte sur le feu et de l'envoi de message, le train se trouvant sur un aiguillages, aucun feu de signalisation ou capteur ne sont présents.
+Enfin, pour utiliser cette règle nous avons besoin que le train se trouve sur un aiguillage, d'où la contrainte $\texttt{aig(\bid{i})} = true$. Dernière règle de cette section, nous allons voir comment un train passe d'un aiguillage à un canton.
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{ExitBlock}] {
 		\tsuc{\bid{i}}{d}{\switches} = \bid{j} \neq \nosuc
 		\and
-		\bid{i} > 8
+		\texttt{aig(\bid{i})} = true
 		\and
-		\bid{j} <= 8
-		\and
+		\texttt{aig(\bid{j})} = false
+		\\
 		\posFmt{N} = \bid{j} \cdot \posFmt{N'}
 		\and
 		\posFmt{N'} \neq \emptyList
@@ -1322,7 +1327,7 @@ Enfin, pour utiliser cette règle nous avons besoin que le train se trouve sur u
 \noindent
 Cette règle "signe" la re-synchronisation du train avec le reste du système, on observe que $pos$ est égale à $tpos$. C'est aussi le retour de l'envoi de message, le train se trouvant dans un canton, il a donc franchit le capteur de début de canton, $\langle\bid{j},\dirFmt{d^{-1}}\rangle$. 
 
-\paragraph{Limitations.} Bien que ce modèle soit le plus abouti, il se place dans un environnement particulièrement hostile puisque nous n'imposons pas de garantie sur le délai de traitement des messages. Hors, dans la réalité, le traitement des informations et bien plus rapide que le déplacement des trains, beaucoup de mécanisme présent dans ce modèle n'ont donc pas lieu d'être.
+\paragraph{Limitations.} Bien que ce modèle soit le plus proche de la réalité, il se place dans un environnement hostile puisque nous n'imposons pas de garantie sur le délai de traitement des messages. Hors, dans la réalité, le traitement des informations et bien plus rapide que le déplacement des trains, beaucoup de mécanisme présent dans ce modèle n'ont donc pas lieu d'être.
 Cependant, pour prouver cela, il faut se tourner vers les automates temporisés. Nous n'avons pas eu le temps de nous pencher sur ce sujet.
 
 
@@ -1347,6 +1352,7 @@ Cependant, pour prouver cela, il faut se tourner vers les automates temporisés.
 	\centering
 	\includegraphics[width=\linewidth]{graph_ge0.jpg}
 	\caption{Espace d'état de GoodEnding sur le modèle zéro}
+	\label{fig:espaceEtat}
 \end{wrapfigure}
 
 
@@ -1584,13 +1590,53 @@ Pour le modèle final, nous n'avons pas eu le temps de mener les tests à trois 
 \chapter{Side Quests}
 \label{sec:sidequests}
 
-%\section{Maquette} 
-\todo{Sections ou juste paragraphes ?}
-
 \paragraph{Maquette.} Une fois les principaux objectifs atteints, nous avons pu nous pencher sur des problèmes secondaires, coomme la création d'une "maquette de la maquette".
 Cela permet de construire un prototype se basant sur une architecture différente de celle actuellement utilisée, afin de moderniser la maquette.
 
-\todo[inline]{Schéma de l'infra}
+\begin{figure}[h]
+	\centering
+	\resizebox{0.5\textwidth}{!}{
+	\begin{tikzpicture}
+		\tikzstyle{feu} = [
+		circle,
+		draw=black,
+		]
+		\tikzstyle{machine} = [
+		rounded corners,
+		draw=blue,
+		minimum height=3cm,
+		]
+		\tikzstyle{aig} = [
+		draw=black,
+		fill=black!10!white,
+		]
+	
+		\node[machine] (rasp) {Raspberry Pi};
+		\node[machine] (ard) [above=3cm of rasp] {Arduino};
+		%\node[machine] (ard2) [left=3cm of rasp] {Arduino};
+		
+		\node[feu] (f1) [above right=0.5cm and 3cm of ard] {Feu 1};
+		\node[feu] (f2) [below right=0.5cm and 3cm of ard] {Feu 2};
+		\node[aig] (a1) [below=1.5 of f1] {Aiguillage 1};
+
+		\node[feu] (f3) [above left=0.5cm and 3cm of ard] {Feu 3};
+		\node[feu] (f4) [below left=0.5cm and 3cm of ard] {Feu 4};
+		\node[aig] (a2) [below=1.5 of f3] {Aiguillage 2};
+
+		\draw[->] (rasp) edge[bend left=0.5cm] node[above,sloped] {I2C} (ard);
+		\draw[->] (ard) edge[bend left=0.5cm] node[above,sloped] {I2C} (rasp);
+		\draw[-] (ard) -- (f1);
+		\draw[-] (ard) -- (f2);
+		\draw[-] (ard) -- (a1);
+		\draw[-] (ard) -- (f3);
+		\draw[-] (ard) -- (f4);
+		\draw[-] (ard) -- (a2);
+
+	\end{tikzpicture}
+	}
+	\caption{Schéma simplifié.}
+	\label{fig:prototype}
+\end{figure}
 
 Pour communiquer entre le Raspberry Pi et les Arduinos, nous utilisons le protocole I2C, permettant une communication efficace dans un modèle maître-esclave.
 En l'état, le raspberry Pi, appelé orchestrateur, coordonne un arduino afin de gérer les feux de signalisation et l'état des aiguillages d'un carrefour représentant les cantons 1, 2 et 3 et leurs aiguillages.
