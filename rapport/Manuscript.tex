@@ -24,6 +24,7 @@
 \usepackage[]{todonotes}
 \usepackage{../package/formal-grammar}
 \usepackage{wrapfig}
+\usepackage{minted}
 %\usepackage[backref=true]{biblatex}
 % hyperref doit être chargé en dernier
 \usepackage{hyperref}
@@ -40,7 +41,7 @@
 %% Todo Martin
 \newcommand{\todoMV}[2][]{\todo[color=green, #1]{#2}}
 
-\newcommand{\TLA}{\ensuremath{TLA^+}}
+\newcommand{\TLA}{\ensuremath{TLA^+~}}
 \newcommand{\nats}{\ensuremath{\mathbb{N}}}
 
 
@@ -180,8 +181,7 @@
 \newcommand{\commentaire}[1]{{\color{commentcolor}{#1}}}
 
 \titleformat{\chapter}[display]
-	{\normalfont\bfseries}{}{1em}{\Large\thechapter\hspace{1em}}
-
+	{\normalfont\bfseries}{}{1em}{\Large\hspace{1em}}
 
 %%%%%%% Document %%%%%%%%
 
@@ -192,14 +192,20 @@
 
 \begin{document}
 
+
 \frontmatter
 \maketitle
 
 \chapter*{Remerciements}
+\addcontentsline{toc}{chapter}{Remerciements}
 
+\renewcommand{\contentsname}{Sommaire}
 \tableofcontents
 
 \mainmatter
+
+\titleformat{\chapter}[display]
+	{\normalfont\bfseries}{}{1em}{\Large\thechapter\hspace{1em}}
 
 \chapter{Introduction}
 \label{sec:intro}
@@ -301,6 +307,8 @@ Enfin, la section \ref{sec:experiences} présentera les expériences menées sur
 
 
 
+\titleformat{\chapter}[display]
+	{\normalfont\bfseries}{}{1em}{\Large\hspace{1em}}
 
 
 \chapter{Cadre de travail}
@@ -361,25 +369,43 @@ L'intégration au sein de l'équipe s'est déroulée naturellement, les échange
 		;
 		\end{tikzpicture}
 	}
-	\caption{Graphe modélisant le réseau (réseau ??) de la maquette}
+	\caption{Graphe modélisant la maquette}
 	\label{fig:grapheMaquette}
 \end{wrapfigure}
 
 \paragraph{} 
-La modélisation représente une étape essentielle, elle nous permet de construire un outil, le modèle, pour décrire un système. Ce modèle est un double formel du système réel \todoMV{Le modèle est un outil, la modélisation est une étape, dont le but est d'avoir un double formel du système réel.}, nous pouvons en extraire un comportement se rapprochant de la réalité et observer son évolution dans le temps. De cette manière, il est possible d'étudier ce système pour trouver des propriétés ou résoudre des problèmes.
+La modélisation représente une étape essentielle, elle nous permet de construire un outil, le modèle, pour décrire un système. Ce modèle est un double formel du système réel, nous pouvons en extraire un comportement se rapprochant de la réalité et observer son évolution dans le temps. De cette manière, il est possible d'étudier ce système pour trouver des propriétés ou résoudres des problèmes.
 Avant de rentrer en détail dans le processus de modélisation, rappelons rapidement notre problématique~: il nous faut vérifier un programme d'ordonnancement de trains.
 
 \subparagraph{}
-Nous allons donc commencer par modéliser la maquette \todo{pas ok avec le pourquoi, à revoir} pour obtenir un espace dans lequel nos trains évolueront. Cependant, la maquette contient beaucoup de données inutiles, comme la taille des cantons, les bâtiments ou bien la topographie. On va donc se concentrer sur les éléments qui nous intéressent en la représentant sous forme de graphe, c'est la figure \ref{fig:grapheMaquette}.
+Nous allons donc commencer par modéliser la maquette pour obtenir un espace dans lequel nos trains évolueront. Cependant, la maquette contient beaucoup de données inutiles, comme la taille des cantons, les bâtiments ou bien la topographie. On va donc se concentrer sur les éléments qui nous intéressent en la représentant sous forme de graphe, c'est la figure \ref{fig:grapheMaquette}.
 Ce dernier simplifie l'information sur la manière dont est structuré le réseau et nous renseigne sur l'adjacence des différents éléments.
 
 Chaque sommet représente un canton, ils sont reliés entre eux par des arêtes symbolisant les aiguillages. Ces dernières portent une étiquette pour indiquer l'état des aiguillages concernés~: ainsi, "9d/10v" indique qu'il faut que les aiguillages 9 et 10 soient respectivement "direct" et "dévié" pour accéder à l'autre sommet. Nous verrons plus tard ce que ces termes désignent.
 Grâce à ce graphe, nous avons construit une fonction prenant en paramètre la position \bid{i} d'un train, sa direction \dirFmt{d} et la configuration des aiguillages \swFmt{$\sigma$}, et retournant la position du canton suivant \bid{j}~: $\suc{b_i}{d}{\sigma} = b_j$. S'il n'existe pas de successeur, la fonction renvoie une valeur spéciale~: $\nosuc$.
 
-\todo[inline]{Expliquer petit schéma (deux cantons, quatres feux, un train) comme \ref{fig:exUntil}}
 
-%\textbf{Expliquer le graph / définir position et id des aiguillages}
+\begin{figure}[h]
+	\centering
+	\resizebox{0.5\textwidth}{!}{
+		\begin{tikzpicture}[thick,scale=1]
+		\draw (0,0) -- (3,0) node[midway,below] {1};
+		\fill[red] (1.25,0.25) rectangle (1.75,0.75);
 
+		\fill[red!50!black] (0.5,0.25) circle (1.25mm);
+		\fill[green!50!black] (2.5,0.25) circle (1.25mm);
+
+		\draw (3.5,0) -- (6.5,0) node[midway,below] {2};
+		\fill[green!50!black] (4,0.25) circle (1.25mm);
+		\fill[red!50!black] (6,0.25) circle (1.25mm);
+		\end{tikzpicture}
+	}
+	\caption{Schéma d'exemple}
+	\label{fig:exSchema}
+\end{figure}
+
+Nous allons quelques fois utiliser un schéma similaire à celui sur la figure \ref{fig:exSchema} pour illustrer nos exemples, expliquons-le rapidement.
+Ce schéma représente un réseau composé de deux cantons, numérotés 1 et 2. Chaque canton possède deux feux de signalisation, un à chaque extrémité, pouvant être rouge ou vert. Enfin, les formes géométriques colorées représentent les trains, ici c'est un rectangle.
 
 \section{Première approche}
 
@@ -401,7 +427,6 @@ Au départ du canton 3 il est possible de se diriger vers les cantons 1, 2 ou 4 
 Enfin, comme il est possible de choisir entre deux voies, ces derniers possèdent deux états~: un desservant chaque voie. Cet ensemble d'états est noté $\{d,v\}$, respectivement pour "direct" et "dévié". 
 
 \section{Modèle zéro}
-\todoMV[inline]{Règle générale : écrit tout au présent, ça évite de se prendre la tête.}
 \paragraph{} Notre premier modèle est simple, il permet d'entrer dans le sujet, de se familiariser avec les concepts nouveaux, notamment les règles de transitions, et de servir de base pour les futures évolutions.
 Pour cela, on souhaite modéliser le déplacement des trains en ne prenant en compte que les aiguillages et les cantons, laissant sur le côté les feux de signalisation.
 
@@ -482,7 +507,6 @@ Dans les règles de transition, on représente le régulateur de deux manières,
 
 
 
-\paragraph{Évènements.}\todoMV[inline]{N'hésite pas à utiliser des sous-paragraphes pour donner les différentes étapes de l'explication.}
 
 Parlons maintenant des ordres, en voici une liste exhaustive~:
 \begin{itemize}
@@ -498,12 +522,7 @@ Parlons maintenant des ordres, en voici une liste exhaustive~:
 \todoMV{Peut-être qu'il vaut mieux commencer par présenter les ordres, donner un exemple avec un seul event, puis ensuite passer aux handlers généraux.}
 
 \noindent
-Nous verrons comment ils intéragissent avec le modèle plus loin, lorsque nous parlerons des règles de transitions. Penchons nous plus en détail sur l'ordre \wait{j}{x}, il représente bien les dilemmes lié à la modélisation.
-Ce dernier nous indique la ressource que le train attend, ainsi, d'un coup d'oeil sur le programme, nous sommes capable de savoir qu'un train \tid{1} avec l'évènement \wait{3}{x} est prioritaire au train \tid{2} avec l'évènement \wait{3}{x+1}.
-Cependant, pour l'implémentation, nous avons besoin de connaitre la position du train pour le positionner dans la file d'attente, il serait donc plus pratique que $j$ désigne la position d'attente et non la ressource.
-\todo{pas certain de la position de ce paragraphe, peut-être dans le modèle 2 parce que modèle zéro pas touché par ce phénomène}
-Ce qui, pour le même exemple donnerait, \wait{7}{x} et  \wait{4}{y}, moins intuitif pour l'humain.
-C'est pourquoi nous avons fait le choix de garder $j$ comme la ressource, pour faciliter l'écriture et la lecture du programme du régulateur.
+Nous verrons comment ils intéragissent avec le modèle plus loin, lorsque nous parlerons des règles de transitions.
 
 \subparagraph{Gestionnaires}
 Comme défini précédemment, les gestionnaires sont indexés sur les trains, les évènements du gestionnaire i sont donc déclenché par les mouvements du train \tid{i}.
@@ -814,7 +833,7 @@ Avec toutes ces modifications, la nouvelle représentation du régulateur est la
 
 
 \paragraph{Évènements.}
-Un nouvel évènement est introduit, noté \authOrder, il est la contraction des ordres \texttt{wait} et \texttt{incr}. C'est un ordre particulier car il n'est utile que dans un cas précis, quand l'évènement d'un train contient un ordre \texttt{turn} impliquant un aiguillage qu'il sera le prochain à utiliser, c'est souvent le cas lorsqu'un train effectue un demi-tour. Prenons par exemple le parcours 8,3,7 sur la maquette, voir \ref{fig:grapheMaquetteM1}, l'aiguillage doit être dans l'état "v" puis "d".
+Un nouvel évènement est introduit, noté \authOrder, il est la contraction des ordres \texttt{wait} et \texttt{incr}. C'est un ordre particulier car il n'est utile que dans un cas précis, quand l'évènement d'un train contient un ordre \texttt{turn} impliquant un aiguillage qu'il sera le prochain à utiliser, c'est souvent le cas lorsqu'un train effectue un demi-tour. Prenons par exemple le parcours 8,3,7 sur la maquette, voir \ref{fig:grapheMaquette}, l'aiguillage doit être dans l'état "v" puis "d".
 Maintenant que le train peut avancer sans avoir terminer l'évènement, il peut avancer vers le mauvais canton. C'est la que $\authOrder$ intervient, il indique que le train doit s'arrêter. Ainsi, la fonction \nextWait{~} ne recherche plus uniquement \texttt{wait} mais également $\authOrder$ pour gérer les feux, voir la règles \ruleDef{WaitAfter} plus loin.
 
 \begin{example}[GoodEnding M1]
@@ -973,8 +992,7 @@ Pour revenir sur \nextWait{~}, même si la fonction porte le même nom, elle ne 
 
 \paragraph{Limitations.}
 Le modèle découplage à plutôt bien répondu aux limitations précédemment évoqué pour le modèle zéro, notamment au niveau du découplage $\Gamma/R$ et de l'atomicité des évènements. Cependant, ce modèle est encore loin d'être parfait et compte de nombreuses imperfections.
-Tous d'abord, le régulateur contrôle les feux de signalisation, mais il n'y a pas de raison pour que ceux-ci en fassent partie, il est possible de les considérer comme éléments du système à part entière. De plus, cela nous rapprocherait de la réalité en modélisant un comportement "fail-safe" pour ces derniers, nous reviendrons sur ce point dans la prochaine section.
-[Parler du problème où on tourne en rond puis on doit sortir]
+Tout d'abord, le régulateur contrôle les feux de signalisation, mais il n'y a pas de raison pour que ceux-ci en fassent partie, il est possible de les considérer comme éléments du système à part entière. De plus, cela nous rapprocherait de la réalité en modélisant un comportement "fail-safe" pour ces derniers, nous reviendrons sur ce point dans la prochaine section.
 
 
 
@@ -996,7 +1014,7 @@ Ce comportement ne peut pas être contrôlé par d'autres éléments du système
 Pour garantir ce niveau de sécurité, les feux doivent être recalculés après chaque mouvement de train ou évènement.
 
 
-\paragraph{Régulateur.} Beaucoup de changement concernant le régulateur. Tous d'abord, la perte de la garde, des feux de signalisation et des aiguillages. La file d'attente à aussi été retravaillée, désormais c'est un ensemble $W \subseteq \posFmt{\mathcal{B}} \times \posFmt{\mathcal{B}} \times \nats \times \trainFmt{\gamma}$. Un quadruplet $\langle \bid{src}, \bid{dest}, n, \tid{m} \rangle$ dans $W$ signifie que le train \tid{m} attend au canton \bid{src} que le jeton \tokenOf{\bid{dest}} soit égal à $n$.
+\paragraph{Régulateur.} Beaucoup de changement concernant le régulateur. Tout d'abord, la perte de la garde, des feux de signalisation et des aiguillages. La file d'attente à aussi été retravaillée, désormais c'est un ensemble $W \subseteq \posFmt{\mathcal{B}} \times \posFmt{\mathcal{B}} \times \nats \times \trainFmt{\gamma}$. Un quadruplet $\langle \bid{src}, \bid{dest}, n, \tid{m} \rangle$ dans $W$ signifie que le train \tid{m} attend au canton \bid{src} que le jeton \tokenOf{\bid{dest}} soit égal à $n$.
 De cette manière on simplifie notre modèle de plusieurs façons, plus besoin de stocker tous les couples (canton/jeton) comme avant, ce qui pouvait causer des problèmes pour des réseaux plus grand, mais également en centralisant les informations concernant l'attente des trains. Avec ce changement, nous pouvons écarter H, l'historique, qui n'est plus nécessaire car il servait principalement à retrouver le canton d'attente d'un train.
 Le régulateur s'écrit donc maintenant $\langle E, J, W \rangle$.
 \todo[inline]{renommer J en T}
@@ -1004,9 +1022,15 @@ Le régulateur s'écrit donc maintenant $\langle E, J, W \rangle$.
 \paragraph{Évènements.} La perte de l'historique encourage la modification des gestionnaires d'évènements car ce dernier nous servait à retrouver le canton de l'évènement en cours. Ainsi, nous integrons directement le numéro du canton dans l'évènement associé~: $g_1 : [\langle \bid{i}, [-]\rangle, \langle \bid{j}, [-]\rangle,\dots]$.
 De nouveau, aucun problème de cohérence car c'est la position à laquelle l'évènement est déclenché et non la position actuelle du train.
 
-\begin{sidebox}
+\subparagraph{} Aussi, avec la modification de la file d'attente, il est intéressant de se pencher plus en détail sur l'ordre \wait{j}{x} car il représente bien les dilemmes lié à la modélisation.
+Ce dernier nous indique la ressource que le train attend, ainsi, d'un coup d'oeil sur le programme, nous sommes capable de savoir qu'un train \tid{1} avec l'évènement \wait{3}{x} est prioritaire au train \tid{2} avec l'évènement \wait{3}{x+1}.
+Cependant, pour l'implémentation, nous avons besoin de connaitre la position du train pour le positionner dans la file d'attente, il serait donc plus pratique que $j$ désigne la position d'attente et non la ressource.
+Ce qui, pour le même exemple donnerait, \wait{7}{x} et  \wait{4}{y}, moins intuitif pour l'humain.
+C'est pourquoi nous avons fait le choix de garder $j$ comme la ressource, pour faciliter l'écriture et la lecture du programme du régulateur.
+
+\begin{warnbox}
 	Pour une question de fidélité nous présentons le modèle tel qu'il est, cependant, avec du recule nous avons remarqué qu'il était possible de simplifier le message envoyer par le train en envoyant que l'identifiant du train. Dans ce modèle, l'autre information n'est pas utilisé, ce problème est directement lié à notre méthode de travail~: les itérations peuvent introduire des données utiles à un moment, mais superflues par la suite. Dans notre cas, ces données n'ont pas été retirées.
-\end{sidebox}
+\end{warnbox}
 
 %ajout du numéro de canton dans le gestionnaire, mais pas de problème de cohérence :  c'est pas la position actuel du train mais l'endroit où le train à déclencher l'event, comme histo du modèle zéro
 
@@ -1067,9 +1091,9 @@ Résumons, nous avons à notre disposition trois champs considérés comme "mét
 		\item[] $W = \{\langle \bid{1}, \bid{1}, 1, \trainFmt{\square} \rangle, \langle \bid{4}, \bid{4}, 1, \trainFmt{\triangle} \rangle\}$
 	\end{itemize}
 	\vspace{0.3cm}
-	$\swFmt{\sigma} = [d]$
+	$\swFmt{\sigma} : [d]$
 	\vspace{0.3cm}
-	\\$F = [(\posFmt{1},\dirForward) : \sigred,(\posFmt{4},\dirBackward) : \sigred]$ \commentaire{// De base, tous les feux sont au vert}
+	\\$F : [(\posFmt{1},\dirForward) : \sigred,(\posFmt{4},\dirBackward) : \sigred]$ \commentaire{// De base, tous les feux sont au vert}
 	\vspace{0.3cm}
 
 	$g_1 = [[\incr{1}],[],[\turnOrder{5}{v}, \incr{2}]]$
@@ -1150,12 +1174,19 @@ Les capteurs se placent derrière les feux de signalisation, de manière à êtr
 \paragraph{Trains.} Pour les trains, un cinquième attribut est ajouté à l'état des trains, c'est la position réelle, noté $tpos$, elle permet de prendre en valeur des identifiants d'aiguillage, ce que $pos$ ne peut pas faire.
 La position $pos$ représente le dernier canton visité, nous ne pouvons pas nous permettre de perdre cette information car elle est vitale pour le bon fonctionnement des feux de signalisation. Si un train est en transit entre deux cantons, nous voulons que les feux le considèrent toujours comme étant dans le canton d'origine pour éviter qu'un autre train entre dans l'aiguillage et ne provoque un accident.
 
-\begin{sidebox}
-	grammaire
-\end{sidebox}
-
-Aussi, l'ordre \texttt{sync} fait son apparition, il est utilisé comme barrière de synchronisation entre un train et le régulateur, de manière à ce qu'un train ne puisse pas prendre trop d'avance par rapport au régulateur. C'est particulièrement utile pour le poblème de cycle évoquer plus haut. Cet ordre ne peut être dépiler que par le régulateur, simulant une autorisation explicite sans avoir besoin des feux de signalisation.
+Aussi, l'ordre \texttt{sync} fait son apparition, il est utilisé comme barrière de synchronisation entre un train et le régulateur, de manière à ce qu'un train ne puisse pas prendre trop d'avance par rapport au régulateur, particulièrement utile pour le poblème de cycle évoquer plus haut. Cet ordre ne peut être dépiler que par le régulateur, simulant une autorisation explicite sans avoir besoin des feux de signalisation.
 Son utilisation reste circonstancielle.
+
+\begin{sidebox}
+		La modification précédente impacte peu la grammaire du programme des trains~:
+	\vspace{0.3cm}\\
+	\begin{grammar}
+		\firstcasesubtil{T}{\dots}{inchangée}
+		\firstcasesubtil{seq}{StartUntil(D,N) \gralt Sync}{}
+		\firstcasesubtil{D}{\dots}{inchangée}
+		\firstcasesubtil{N}{\dots}{inchangée}
+	\end{grammar}
+\end{sidebox}
 
 \paragraph{Évènements.} Comme vue plus haut, les gestionnaires d'évènements ne sont plus indéxés sur les trains mais sur les capteurs, qu'est-ce que ça implique ? D'abord, pour être sur d'avoir compris, comparons les domaine de définition de l'ancien modèle, $\trainFmt{\gamma}$ , avec le nouveau, $\mathcal{\posFmt{B}} \times \{\dirForward, \dirBackward\}$. Dans les anciens modèles, les évènements étaient stockés en fonction du train ayant déclenché l'évènement, maintenant c'est l'identifiant du capteur.
 Cela entraîne un problème majeur, on ne peut plus lier les évènements aux trains, or, nous en avons besoin pour la fonction \nextWait{-}. De plus les évènements changent aussi, l'information du canton lié à l'évènement en cours est déjà présente dans le message~: les évènements sont, de nouveau, des listes d'ordres uniquement. 
@@ -1221,9 +1252,9 @@ Aussi, lorsque le régulateur commence à traiter des évènements, il le fait j
 		\item[] $CP = [[-1],[4,-1]]$
 	\end{itemize}
 	\vspace{0.3cm}
-	$\swFmt{\sigma} = [d]$
+	$\swFmt{\sigma} : [d]$
 	\vspace{0.3cm}
-	\\$F = [(\posFmt{3},\dirForward) : \sigred,(\posFmt{4},\dirBackward) : \sigred]$ \commentaire{// De base, tous les feux sont au vert}
+	\\$F : [(\posFmt{3},\dirForward) : \sigred,(\posFmt{4},\dirBackward) : \sigred]$ \commentaire{// De base, tous les feux sont au vert}
 \end{example}
 
 \paragraph{Dynamique.}
@@ -1268,7 +1299,7 @@ Intéressons-nous maintenant au passage d'un train d'un aiguillage à un autre.
 	}
 \end{mathpar}
 
-La règle \ruleDef{EnterSwitch} est similaire à la précédente, mise à part quelques détails. Tous d'abord, on note la disparition de la contrainte sur le feu et de l'envoi de message, le train se trouvant sur un aiguillages, aucun feux de signalisation ou capteurs ne sont présents.
+La règle \ruleDef{EnterSwitch} est similaire à la précédente, mise à part quelques détails. Tout d'abord, on note la disparition de la contrainte sur le feu et de l'envoi de message, le train se trouvant sur un aiguillages, aucun feux de signalisation ou capteurs ne sont présents.
 Enfin, pour utiliser cette règle nous avons besoin que le train se trouve sur un aiguillage, d'où la contrainte $\bid{i} > 8$. Dernière règle de cette section, nous allons voir comment un train passe d'un aiguillage à un canton.
 
 \begin{mathpar}
@@ -1296,12 +1327,241 @@ Cette règle "signe" la re-synchronisation du train avec le reste du système, o
 Cependant, pour prouver cela, il faut se tourner vers les automates temporisés. Nous n'avons pas eu le temps de nous pencher sur ce sujet.
 
 
+
+
+
+
+
+
+
+
+
+
+
 \chapter{Implémentation}
 \label{sec:implem}
+
 \section{TLA+}
 \label{sec:tla}
+
+\begin{wrapfigure}{r}{0.4\textwidth}
+	\centering
+	\includegraphics[width=\linewidth]{graph_ge0.jpg}
+	\caption{Espace d'état de GoodEnding sur le modèle zéro}
+\end{wrapfigure}
+
+
+\paragraph{Introduction.} \TLA est un language de spécification formelle développé par Leslie Lamport \todo{citation}, très populaire au sein de la communauté des systèmes distribués. Il est principalement utilisé pour faire de vérification de programmes, c'est-à-dire prouver que le programme respecte certaines propriétés.
+Dans notre cas, nous allons beaucoup utiliser un outil présent dans \TLA, le model checker \textit{TLC}, qui permet d'explorer l'espace d'état d'une spécification. Autrement dit, il permet de générer tous les états d'un système si celui-ci est fini, ainsi il est possible de vérifier si nos propriétés sont toujours respectées.
+Nous avons choisi d'utiliser cet outil car il est facile de représenter une machine à états finis, ce à quoi s'apparente notre système.
+
+\paragraph{Spécification.} Les spécifications \TLA telles que nous allons les utiliser comportent plusieurs éléments clés, comme des variables, des propriétés temporelles et des actions, nous verrons cela plus en détail par la suite.
+Ces éléments doivent être rédigées en utilisant la syntaxe formelle de l'outil, qui repose grandement sur des expressions mathématiques et logiques. Ce langage n'est pas un langague de programmation, il n'est pas possible d'écrire de boucle et les structures de données sont "limitées", mais il est quand même possible de définir des fonctions. 
+De plus, le programme s'exécute de manière non déterministe, étape par étape, en choisissant une action applicable au hasard.
+
+\subparagraph{} Les variables sont centrales, c'est elles qui représentent l'état du système, elles sont les seules données à persister entre les actions. Pour le modèle 0, nous avons trois variables appelées \texttt{gamma}, \texttt{reg} et \texttt{rule}, la dernière étant une mesure de debug pour contrôler quel action à été appliquée.
+Nos variables sont initialisées dans une donnée particulière appelée \texttt{init}, cette dernière décrit l'état initial du système.
+Au sein des actions, il est possible d'utiliser des "constantes locales", qui ne persistent que pendant l'exécution de l'action. Cependant, il est impossible de redéfinir ces constantes, le comportement est plus proche d'une macro facilitant l'écriture.
+
+
+\begin{minted}{C}
+Init == 
+	LET 
+		four_to_8 ==  << <<"StartUntil","b",<<3,8>> >>  >>
+		five_to_4 ==  << <<"StartUntil","f",<<7,3,4>> >> >>
+		train1 == [tid|->1, pid|->4, d|->"*", prog|-> four_to_8]
+		train2 == [tid|->2, pid|->5, d|->"*", prog|-> five_to_4]
+		traffic_lights ==[x \in (1..8) \X {"f","b"} |-> "g"]
+		...
+	IN
+		/\ gamma = <<train1,train2>>
+		/\ sigma =  <<"d", "d", "v", "d", "d">> 
+		/\ F = [traffic_lights EXCEPT ![7,"f"]="r", ![8,"b"]="r"]
+		...
+\end{minted}
+
+\begin{figure}[h]
+	\caption{Initialisation des variables dans le modèle 2}
+	\label{fig:initTLA}
+\end{figure}
+
+Sur la figure \ref{fig:initTLA}, on peut voir une structure, \texttt{train1} représentant un train et associant la chaîne de caractères "tid" à la valeur 1, "pid" à la valeur 4, etc. De cette manière, on peut accéder aux valeurs d'une structure en utilisant les clés appropriées, \texttt{train1.tid} par exemple.
+
+
+\subparagraph{} Les actions représentent nos règles de transitions, elles permettent de modifier l'état du système sous certaines conditions. Elles ont besoins d'être regroupées sous une même "fonction", appelée \texttt{Next}, qui décrit le comportement du système.
+
+\begin{minted}{C}
+Until(T) == 
+LET
+	numEv == reg.Ne[T.id]
+	id == T.id
+	event == reg.E[id][numEv]
+	order == Head(T.prog)
+	nextC == Suiv(T.pos,T.dir, reg.S)
+	auth == reg.A[id]
+IN
+	/\ Len(T.prog) > 0
+	/\ Len(event) = 0
+	/\ order[2] = T.dir 
+	/\ auth /= 0
+	/\ order[1] = "StartUntil"
+	/\ nextC /= -1
+	/\ order[3] /= nextC
+	/\ gamma' = [gamma EXCEPT ![id].pos = nextC]
+	/\ rule' = "until"
+	/\ reg' = [reg EXCEPT !.Ne[id] = numEv+1,
+			      !.A[id] = auth-1]
+\end{minted}
+
+\begin{figure}[h]
+	\caption{Implémentation de la règle Until en \TLA}
+	\label{fig:untilTLA}
+\end{figure}
+
+Grâce à la figure \ref{fig:untilTLA}, on remarque plusieurs choses intéressantes. Tout d'abord, la syntaxe, les symboles $\wedge$ expriment une conjonction logique, c'est-à-dire que toutes les \textit{clauses} doivent être vraies pour effectuer la transition.
+On sépare ces clauses en deux catégories, les conditions nécéssaires à l'action, équivalente à nos prémisses dans les règles, et les clauses modifiant l'état, équivalente à nos conclusions. Ces dernières sont facilement identifiables grâce à l'opérateur prime ($^\prime$), à noté qu'une variable ne subissant pas de modification sera notée \texttt{UNCHANGED}.
+
+\subparagraph{} Enfin, les propriétés temporelles vont déterminer si l'implémentation de notre modèle à le bon comportement. Pour cela, on définit deux propriétés~: \textit{safety} et \textit{liveness}.
+La première permet de s'assurer qu'aucune collision n'a lieu, pour cela on veut que tous les trains soit toujours sur des cantons différents. La seconde propriété nous assure du bon fonctionnement du système, on traduit par le fait que tous les trains sont à l'arrêt à leur destination.
+
+
+\begin{minted}{C}
+Safety == [] (gamma[1].pos /= gamma[2].pos)
+
+
+Liveness == 
+    /\  <>[] /\ gamma[1].pos = 3
+             /\ gamma[1].dir = "*"
+    /\  <>[] /\ gamma[2].pos = 1
+             /\ gamma[2].dir = "*"
+\end{minted}
+
+\begin{figure}[h]
+	\caption{Implémentation des propriétés en \TLA}
+	\label{fig:propertiesTLA}
+\end{figure}
+
+\noindent
+Pour nous aider à formuler ces propriétés, \TLA inclut deux opérateurs temporelles~:
+\begin{itemize}
+	\item $\Box$ : signifiant "toujours"
+	\item $\Diamond$ : signifiant "finalement"
+\end{itemize}
+\noindent
+Ainsi, "$\Box~(gamma[1].pos \neq gamma[2].pos)$" signifie que les positions des trains 1 et 2 sont \textbf{toujours} différentes.
+Maintenant, il est possible de combiner ces opérateurs, comme dans "$\Diamond \Box~gamma[1].pos = 3$", ce qui signifie qu'à un moment la position du train 1 sera égale à 3 pour toujours. En reformulant, on obtient~: à un moment le train 1 s'arrêtera sur le canton 3.
+
+\begin{minted}{C}
+Spec == Init /\ [][Next]_<<gamma,reg, rule>> /\ WF_<<gamma,reg,rule>>(Next)
+\end{minted}
+
+\begin{figure}[h]
+	\caption{Spécification}
+	\label{fig:specTLA}
+\end{figure}
+
+Cette ligne ci-dessus permet de spécifier le comportement de notre modèle. on y retrouve l'état initial, \texttt{Init}, les actions, \texttt{Next}, et un dernier élément encore inconnu, \texttt{WF\_<<gamma,reg,rule>>(Next)}. 
+
+\paragraph{Stuttering.} Le Stuttering est un concept important de \TLA, il donne l'opportunité de modéliser des systèmes où le temps peut s'écouler sans changement d'état. Cependant, ce cas de figure ne nous concerne pas, si une règle de transition peut-être appliquée, alors elle le sera.
+Pour indiquer cela à \TLA, nous devons utiliser la \textit{weak fairness}, une condition qui stipule que si une action peut être exécutée, alors elle sera finalement exécutée. Dans la spécification, cette condition est représenté par \texttt{WF\_<<\dots>>(Next)}.
+
+
+
+\section{Composition}
+\label{sec:composition}
+
+\paragraph{} Jusqu'à présent, nous avons considérer que les programmes des train et du régulateur étaient créer par un humain. Cependant, est-il possible d'automatiser ce processus ? C'est ce que nous allons voir dans cette section.
+Ce besoin est apparu lors de phases de test où il était nécessaire d'avoir plusieurs trajets avec des aspects différents pour vérifier que le comportement du système était correct.
+
+\paragraph{}Nous avons d'abord identifier deux types de trajets~:
+\begin{itemize}
+	\item Les chemins élémentaires, où chaque paire de trains ne possède pas de ressources critiques.
+	\item Les chemins non-élémentaires, où au moins une paire de trains partage une ressource.
+\end{itemize}
+En regardant les chemins non-élémentaires, on remarque qu'il est toujours possible de les décomposer en deux chemins $c_1 \cdot c_2$, tel que $c_1$ ou $c_2$ est un chemin élémentaire.
+
+\begin{example}
+	Soit un chemin non-élémentaire $c$ dont les trains \tid{a} et \tid{b} partagent une ressource critique $crit$ et dont les cantons parcouru sont respectivement $P_a = [a,crit,a^\prime]$ et $ P_b = [b,crit,b^\prime]$; avec $a,a^\prime,b,b^\prime$ des liste de cantons.
+
+	Il existe un couple de chemin dont au moins l'un est élémentaire~: $c_0$ avec $P_a = [a,crit,a^\prime]$ et $P_b = []$, $c_0^\prime$ avec $P_a = []$ et $P_b = [b,crit,b^\prime]$.
+
+	Ainsi, on peut décomposer le chemin non-élémentaire $c$ en deux chemins $c_0$ et $c_0^\prime$, dont au moins l'un est élémentaire.
+\end{example}
+
+Nous avons donc réussi à élaborer une fonction de composition $C(c_1,c_2)$ avec $c_1$ un chemin élémentaire ou issue d'une composition, et $c_2$ un chemin élémentaire. Ainsi, si l'on veut composer un trajet $T$ de quatres chemins élémentaires, on peut faire~: $T=C(C(C(c_1,c_2),c_3),c_4)$.
+\todo[inline]{inclure lien vers archive zenodo, version plus ancienne est pas très propre du code}
+
 \section{Expériences}
 \label{sec:experiences}
+
+\paragraph{}
+Dans le but de tester notre fonction de composition, nous avons dévéloppé un ensemble de scripts Python pour automatiser la création et la vérification de chemins composés.
+On définit un couple de chemins comme étant composable si les positions d'arrivée du premier chemin sont les positions de départ du second. Le flux opérationnel est le suivant~:
+\begin{itemize}
+	\item Création de chemins élémentaires à partir d'un dictionnaire, \texttt{safe\_steps.json}, réalisé en amont.
+	\item Composition des chemins élémentaires en utilisant notre fonction $C(c_1,c_2)$.
+	\item Transcription du chemin composé dans un fichier \texttt{compo.tla}.
+	\item Model checking avec tlc sur \texttt{compo.tla} et \texttt{model.tla}.
+	\item Logging des résultats dans \texttt{out.log} et \texttt{errors.log}.
+\end{itemize}
+
+\begin{figure}[h]
+	\begin{tikzpicture}
+		\tikzstyle{programme} = [
+		draw=black,
+		]
+		\tikzstyle{fichier} = [
+		rounded corners,
+		draw=blue,
+		]
+		\tikzstyle{generated} = [
+		fill=blue!10,
+		]
+		\node[programme] (main) {main.py};
+		\node[fichier, below=of main] (json) {safe\_steps.json};
+		\node[programme, right = of main] (compose) {compose.py};
+		\node[programme, right=of compose] (to_tla) {to\_tla.py};
+		\node[fichier, below=of to_tla, generated] (compo) {route.tla};
+		\node[programme, right=1.5cmof compo] (tlc) {tlc};
+		\node[fichier, above=of tlc] (model){model.tla};	
+		\node[fichier, above right=of tlc, generated] (out) {out.log};
+		\node[fichier, right=1.5cm of tlc, generated] (err) {errors.log};
+		
+		\draw[stealth-] (json) to node[sloped, anchor=south] {uses} (main);
+		\draw[-stealth] (main) to node[sloped, anchor=south] {calls} (compose);
+		\draw[-stealth] (main) to[bend right] node[sloped, anchor=south] {calls} (to_tla);
+		\draw[-stealth] (to_tla) to node[anchor=west] {creates} (compo);
+		\draw[-stealth] (tlc) to node[sloped, anchor=south] {reads} (compo);
+		\draw[-stealth] (tlc) to node[sloped, anchor=south] {reads} (model);
+		\draw[-stealth] (tlc) to node[sloped, anchor=north] {creates} (err);
+		\draw[-stealth] (tlc) to node[sloped, anchor=south] {creates} (out);
+	\end{tikzpicture}
+	\caption{Workflow des tests. Les rectangles noires sont des programmes. Les rectangles bleus arrondis sont des fichiers, y compris les fichiers générés remplis en bleu.}
+	\label{fig:toolchain}
+\end{figure}
+
+Le workflow décrit plus haut peut être décliné pour tester des trajets composés de plusieurs chemins élémentaires. Dans notre cas, nous avons testé sur des trajets de 2 et 3 chemins.
+
+\paragraph{Résultats.} 
+Ces expériences ont été conduites sur Grid'5000,\todo{citation} un banc d'essai dédié à la recherche expérimentale. La majorité des tests ont été effectués sur 32 nodes, dotés d'un processeur 18 cœurs, de la machine "Gros" du cluster de Nancy.
+Voici les résultats~:
+
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|}
+	\hline
+	Nombre de chemins & Temps d'exécution (h) & Succès & Échecs\\
+	\hline
+	2 & 20,7 & 381072 & 0 \\
+	\hline
+	3 & 0,6  & 10791 & 91 \\
+	\hline
+\end{tabular}
+\end{center}
+
+[expliqué que test sur 3 chemin trop contraignant en terme de temps, donc voulu juste un échantillon pour avoir l'intuition]
+
+
+
 
 
 
@@ -1317,7 +1577,7 @@ Cependant, pour prouver cela, il faut se tourner vers les automates temporisés.
 
 \chapter{Conclusion}
 
-
+\section{POV personnel}
 
 \appendix
 
