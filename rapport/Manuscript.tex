@@ -1547,6 +1547,7 @@ Ces expériences ont été conduites sur Grid'5000,\todo{citation} un banc d'ess
 Voici les résultats~:
 
 \begin{center}
+	Modèle 2 :
 \begin{tabular}{|c|c|c|c|c|}
 	\hline
 	Nombre de chemins & Temps d'exécution (h) & Succès & Échecs\\
@@ -1558,9 +1559,25 @@ Voici les résultats~:
 \end{tabular}
 \end{center}
 
-[expliqué que test sur 3 chemin trop contraignant en terme de temps, donc voulu juste un échantillon pour avoir l'intuition]
+\begin{center}
+	Modèle final :
+\begin{tabular}{|c|c|c|c|c|}
+	\hline
+	Nombre de chemins & Temps d'exécution (h) & Succès & Échecs\\
+	\hline
+	2 & 35,8 & 381072 & 0 \\
+	\hline
+	3 & X  & X & X \\
+	\hline
+\end{tabular}
+\end{center}
 
+On observe que les compositions de deux chemins élémentaires se déroule sans problème pour nos deux modèles \footnote{Les expériences n'ont été menées que sur le modèles 2 et le modèle final car ce sont les seuls à être doté d'une fonction de composition.} avec 0 erreur à signaler.
+La différence de temps d'exécution entre les deux modèles s'explique par la complexité croissante des modèles, mais également de la fonction de composition l'accompagnant.
 
+Pour la composition à trois chemins, nous avons mené l'expériences sur un échantillon réduit pour avoir une intuition sur les performances de la fonction de composition. Ces tests avaient été mené dans le cadre de l'écriture d'une article, la deadline étant courte, nous n'avions pas assez de temps pour tester sur tous les cas possibles.
+Les 91 cas menant à une erreur ont été vérifiés manuellement sur une machine personelle et n'ont produit aucune erreur, nous suspectons un léger problème dans l'environnement de test (un fichier qui n'est pas à jour, une version obsolète, etc).  
+Pour le modèle final, nous n'avons pas eu le temps de mener les tests à trois chemins.
 
 
 
