@@ -180,8 +180,6 @@
 \definecolor{commentcolor}{rgb}{0.45, 0.45, 0.45}
 \newcommand{\commentaire}[1]{{\color{commentcolor}{#1}}}
 
-\titleformat{\chapter}[display]
-	{\normalfont\bfseries}{}{1em}{\Large\hspace{1em}}
 
 %%%%%%% Document %%%%%%%%
 
@@ -192,6 +190,9 @@
 
 \begin{document}
 
+
+\titleformat{\chapter}[display]
+	{\normalfont\bfseries}{}{1em}{\Large\hspace{1em}}
 
 \frontmatter
 \maketitle
@@ -307,8 +308,6 @@ Enfin, la section \ref{sec:experiences} présentera les expériences menées sur
 
 
 
-\titleformat{\chapter}[display]
-	{\normalfont\bfseries}{}{1em}{\Large\hspace{1em}}
 
 
 \chapter{Cadre de travail}
@@ -1585,9 +1584,29 @@ Pour le modèle final, nous n'avons pas eu le temps de mener les tests à trois 
 \chapter{Side Quests}
 \label{sec:sidequests}
 
-\section{Maquette de maquette}
-\section{Article}
-(pas certains de l'intégrer)
+%\section{Maquette} 
+\todo{Sections ou juste paragraphes ?}
+
+\paragraph{Maquette.} Une fois les principaux objectifs atteints, nous avons pu nous pencher sur des problèmes secondaires, coomme la création d'une "maquette de la maquette".
+Cela permet de construire un prototype se basant sur une architecture différente de celle actuellement utilisée, afin de moderniser la maquette.
+
+\todo[inline]{Schéma de l'infra}
+
+Pour communiquer entre le Raspberry Pi et les Arduinos, nous utilisons le protocole I2C, permettant une communication efficace dans un modèle maître-esclave.
+En l'état, le raspberry Pi, appelé orchestrateur, coordonne un arduino afin de gérer les feux de signalisation et l'état des aiguillages d'un carrefour représentant les cantons 1, 2 et 3 et leurs aiguillages.
+L'orchestrateur interroge toutes les 100ms l'état des capteurs de voie, via l'arduino, afin de savoir si un train a changé de position. Si c'est le cas, alors il calcule les transformations à appliquer au système (feux au rouge, aiguillages à changer, etc.) et les envoie à l'arduino.
+Les messages entre les deux machines sont très simples, par exemple~: \texttt{F1r} pour passer le feu 1 au rouge, \texttt{A2v} pour mettre l'aiguillage 2 en position déviée.
+
+%\section{Article}
+
+\paragraph{Article.}
+Ce stage à été l'occasion de découvrir le monde de la publication scientifique, en particulier la rédaction d'articles, la soumission et le processus de relecture par les pairs. 
+En effet, un article à été rédigé pour partager notre travail sur le modèle 2, sur la fonction de composition et sur les expériences menées. Malgré des délais très courts, ce dernier a été soumis dans les temps à la conférence \texttt{RSSRail 2025}, mais il n'a pas été retenu.
+La relecture par les pairs à été une expériences enrichissante, nous avons reçu des retours constructifs qui nous aiderons à améliorer l'article pour une future soumission.
+
+
+
+
 
 
 
