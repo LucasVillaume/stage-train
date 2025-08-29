@@ -288,12 +288,22 @@ Si l'utilisation d'automates à états finis nous permets de modéliser le syst�
 Dans ce cadre, nous pouvons utiliser des outils de visualisation pour mieux comprendre les interactions entre les différents états et transitions.
 Sur la figure \ref{fig:zoomCollision}, on remarque qu'à partir de certains états, on tombera forcément sur une collision (en rouge) ou sur un blocage (en jaune).
 
+\iffalse
 \begin{wrapfigure}{l}{0.5\textwidth}
 	\centering
 	\includegraphics[width=0.5\textwidth]{collision.jpg}
 	\caption{Morceau d'un automate de notre système}
 	\label{fig:zoomCollision}
 \end{wrapfigure}
+\fi
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.6\textwidth]{collision.jpg}
+	\caption{Morceau d'un automate de notre système}
+	\label{fig:zoomCollision}	
+\end{figure}
+
 
 \noindent
 Passons désormais en revue le dernier outil de notre panoplie principale~: \TLA. 
@@ -396,9 +406,11 @@ Grâce à ce graphe, nous avons construit une fonction prenant en paramètre la 
 		\fill[red!50!black] (0.5,0.25) circle (1.25mm);
 		\fill[green!50!black] (2.5,0.25) circle (1.25mm);
 
-		\draw (3.5,0) -- (6.5,0) node[midway,below] {2};
-		\fill[green!50!black] (4,0.25) circle (1.25mm);
-		\fill[red!50!black] (6,0.25) circle (1.25mm);
+		\draw[blue] (3.5,0) -- (6.5,0) node[midway,below] {3};
+
+		\draw (7,0) -- (10,0) node[midway,below] {2};
+		\fill[green!50!black] (7.5,0.25) circle (1.25mm);
+		\fill[red!50!black] (9.5,0.25) circle (1.25mm);
 		\end{tikzpicture}
 	}
 	\caption{Schéma d'exemple}
@@ -406,7 +418,7 @@ Grâce à ce graphe, nous avons construit une fonction prenant en paramètre la 
 \end{figure}
 
 Nous allons quelques fois utiliser un schéma similaire à celui sur la figure \ref{fig:exSchema} pour illustrer nos exemples, expliquons-le rapidement.
-Ce schéma représente un réseau composé de deux cantons, numérotés 1 et 2. Chaque canton possède deux feux de signalisation, un à chaque extrémité, pouvant être rouge ou vert. Enfin, les formes géométriques colorées représentent les trains, ici c'est un rectangle.
+Ce schéma représente un réseau composé de deux cantons, numérotés 1 et 2, et d'un aiguillage, en bleu. Chaque canton possède deux feux de signalisation, un à chaque extrémité, pouvant être rouge ou vert. Enfin, les formes géométriques colorées représentent les trains, ici c'est un rectangle.
 
 \section{Première approche}
 
@@ -724,7 +736,7 @@ Il a donc été décidé de développer un moteur de simulation en Python, perme
 
 Ces petits scripts Python nous permettaient de charger des scénarios de test et de visualiser le comportement du modèle sur un graphe. Les scénarios étant assez simple, il est facile de voir si le comportement attendu est respecté ou non.
 La visualisation de la solution se faisait via la génération d'un fichier \texttt{svg} obtenus à partir d'un \texttt{.dot}. L'inconvénient majeur réside dans la vérification de la solution, si le graphe gagne en complexité, il ne pourra plus être analysé, voir affiché.
-Le besoin de passer à un formalisme plus rigoureux comme \TLA+ s'est alors fait sentir.
+Le besoin de passer à un formalisme plus rigoureux comme \TLA s'est alors fait sentir.
 
 \todo{étoffer ? Ajouter une side box pour l'archi du moteur ?}
 
@@ -831,6 +843,7 @@ Avec toutes ces modifications, la nouvelle représentation du régulateur est la
 
 \paragraph{Évènements.}
 Un nouvel évènement est introduit, noté \authOrder, il est la contraction des ordres \texttt{wait} et \texttt{incr}. C'est un ordre particulier car il n'est utile que dans un cas précis, quand l'évènement d'un train contient un ordre \texttt{turn} impliquant un aiguillage qu'il sera le prochain à utiliser, c'est souvent le cas lorsqu'un train effectue un demi-tour. Prenons par exemple le parcours 8,3,7 sur la maquette, voir \ref{fig:grapheMaquette}, l'aiguillage doit être dans l'état "v" puis "d".
+
 Maintenant que le train peut avancer sans avoir terminé l'évènement, il peut avancer vers le mauvais canton. C'est la que $\authOrder$ intervient, il indique que le train doit s'arrêter. Ainsi, la fonction \nextWait{~} ne recherche plus uniquement \texttt{wait} mais également $\authOrder$ pour gérer les feux, voir la règles \ruleDef{WaitAfter} plus loin.
 
 \begin{example}[GoodEnding M1]
@@ -989,7 +1002,8 @@ Pour revenir sur \texttt{nextWait}, même si la fonction porte le même nom, ell
 
 \paragraph{Limitations.}
 Le modèle découplage à plutôt bien répondu aux limitations précédemment évoqué pour le modèle zéro, notamment au niveau du découplage $\Gamma/R$ et de l'atomicité des évènements. Cependant, ce modèle est encore loin d'être parfait et compte de nombreuses imperfections.
-Tout d'abord, le régulateur contrôle les feux de signalisation, mais il n'y a pas de raison pour que ceux-ci en fassent partie, il est possible de les considérer comme éléments du système à part entière. De plus, cela nous rapprocherait de la réalité en modélisant un comportement "fail-safe" pour ces derniers, nous reviendrons sur ce point dans la prochaine section.
+Tout d'abord, le régulateur contrôle les feux de signalisation, mais il n'y a pas de raison pour que ceux-ci en fassent partie, il est possible de les considérer comme éléments du système à part entière.
+De plus, cela nous rapprocherait de la réalité en modélisant un comportement "fail-safe" pour ces derniers, nous reviendrons sur ce point dans la prochaine section.
 
 
 
@@ -1034,7 +1048,7 @@ C'est pourquoi nous avons fait le choix de garder $j$ comme la ressource, pour f
 \end{warnbox}
 
 %ajout du numéro de canton dans le gestionnaire, mais pas de problème de cohérence :  c'est pas la position actuel du train mais l'endroit où le train à déclencher l'event, comme histo du modèle zéro
-
+\newpage
 \begin{wrapfigure}{r}{0.3\textwidth}
 	\centering
 	\resizebox{0.3\textwidth}{!}{
@@ -1164,6 +1178,7 @@ En plus de ces problèmes, nous avons rencontré un cas plutôt difficile à mod
 
 \paragraph{Raffinement.} À travers ce dernier modèle on se rapproche des comportements réels sur le déplacement des trains, mais aussi sur la gestion d'évènements et d'envoi de messages.
 Nous allons introduire des capteurs aux extrémités des cantons afin de détecter le passage des trains, ainsi ce n'est plus le train qui enverra le message mais le capteur, renforçant la séparation entre les différents composants du système.
+
 Une nouvelle fonction, \tsuc{b_i}{d}{\swFmt{\sigma}}, similaire à \suc{b_i}{d}{\sigma}, fait son apparition. Elle est utilisée en parallèle de \texttt{suc} pour déterminer le prochain élément sur lequel se déplacer, que ce soit un canton ou un aiguillage. Pour rappel, \suc{b_i}{d}{\sigma} ne renvoie que le prochain canton.
 Enfin, un nouvel ordre pour le programme des trains est introduit afin de régler le problème de cycle évoqué plus haut.
 
@@ -1197,9 +1212,9 @@ De plus la structure des évènements changent aussi, l'information du canton li
 
 \paragraph{Régulateur.} Nous avons besoin d'introduire des checkpoints pour les trains, notés $CP$. Ils permettent de compenser la perte d'information causée par le changement de domaine des gestionnaires d'évènements. Il est défini par $CP~:~\trainFmt{\gamma} \mapsto \mathcal{L}$, avec $\mathcal{L}$ une liste de cantons. Ainsi, le premier élément de la liste pour un train \tid{i} est le prochain canton où il devra s'arrêter.
 
-\begin{wrapfigure}{r}{0.3\textwidth}
+\begin{wrapfigure}{r}{0.2\textwidth}
 	\centering
-	\resizebox{0.3\textwidth}{!}{
+	\resizebox{0.2\textwidth}{!}{
 		\begin{tikzpicture}[
 			vertex/.style={circle, draw=gray, fill=white, very thick, minimum size=7mm, text width=0.5cm, align=center},
 		]
@@ -1232,6 +1247,7 @@ Aussi, lorsque le régulateur commence à traiter des évènements, il le fait j
 
 \paragraph{Garde.} La garde est toujours présente et se voit dotée d'une nouvelle phase, notée $M$ pour \textit{management}, elle permet au régulateur d'appliquer la fonction \texttt{stalk} avant chaque évènement et de retirer les ordres "sync" dans les programmes des trains.
 
+\newpage
 \begin{example}[GoodEnding M3]
 		~\\
 	Modélisation de l'état initale d'un scénario en utilisant le modèle 3~:
@@ -1331,7 +1347,7 @@ La règle \ruleDef{ExitBlock} permet à un train de sortir d'un canton pour se r
 
 		\end{tikzpicture}
 	}
-	\caption{Règle ExitBlock. En bleu, un aiguillage. En pointillé, la position du train selon le régulateur.}
+	\caption{Avant/Après la règle ExitBlock. En pointillé, la position du train selon le régulateur.}
 	\label{fig:exExitBlock}
 \end{figure}
 
@@ -1408,12 +1424,12 @@ Intéressons-nous maintenant au passage d'un train d'un aiguillage à un autre.
 
 		\end{tikzpicture}
 	}
-	\caption{Règle EnterSwitch.}
+	\caption{Avant/Après la règle EnterSwitch.}
 	\label{fig:exEnterSwitch}
 \end{figure}
 
 La règle \ruleDef{EnterSwitch} est prèsque similaire à la précédente. Tout d'abord, on note la disparition de la contrainte sur le feu et de l'envoi de message, le train se trouvant sur un aiguillages, aucun feu de signalisation ou capteur ne sont présents.
-Enfin, pour utiliser cette règle nous avons besoin que le train se trouve sur un aiguillage, d'où la contrainte $\texttt{aig(\bid{i})} = true$. Dernière règle de cette section, nous allons voir comment un train passe d'un aiguillage à un canton. \todo{figure mal placé}
+Enfin, pour utiliser cette règle nous avons besoin que le train se trouve sur un aiguillage, d'où la contrainte $\texttt{aig(\bid{i})} = true$. Dernière règle de cette section, nous allons voir comment un train passe d'un aiguillage à un canton.
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{ExitBlock}] {
@@ -1479,7 +1495,7 @@ Enfin, pour utiliser cette règle nous avons besoin que le train se trouve sur u
 
 		\end{tikzpicture}
 	}
-	\caption{Règle EnterBlock.}
+	\caption{Avant/Après la règle EnterBlock.}
 	\label{fig:exEnterBlock}
 \end{figure}
 
@@ -1527,7 +1543,7 @@ De plus, le programme s'exécute de manière non déterministe, étape par étap
 Nos variables sont initialisées dans une donnée particulière appelée \texttt{init}, cette dernière décrit l'état initial du système.
 Au sein des actions, il est possible d'utiliser des "constantes locales", qui ne persistent que pendant l'exécution de l'action. Cependant, il est impossible de redéfinir ces constantes, le comportement est plus proche d'une macro facilitant l'écriture.
 
-
+\newpage
 \begin{minted}{C}
 Init == 
 	LET 
@@ -1556,25 +1572,25 @@ Sur la figure \ref{fig:initTLA}, on peut voir une structure, \texttt{train1} rep
 
 \begin{minted}{C}
 Until(T) == 
-LET
-	numEv == reg.Ne[T.id]
-	id == T.id
-	event == reg.E[id][numEv]
-	order == Head(T.prog)
-	nextC == Suiv(T.pos,T.dir, reg.S)
-	auth == reg.A[id]
-IN
-	/\ Len(T.prog) > 0
-	/\ Len(event) = 0
-	/\ order[2] = T.dir 
-	/\ auth /= 0
-	/\ order[1] = "StartUntil"
-	/\ nextC /= -1
-	/\ order[3] /= nextC
-	/\ gamma' = [gamma EXCEPT ![id].pos = nextC]
-	/\ rule' = "until"
-	/\ reg' = [reg EXCEPT !.Ne[id] = numEv+1,
-			      !.A[id] = auth-1]
+	  LET
+	  	numEv == reg.Ne[T.id]
+	  	id == T.id
+	  	event == reg.E[id][numEv]
+	  	order == Head(T.prog)
+	  	nextC == Suiv(T.pos,T.dir, reg.S)
+	  	auth == reg.A[id]
+	  IN
+	  	/\ Len(T.prog) > 0
+	  	/\ Len(event) = 0
+	  	/\ order[2] = T.dir 
+	  	/\ auth /= 0
+	  	/\ order[1] = "StartUntil"
+	  	/\ nextC /= -1
+	  	/\ order[3] /= nextC
+	  	/\ gamma' = [gamma EXCEPT ![id].pos = nextC]
+	  	/\ rule' = "until"
+	  	/\ reg' = [reg EXCEPT !.Ne[id] = numEv+1,
+	  				!.A[id] = auth-1]
 \end{minted}
 
 \begin{figure}[h]
@@ -1835,6 +1851,8 @@ Cependant, notre méthodologie à parfois montré des faiblesses, notamment en c
 \subparagraph{}
 Nous avons ensuite développé une fonction de composition dans le but d'automatiser la création de programmes pour notre système. Pour nous assurer de sa justesse, nous avons déployé des tests automatisés sur un banc d'essai, lesquels ont donné des résultats encourageants.
 Cependant, nos expériences n'ont été réalisées qu'avec des compositions de deux ou trois chemins élémentaires, ce qui ne nous permet pas d'affirmer que notre approche est généralisable à des compositions plus grandes.
+
+[ouverture]
 
 \section{POV personnel}
 
