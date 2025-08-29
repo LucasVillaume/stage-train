@@ -237,14 +237,11 @@ Un aiguillage représente une portion de voie qui offre un choix entre plusieurs
 
 \section{Outils}
 
-\paragraph{modèle}
-\paragraph{règles}
-\paragraph{tla}
 \todo{mettre des paragraphes meme s'ils disparaissent, surtout pour voir si j'en dis assez}
 
 
 
-\paragraph{}
+\paragraph{Modèle.}
 Pour nous aider à atteindre notre objectif, nous avons utilisé plusieurs outils, aussi bien théoriques que pratiques.
 Pour la modélisation, nous avons besoin d'outils théoriques comme les automates à états finis, une construction courante en informatique. Elle se présente comme un graphe orienté
 où chaque sommet représente un état du système, et chaque arête une transition entre deux états, parfois étiquetée.
@@ -279,7 +276,7 @@ Ces dernières sont particulièrement utiles puisqu'elles permettent de représe
 \end{wrapfigure}
 
 
-
+\paragraph{Règles.}
 Une règle d'inférence se compose en deux parties, les prémisses et la conclusion. Nous utilisons les prémisses comme condition d'application de la règle, par exemple~: "le feu est vert", et la conclusion comme "effet" de la transition~: la voiture avance.
 On écrira alors ~: $\inferrule*[left={règle}]{\text{feu = vert}}{\text{e $\rightarrow$ e'}}$. 
 L'écriture de ces règles est cruciale pour la modélisation, car c'est le "moteur" du système, une condition mal formulée peut empêcher une transition légitime à nos yeux de se produire, alors qu'une condition trop permissive peut engendrer des transitions non souhaitées et fausser la "simulation".
@@ -331,6 +328,69 @@ Bien qu'essayant de m'imposer une autonomie dans mon travail, mes encadrants ont
 L'intégration au sein de l'équipe s'est déroulée naturellement, les échanges avec plusieurs membres de l'équipe m'ont permis d'élargir ma culture scientifique et de mieux comprendre les mécanismes de la recherche scientifique.
 
 \todo{Peut-etre faire un truc chronologique : facile au début pour rentrer dans le sujet, puis de plus en plus complexe}
+
+%0-1 représente une semaine
+\begin{figure}[h]
+	\centering
+	\resizebox{1\textwidth}{!}{
+		\begin{tikzpicture}[
+			line/.style={very thick},
+			model/.style={rectangle, draw=green!50!black, fill=green!20},
+			code/.style={rectangle, draw=blue!50!black, fill=blue!20},
+			mixed/.style={rectangle, draw=orange!50!black, fill=orange!20},
+			write/.style={rectangle, draw=red!50!black, fill=red!20},
+			other/.style={rectangle, draw=yellow!50!black, fill=yellow!20}
+		]
+		
+		\draw[line] (0,0.5) -- (0,1.5);
+		\draw[line] (22,0.5) -- (22,1.5);
+		\draw[line] (0,1) -- (22,1);
+
+		\draw[other] (0.1,0.8) rectangle (0.9,1.2) ;
+		%m0
+		\draw[model] (1,0.8) rectangle (2.9,1.2) ;
+		\draw[mixed] (3,0.8) rectangle (5.9,1.2) ;
+		\draw[-] (1,-0.5) -- (5.9,-0.5) node[midway, below] {Mod. zéro} ;
+		\draw[-] (1,-0.25) -- (1,-0.5) ;
+		\draw[-] (5.9,-0.25) -- (5.9,-0.5) ;
+		%m1
+		\draw[mixed] (6,0.8) rectangle (8.9,1.2) ;
+		\draw[-] (6,-0.5) -- (8.9,-0.5) node[midway, below] {Mod. découplage};
+		\draw[-] (6,-0.25) -- (6,-0.5) ;
+		\draw[-] (8.9,-0.25) -- (8.9,-0.5) ;
+		%m2
+		\draw[mixed] (9,0.8) rectangle (10.9,1.2) ;
+		\draw[write] (11,0.8) rectangle (11.9,1.2) ;
+		\draw[code] (12,0.8) rectangle (12.9,1.2) ;
+		\draw[-] (9,-0.5) -- (12.9,-0.5) node[midway, below] {Mod. 2};
+		\draw[-] (9,-0.25) -- (9,-0.5) ;
+		\draw[-] (12.9,-0.25) -- (12.9,-0.5) ;
+		%m3 + maquette
+		\draw[mixed] (13,0.8) rectangle (17.9,1.2) ;
+		\draw[-] (13,-0.5) -- (17.9,-0.5) node[midway, below] {Mod. final + maquette};
+		\draw[-] (13,-0.25) -- (13,-0.5) ;
+		\draw[-] (17.9,-0.25) -- (17.9,-0.5) ;
+		%vacances
+		\draw[other] (18,0.8) rectangle (18.9,1.2) ;
+		%rapport
+		\draw[write] (19,0.8) rectangle (21.9,1.2) ;
+		\draw[-] (19,-0.5) -- (21.9,-0.5) node[midway, below] {Rapport};
+		\draw[-] (19,-0.25) -- (19,-0.5) ;
+		\draw[-] (21.9,-0.25) -- (21.9,-0.5) ;
+
+		\end{tikzpicture}
+	}
+	\caption{Frise chronologique. En vert les périodes de modélisation, en bleu les périodes d'implémentation, en rouge les périodes de rédaction et en jaune les périodes diverse.}
+	\label{fig:frise}
+\end{figure}
+
+\todo{décrire rapidement la figure}
+
+
+
+
+
+
 
 
 \chapter{Modélisation}
@@ -1535,11 +1595,11 @@ Cependant, pour prouver cela, il faut se tourner vers les automates temporisés.
 Dans notre cas, nous allons beaucoup utiliser un outil présent dans \TLA, le model checker \textit{TLC}, qui permet d'explorer l'espace d'état d'une spécification. Autrement dit, il permet de générer tous les états d'un système si celui-ci est fini, ainsi il est possible de vérifier si nos propriétés sont toujours respectées.
 Nous avons choisi d'utiliser cet outil car il est facile de représenter une machine à états finis, ce à quoi s'apparente notre système.
 
-\paragraph{Spécification.} Les spécifications \TLA telles que nous allons les utiliser comportent plusieurs éléments clés, comme des variables, des propriétés temporelles et des actions, nous verrons cela plus en détail par la suite.
-Ces éléments doivent être rédigées en utilisant la syntaxe formelle de l'outil, qui repose grandement sur des expressions mathématiques et logiques. Ce langage n'est pas un langague de programmation, il n'est pas possible d'écrire de boucle et les structures de données sont "limitées", mais il est quand même possible de définir des fonctions. 
+\paragraph{Spécification.} Les spécifications \TLA telles que nous allons les utiliser comportent plusieurs éléments clés, comme des \emph{variables}, des \emph{propriétés temporelles} et des \emph{actions}, nous verrons cela plus en détail par la suite.
+Ces éléments doivent être rédigées en utilisant la syntaxe formelle de l'outil, qui repose grandement sur des expressions mathématiques et logiques. Ce langage n'est pas un langage de programmation, il n'est pas possible d'écrire de boucle et les structures de données sont "limitées", mais il est quand même possible de définir des fonctions. 
 De plus, le programme s'exécute de manière non déterministe, étape par étape, en choisissant une action applicable au hasard.
 
-\subparagraph{} Les variables sont centrales, c'est elles qui représentent l'état du système, elles sont les seules données à persister entre les actions. Pour le modèle 0, nous avons trois variables appelées \texttt{gamma}, \texttt{reg} et \texttt{rule}, la dernière étant une mesure de debug pour contrôler quel action à été appliquée.
+\subparagraph{} Les variables sont centrales, ce sont elles qui représentent l'état du système, elles sont les seules données à persister entre les actions. Pour le modèle 0, nous avons trois variables appelées \texttt{gamma}, \texttt{reg} et \texttt{rule}, la dernière permettant de contrôler quelle action a été appliquée.
 Nos variables sont initialisées dans une donnée particulière appelée \texttt{init}, cette dernière décrit l'état initial du système.
 Au sein des actions, il est possible d'utiliser des "constantes locales", qui ne persistent que pendant l'exécution de l'action. Cependant, il est impossible de redéfinir ces constantes, le comportement est plus proche d'une macro facilitant l'écriture.
 
@@ -1565,10 +1625,9 @@ Init ==
 	\label{fig:initTLA}
 \end{figure}
 
-Sur la figure \ref{fig:initTLA}, on peut voir une structure, \texttt{train1} représentant un train et associant la chaîne de caractères "tid" à la valeur 1, "pid" à la valeur 4, etc. De cette manière, on peut accéder aux valeurs d'une structure en utilisant les clés appropriées, \texttt{train1.tid} par exemple.
+Sur la figure \ref{fig:initTLA}, on peut voir la structure initiale de \texttt{train1}, représentant un train, et associant la chaîne de caractères "tid" à la valeur 1, "pid" à la valeur 4, etc. De cette manière, on peut accéder aux valeurs d'une structure en utilisant les clés appropriées, \texttt{train1.tid} par exemple, qui représente l'identifiant du train sur notre modèle.
 
-
-\subparagraph{} Les actions représentent nos règles de transitions, elles permettent de modifier l'état du système sous certaines conditions. Elles ont besoins d'être regroupées sous une même "fonction", appelée \texttt{Next}, qui décrit le comportement du système.
+\subparagraph{} Les actions représentent nos règles de transitions, elles permettent de modifier l'état du système sous certaines conditions. Elles ont besoin d'être regroupées sous une même "fonction", appelée \texttt{Next}, qui décrit le comportement du système.
 
 \begin{minted}{C}
 Until(T) == 
@@ -1599,10 +1658,10 @@ Until(T) ==
 \end{figure}
 
 Grâce à la figure \ref{fig:untilTLA}, on remarque plusieurs choses intéressantes. Tout d'abord, la syntaxe, les symboles $\wedge$ expriment une conjonction logique, c'est-à-dire que toutes les \textit{clauses} doivent être vraies pour effectuer la transition.
-On sépare ces clauses en deux catégories, les conditions nécéssaires à l'action, équivalente à nos prémisses dans les règles, et les clauses modifiant l'état, équivalente à nos conclusions. Ces dernières sont facilement identifiables grâce à l'opérateur prime ($^\prime$), à noté qu'une variable ne subissant pas de modification sera notée \texttt{UNCHANGED}.
+On sépare ces clauses en deux catégories, les conditions nécéssaires à l'action, équivalentes à nos prémisses dans les règles, et les clauses modifiant l'état, équivalentes à nos conclusions. Ces dernières sont facilement identifiables grâce à l'opérateur prime ($^\prime$), à noter qu'une variable ne subissant pas de modification sera notée \texttt{UNCHANGED}.
 
 \subparagraph{} Enfin, les propriétés temporelles vont déterminer si l'implémentation de notre modèle à le bon comportement. Pour cela, on définit deux propriétés~: \textit{safety} et \textit{liveness}.
-La première permet de s'assurer qu'aucune collision n'a lieu, pour cela on veut que tous les trains soit toujours sur des cantons différents. La seconde propriété nous assure du bon fonctionnement du système, on traduit par le fait que tous les trains sont à l'arrêt à leur destination.
+La première permet de s'assurer qu'aucune collision n'a lieu, pour cela on veut que tous les trains soient toujours sur des cantons différents. La seconde propriété nous assure du bon fonctionnement du système, on traduit par le fait que tous les trains sont à l'arrêt à leur destination.
 
 
 \begin{minted}{C}
@@ -1650,7 +1709,7 @@ Pour indiquer cela à \TLA, nous devons utiliser la \textit{weak fairness}, une 
 \section{Composition}
 \label{sec:composition}
 
-\paragraph{} Jusqu'à présent, nous avons considérer que les programmes des train et du régulateur étaient créer par un humain. Cependant, il est possible d'automatiser ce processus, c'est ce que nous allons voir dans cette section.
+\paragraph{} Jusqu'à présent, nous avons considérer que les programmes des trains et du régulateur étaient créés par un humain. Cependant, il est possible d'automatiser ce processus, c'est ce que nous allons voir dans cette section.
 Ce besoin est apparu lors de phases de test où il était nécessaire d'avoir plusieurs trajets avec des aspects différents pour vérifier que le comportement du système était correct.
 
 \paragraph{}Nous avons d'abord identifier deux types de trajets~:
@@ -1716,7 +1775,7 @@ On définit un couple de chemins comme étant composable si les positions d'arri
 		\draw[-stealth] (tlc) to node[sloped, anchor=north] {creates} (err);
 		\draw[-stealth] (tlc) to node[sloped, anchor=south] {creates} (out);
 	\end{tikzpicture}
-	\caption{Workflow des tests. Les rectangles noires sont des programmes. Les rectangles bleus arrondis sont des fichiers, y compris les fichiers générés remplis en bleu.}
+	\caption{Workflow des tests. Les rectangles noirs sont des programmes. Les rectangles bleus arrondis sont des fichiers, y compris les fichiers générés remplis en bleu.}
 	\label{fig:toolchain}
 \end{figure}
 
@@ -1762,7 +1821,7 @@ Pour le modèle final, nous n'avons pas eu le temps de mener les tests à trois 
 
 
 
-\chapter{Side Quests}
+\chapter{objectifs secondaires}
 \label{sec:sidequests}
 
 \paragraph{Maquette.} Une fois les principaux objectifs atteints, nous avons pu nous pencher sur des problèmes secondaires, coomme la création d'une "maquette de la maquette".
@@ -1809,7 +1868,7 @@ Cela permet de construire un prototype se basant sur une architecture différent
 
 	\end{tikzpicture}
 	}
-	\caption{Schéma simplifié.}
+	\caption{Schéma simplifié de la communication entre les éléments du prototype.}
 	\label{fig:prototype}
 \end{figure}
 
@@ -1818,12 +1877,10 @@ En l'état, le raspberry Pi, appelé orchestrateur, coordonne un arduino afin de
 L'orchestrateur interroge toutes les 100ms l'état des capteurs de voie, via l'arduino, afin de savoir si un train a changé de position. Si c'est le cas, alors il calcule les transformations à appliquer au système (feux au rouge, aiguillages à changer, etc.) et les envoie à l'arduino.
 Les messages entre les deux machines sont très simples, par exemple~: \texttt{F1r} pour passer le feu 1 au rouge, \texttt{A2v} pour mettre l'aiguillage 2 en position déviée.
 
-%\section{Article}
-
 \paragraph{Article.}
-Ce stage à été l'occasion de découvrir le monde de la publication scientifique, en particulier la rédaction d'articles, la soumission et le processus de relecture par les pairs. 
-En effet, un article à été rédigé pour partager notre travail sur le modèle 2, sur la fonction de composition et sur les expériences menées. Malgré des délais très courts, ce dernier a été soumis dans les temps à la conférence \texttt{RSSRail 2025}, mais il n'a pas été retenu.
-La relecture par les pairs à été une expériences enrichissante, nous avons reçu des retours constructifs qui nous aiderons à améliorer l'article pour une future soumission.
+Nous avons rédigé un article pour partager notre travail sur le modèle 2, sur la fonction de composition et sur les expériences menées. Malgré des délais très courts, ce dernier a été soumis dans les temps à la conférence \texttt{RSSRail 2025}, mais il n'a pas été retenu.
+La relecture par les pairs a été une expériences enrichissante, nous avons reçu des retours constructifs qui nous aiderons à améliorer l'article pour une future soumission.
+Grâce à cette expérience, j'ai découvert le monde de la publication scientifique, en particulier la rédaction d'articles, la soumission et le processus de relecture par les pairs. 
 
 
 
@@ -1834,14 +1891,14 @@ La relecture par les pairs à été une expériences enrichissante, nous avons r
 
 \chapter{Conclusion}
 
-\paragraph{} Ce stage avait pour objectif de créer un outil permettant de vérifier l'ordonnancement de programme de train, voyons si ces objectifs ont été atteints.
-Pour cela, nous avons d'abord modélisé la maquette sous forme de graphe, figure \ref{fig:maquette}, afin d'obtenir un espace dans lequel faire se déplacer nos trains.
+\paragraph{} Ce stage avait pour objectif de créer un outil permettant de vérifier l'ordonnancement de programmes de train.
+Pour cela, nous avons d'abord modélisé la maquette sous forme de graphe (figure \ref{fig:maquette}) afin d'obtenir un espace dans lequel faire se déplacer nos trains.
 Il a ensuite fallu créer des modèles successifs, chaque fois plus proche de la réalité, en intégrant des éléments comme les capteurs de voie ou les feux de signalisation.
 Bien qu'importantes, ces intégrations ont fait émerger des problématiques, aujourd'hui résolues.
 
 \subparagraph{}
 Comme il est presque impossible pour un humain de tracer l'ensemble des états d'un système comme celui-ci, nous avons dû implémenter les modèles, d'abord sur Python grâce à un moteur de simulation, puis sur \TLA avec l'assistance de \texttt{TLC}.  
-Différents scénarios, dont nous connaissions parfaitement les comportements attendus, ont permis de pointer les diverses erreurs dans nos modèles.
+Différents scénarios, dont nous connaissions les comportements attendus, ont permis de pointer les diverses erreurs dans nos modèles.
 
 \subparagraph{}
 Notre méthode de travail nous a permis de rentrer en douceur dans le sujet, avec un premier modèle naïf, puis de complexifier progressivement les choses. Cette approche itérative est chronophage, mais, elle permet de segmenter des problèmes complexes en sous-problèmes plus simples à résoudre.
@@ -1853,11 +1910,10 @@ Nous avons ensuite développé une fonction de composition dans le but d'automat
 Cependant, nos expériences n'ont été réalisées qu'avec des compositions de deux ou trois chemins élémentaires, ce qui ne nous permet pas d'affirmer que notre approche est généralisable à des compositions plus grandes.
 
 \subparagraph{}
-Bien que de nombreux objectifs aient été atteints, notre modèle reste perfectible. Une ouverture vers les automates temporisés permettrait peut-être de simplifier la gestion des événements et de s'approcher encore plus de la réalité.
-
+Bien que notre modèle final soit le plus réaliste, il reste perfectible. Une ouverture vers les automates temporisés permettrait peut-être de simplifier la gestion des événements et de s'approcher encore plus de la réalité.
 
 \paragraph{}
-Sur le plan personnel, ce stage m'a permis d'acquérir de nouvelles compétences, notamment en modélisation de systèmes, tout en renforçant ma capacité à travailler en autonomie. Bien que ne s'inscrivant pas parfaitement dans mon cursus, ce stage à été l'occasion d'élargir ma culture technique et scientifique, en découvrant un domaine, la vérification formelle, que je n'avais pas eu l'occasion d'explorer auparavant.
+Sur le plan personnel, ce stage m'a permis d'acquérir de nouvelles compétences, notamment en modélisation de systèmes, tout en renforçant ma capacité à travailler en autonomie. Ce dernier à été l'occasion d'élargir ma culture technique et scientifique, en découvrant un domaine, la vérification formelle, que je n'avais pas eu l'occasion d'explorer auparavant.
 De plus, cette expérience m'a permis de conforter mes choix d'orientation professionnelle et m'a offerte une perspective d'avenir au travers d'une opportunité de thèse, mélangeant cybersécurité et vérification formelle.
 
 \appendix
