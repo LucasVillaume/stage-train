@@ -713,7 +713,7 @@ Pour limiter les problèmes, on voudrait rendre les évènements atomiques, c'es
 
 \paragraph{Python.}
 Notre méthode de travail implique un développement conjoint du modèle théorique et de son implémentation, il est alors plus simple de valider des "morceaux" de modèle grâce à nos scénarios de test.
-Cependant, il était prévu que l'implémentation soit faite en \TLA, langage de spécification formelle dont le fonctionnement était assez obscur à ce moment du stage.
+Cependant, il était prévu que l'implémentation soit faite en \TLA, langage de spécification formelle dont le fonctionnement n'était pas encore acquis à ce moment du stage.
 Il a donc été décidé de développer un moteur de simulation en Python, permettant de tester les balbutiements du modèle zéro et d'avoir une intuition sur le fonctionnement de \TLA, voir plus section \ref{sec:tla}.
 
 
@@ -1199,7 +1199,7 @@ De plus la structure des évènements changent aussi, l'information du canton li
 
 \begin{wrapfigure}{r}{0.3\textwidth}
 	\centering
-	\resizebox{0.2\textwidth}{!}{
+	\resizebox{0.3\textwidth}{!}{
 		\begin{tikzpicture}[
 			vertex/.style={circle, draw=gray, fill=white, very thick, minimum size=7mm, text width=0.5cm, align=center},
 		]
@@ -1263,11 +1263,12 @@ Aussi, lorsque le régulateur commence à traiter des évènements, il le fait j
 
 \paragraph{Dynamique.}
 
+De nouvelles règles concernant les déplacements de trains sont introduites dans ce modèle, en accord avec les objectifs évoqués plus haut. La règle \ruleDef{Until} change peu, on utilise maintenant la fonction \texttt{tsuc} plutôt que \texttt{suc}. De cette manière, on peut savoir si le successeur est un canton où non.
+
 \begin{warnbox}
 	Le modèle présenté est en cours de développement, les règles de transitions, implémentées en \TLA, n'ont pas encore fait l'objet d'une formalisation sur papier.
 \end{warnbox}
 
-De nouvelles règles concernant les déplacements de trains sont introduites dans ce modèle, en accord avec les objectifs évoqués plus haut. La règle \ruleDef{Until} change peu, on utilise maintenant la fonction \texttt{tsuc} plutôt que \texttt{suc}. De cette manière, on peut savoir si le successeur est un canton où non.
 
 La règle \ruleDef{ExitBlock} permet à un train de sortir d'un canton pour se rendre sur un aiguillage.
 
@@ -1284,6 +1285,55 @@ La règle \ruleDef{ExitBlock} permet à un train de sortir d'un canton pour se r
 		\redTuple{\guardS}{\push{\bufTrain}{\langle\bid{i},\dirFmt{d}\rangle}}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTupleMF{\tid{m}}{\bid{i}}{d}{\trainConcat{\su{d}{\posFmt{N}}}{P}}{\bid{j}}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
+
+\begin{figure}[h]
+	\centering
+	\resizebox{1\textwidth}{!}{
+		\begin{tikzpicture}[thick,scale=1]
+		\draw (0,0) -- (3,0) node[midway,below] {1};
+		\fill[red!80!black] (0.5,0.25) circle (1.25mm);
+		\fill[green!50!black] (2.5,0.25) circle (1.25mm);
+		\fill[red] (1.25,0.25) rectangle (1.75,0.75);
+
+		%aiguillage
+		\draw[color=blue] (3.5,0) -- (6.5,0) node[midway,below] {4};
+		\draw[color=blue] (5,0) -- (6.5,1) node[midway,below] {};
+
+
+		\draw (7,0) -- (10,0) node[midway,below] {2};
+		\fill[green!50!black] (7.5,0.25) circle (1.25mm);
+		\fill[red!80!black] (9.5,0.25) circle (1.25mm);
+
+		\draw (7,1) -- (10,1) node[pos=0.7,below] {3};
+		\fill[green!50!black] (7.5,1.25) circle (1.25mm);
+		\fill[red!80!black] (9.5,1.25) circle (1.25mm);
+
+		\draw[->] (11,0.5) -- (12,0.5) node[midway,above] {\ruleDef{ExitBlock}};
+
+		\draw (13,0) -- (16,0) node[midway,below] {1};
+		\fill[red!80!black] (13.5,0.25) circle (1.25mm);
+		\fill[green!50!black] (15.5,0.25) circle (1.25mm);
+		\draw[red,dotted] (14.25,0.25) rectangle (14.75,0.75);
+
+		%aiguillage
+		\draw[color=blue] (16.5,0) -- (19.5,0) node[midway,below] {4};
+		\draw[color=blue] (18,0) -- (19.5,1) node[midway,below] {};
+		\fill[red] (17.25,0.25) rectangle (17.75,0.75);
+
+
+		\draw (20,0) -- (23,0) node[midway,below] {2};
+		\fill[green!50!black] (20.5,0.25) circle (1.25mm);
+		\fill[red!80!black] (22.5,0.25) circle (1.25mm);
+
+		\draw (20,1) -- (23,1) node[pos=0.7,below] {3};
+		\fill[green!50!black] (20.5,1.25) circle (1.25mm);
+		\fill[red!80!black] (22.5,1.25) circle (1.25mm);
+
+		\end{tikzpicture}
+	}
+	\caption{Règle ExitBlock. En bleu, un aiguillage. En pointillé, la position du train selon le régulateur.}
+	\label{fig:exExitBlock}
+\end{figure}
 
 \noindent
 Ici, on remarque que la $tpos$ du train est mise à jour, passant de \bid{i} à \bid{j}, mais que la position $pos$ reste inchangée~: aux yeux du système, le train \tid{m} est toujours dans le canton \bid{i}. On remarque également une nouvelle condition, $\texttt{aig(\bid{i})} = true$, qui nous assure que le successeur est bien un aiguillage.
@@ -1303,8 +1353,67 @@ Intéressons-nous maintenant au passage d'un train d'un aiguillage à un autre.
 	}
 \end{mathpar}
 
+\begin{figure}[h]
+	\centering
+	\resizebox{1\textwidth}{!}{
+		\begin{tikzpicture}[thick,scale=1]
+		\draw (0,0) -- (3,0) node[midway,below] {1};
+		\fill[green!50!black] (2.5,0.25) circle (1.25mm);
+
+		%aiguillages
+		\draw[color=blue] (3.5,0) -- (6.5,0) node[midway,below] {5};
+		\draw[color=blue] (4.5,0) -- (5.2,0.5) node[midway,below] {};
+		\draw[color=blue] (5.25,0.55) -- (6,1) -- (6.5,1) node[midway,below] {};
+		\draw[color=blue] (6,1) -- (7.5,2) node[pos=0,above] {6};
+		\fill[red] (4.25,0.25) rectangle (4.75,0.75);
+
+
+		\draw (7,0) -- (10,0) node[midway,below] {2};
+		\fill[green!50!black] (7.5,0.25) circle (1.25mm);
+		\fill[red!80!black] (9.5,0.25) circle (1.25mm);
+
+		\draw (7,1) -- (10,1) node[pos=0.7,below] {3};
+		\fill[green!50!black] (7.5,1.25) circle (1.25mm);
+		\fill[red!80!black] (9.5,1.25) circle (1.25mm);
+
+		\draw (8,2) -- (10,2) node[pos=0.7,below] {4};
+		\fill[green!50!black] (8.5,2.25) circle (1.25mm);
+		\fill[red!80!black] (9.5,2.25) circle (1.25mm);
+
+		\draw[->] (11,0.5) -- (12,0.5) node[midway,above] {\ruleDef{EnterSwitch}};
+
+		\draw (13,0) -- (16,0) node[midway,below] {1};
+		\fill[red!80!black] (13.5,0.25) circle (1.25mm);
+		\fill[green!50!black] (15.5,0.25) circle (1.25mm);
+
+		%aiguillages
+		\draw[color=blue] (16.5,0) -- (19.5,0) node[midway,below] {5};
+		\draw[color=blue] (17.5,0) -- (18.2,0.5) ;
+		\draw[color=blue] (18.25,0.55) -- (19,1) -- (19.5,1) node[pos=0,below] {6};
+		\draw[color=blue] (19,1) -- (20.5,2);
+		\fill[red] (18.5,1.25) rectangle (19,1.75);
+
+
+		\draw (20,0) -- (23,0) node[midway,below] {2};
+		\fill[green!50!black] (20.5,0.25) circle (1.25mm);
+		\fill[red!80!black] (22.5,0.25) circle (1.25mm);
+
+		\draw (20,1) -- (23,1) node[pos=0.7,below] {3};
+		\fill[green!50!black] (20.5,1.25) circle (1.25mm);
+		\fill[red!80!black] (22.5,1.25) circle (1.25mm);
+
+		\draw (21,2) -- (23,2) node[pos=0.7,below] {4};
+		\fill[green!50!black] (21.5,2.25) circle (1.25mm);
+		\fill[red!80!black] (22.5,2.25) circle (1.25mm);
+
+		\end{tikzpicture}
+	}
+	\caption{Règle EnterSwitch.}
+	\label{fig:exEnterSwitch}
+\end{figure}
+
 La règle \ruleDef{EnterSwitch} est prèsque similaire à la précédente. Tout d'abord, on note la disparition de la contrainte sur le feu et de l'envoi de message, le train se trouvant sur un aiguillages, aucun feu de signalisation ou capteur ne sont présents.
-Enfin, pour utiliser cette règle nous avons besoin que le train se trouve sur un aiguillage, d'où la contrainte $\texttt{aig(\bid{i})} = true$. Dernière règle de cette section, nous allons voir comment un train passe d'un aiguillage à un canton.
+Enfin, pour utiliser cette règle nous avons besoin que le train se trouve sur un aiguillage, d'où la contrainte $\texttt{aig(\bid{i})} = true$. Dernière règle de cette section, nous allons voir comment un train passe d'un aiguillage à un canton. \todo{figure mal placé}
 
 \begin{mathpar}
 	\inferrule*[left=\ruleDef{ExitBlock}] {
@@ -1323,6 +1432,56 @@ Enfin, pour utiliser cette règle nous avons besoin que le train se trouve sur u
 		\redTuple{\guardS}{\push{\bufTrain}{\langle\bid{j},\dirFmt{d^{-1}}\rangle}}{\bufSig}{\stateTuple{\trainSeq{}\cup\{\trainTupleMF{\tid{m}}{\bid{j}}{d}{\trainConcat{\su{d}{\posFmt{N^\prime}}}{P}}{\bid{j}}\}}{\regulator}{\switches}{\signals}}
 	}
 \end{mathpar}
+
+\begin{figure}[h]
+	\centering
+	\resizebox{1\textwidth}{!}{
+		\begin{tikzpicture}[thick,scale=1]
+		\draw (0,0) -- (3,0) node[midway,below] {1};
+		\fill[green!50!black] (2.5,0.25) circle (1.25mm);
+		\draw[red,dotted] (1.25,0.25) rectangle (1.75,0.75);
+
+		\draw[color=blue] (3.5,0) -- (6.5,0) node[midway,below] {4};
+		\draw[color=blue] (5,0) -- (6.5,1) node[midway,below] {};
+		\fill[red] (4.25,0.25) rectangle (4.75,0.75);
+
+
+		\draw (7,0) -- (10,0) node[midway,below] {2};
+		\fill[green!50!black] (7.5,0.25) circle (1.25mm);
+		\fill[red!80!black] (9.5,0.25) circle (1.25mm);
+
+		\draw (7,1) -- (10,1) node[pos=0.7,below] {3};
+		\fill[green!50!black] (7.5,1.25) circle (1.25mm);
+		\fill[red!80!black] (9.5,1.25) circle (1.25mm);
+
+		\draw[->] (11,0.5) -- (12,0.5) node[midway,above] {\ruleDef{ExitBlock}};
+
+		\draw (13,0) -- (16,0) node[midway,below] {1};
+		\fill[red!80!black] (13.5,0.25) circle (1.25mm);
+		\fill[green!50!black] (15.5,0.25) circle (1.25mm);
+
+		\draw[color=blue] (16.5,0) -- (19.5,0) node[midway,below] {4};
+		\draw[color=blue] (18,0) -- (19.5,1);
+
+
+		\draw (20,0) -- (23,0) node[midway,below] {2};
+		\fill[green!50!black] (20.5,0.25) circle (1.25mm);
+		\fill[red!80!black] (22.5,0.25) circle (1.25mm);
+		\fill[red!80!black] (0.5,0.25) circle (1.25mm);
+		\fill[red] (21.25,1.25) rectangle (21.75,1.75);
+
+
+
+
+		\draw (20,1) -- (23,1) node[pos=0.7,below] {3};
+		\fill[green!50!black] (20.5,1.25) circle (1.25mm);
+		\fill[red!80!black] (22.5,1.25) circle (1.25mm);
+
+		\end{tikzpicture}
+	}
+	\caption{Règle EnterBlock.}
+	\label{fig:exEnterBlock}
+\end{figure}
 
 \noindent
 Cette règle "signe" la re-synchronisation du train avec le reste du système, on observe que $pos$ est égale à $tpos$. C'est aussi le retour de l'envoi de message, le train se trouvant dans un canton, il a donc franchit le capteur de début de canton, $\langle\bid{j},\dirFmt{d^{-1}}\rangle$. 
@@ -1475,7 +1634,7 @@ Pour indiquer cela à \TLA, nous devons utiliser la \textit{weak fairness}, une 
 \section{Composition}
 \label{sec:composition}
 
-\paragraph{} Jusqu'à présent, nous avons considérer que les programmes des train et du régulateur étaient créer par un humain. Cependant, est-il possible d'automatiser ce processus ? C'est ce que nous allons voir dans cette section.
+\paragraph{} Jusqu'à présent, nous avons considérer que les programmes des train et du régulateur étaient créer par un humain. Cependant, il est possible d'automatiser ce processus, c'est ce que nous allons voir dans cette section.
 Ce besoin est apparu lors de phases de test où il était nécessaire d'avoir plusieurs trajets avec des aspects différents pour vérifier que le comportement du système était correct.
 
 \paragraph{}Nous avons d'abord identifier deux types de trajets~:
@@ -1659,14 +1818,29 @@ La relecture par les pairs à été une expériences enrichissante, nous avons r
 
 \chapter{Conclusion}
 
+\paragraph{} Ce stage avait pour objectif de créer un outil permettant de vérifier l'ordonnancement de programme de train, voyons si ces objectifs ont été atteints.
+Pour cela, nous avons d'abord modélisé la maquette sous forme de graphe, figure \ref{fig:maquette}, afin d'avoir un espace dans lequel faire se déplacer nos trains.
+Il a ensuite fallu créer des modèles successifs, chaque fois plus proche de la réalité, en intégrant des éléments comme les capteurs de voie ou les feux de signalisation.
+Bien qu'importantes, ces intégrations ont fait émerger des problématiques, aujourd'hui résolues.
+
+\subparagraph{}
+Comme il est presque impossible pour un humain de tracer l'ensemble des états d'un système comme celui-ci, nous avons dû implémenter les modèles, d'abord sur Python grâce à un moteur de simulation, puis sur \TLA avec l'assistance de \texttt{TLC}.  
+Différents scénarios, dont nous connaissions parfaitement les comportements attendus, ont permis de pointer les diverses erreurs dans nos modèles.
+
+\subparagraph{}
+Notre méthode de travail nous a permis de rentrer en douceur dans le sujet, avec un premier modèle naïf, puis de complexifier progressivement les choses. Cette approche itérative est chronophage, mais, elle permet de segmenter des problèmes complexes en sous-problèmes plus simples à résoudre.
+Par exemple, sauter directement du modèle zéro au modèle final, en mélangeant le découplage, l'ajout des feux, des capteurs, etc., aurait été une tâche plus complexe. De plus, avec cette méthode, nous avons une connaissance plus fine des différents composants et de leurs interactions dans le système.
+Cependant, notre méthodologie à parfois montré des faiblesses, notamment en ce qui concerne les données superflues. Une donnée inutile dans le modèle, vestige du modèle précédent, peut complexifier la compréhension du système. Aussi, de par sa nature itérative, si un problème n'a pas été détecté dans un modèle antérieur, il se propagera sur les suivants.
+
+\subparagraph{}
+Nous avons ensuite développé une fonction de composition dans le but d'automatiser la création de programmes pour notre système. Pour nous assurer de sa justesse, nous avons déployé des tests automatisés sur un banc d'essai, lesquels ont donné des résultats encourageants.
+Cependant, nos expériences n'ont été réalisées qu'avec des compositions de deux ou trois chemins élémentaires, ce qui ne nous permet pas d'affirmer que notre approche est généralisable à des compositions plus grandes.
+
 \section{POV personnel}
 
 \appendix
 
 \chapter{Annexes}
-\section{scénarios}
-\subsection{GoodEnding}
-\label{scenar:goodEnding}
 
 \backmatter
 %\printbibliography
