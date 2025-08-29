@@ -1835,7 +1835,7 @@ La relecture par les pairs à été une expériences enrichissante, nous avons r
 \chapter{Conclusion}
 
 \paragraph{} Ce stage avait pour objectif de créer un outil permettant de vérifier l'ordonnancement de programme de train, voyons si ces objectifs ont été atteints.
-Pour cela, nous avons d'abord modélisé la maquette sous forme de graphe, figure \ref{fig:maquette}, afin d'avoir un espace dans lequel faire se déplacer nos trains.
+Pour cela, nous avons d'abord modélisé la maquette sous forme de graphe, figure \ref{fig:maquette}, afin d'obtenir un espace dans lequel faire se déplacer nos trains.
 Il a ensuite fallu créer des modèles successifs, chaque fois plus proche de la réalité, en intégrant des éléments comme les capteurs de voie ou les feux de signalisation.
 Bien qu'importantes, ces intégrations ont fait émerger des problématiques, aujourd'hui résolues.
 
@@ -1845,16 +1845,20 @@ Différents scénarios, dont nous connaissions parfaitement les comportements at
 
 \subparagraph{}
 Notre méthode de travail nous a permis de rentrer en douceur dans le sujet, avec un premier modèle naïf, puis de complexifier progressivement les choses. Cette approche itérative est chronophage, mais, elle permet de segmenter des problèmes complexes en sous-problèmes plus simples à résoudre.
-Par exemple, sauter directement du modèle zéro au modèle final, en mélangeant le découplage, l'ajout des feux, des capteurs, etc., aurait été une tâche plus complexe. De plus, avec cette méthode, nous avons une connaissance plus fine des différents composants et de leurs interactions dans le système.
+Par exemple, sauter directement du modèle zéro au modèle final, en mélangeant le découplage, l'ajout des feux, des capteurs, etc., aurait été une tâche plus complexe. De plus, avec cette méthode, nous avons acquis une connaissance plus fine des différents composants et de leurs interactions dans le système.
 Cependant, notre méthodologie à parfois montré des faiblesses, notamment en ce qui concerne les données superflues. Une donnée inutile dans le modèle, vestige du modèle précédent, peut complexifier la compréhension du système. Aussi, de par sa nature itérative, si un problème n'a pas été détecté dans un modèle antérieur, il se propagera sur les suivants.
 
 \subparagraph{}
 Nous avons ensuite développé une fonction de composition dans le but d'automatiser la création de programmes pour notre système. Pour nous assurer de sa justesse, nous avons déployé des tests automatisés sur un banc d'essai, lesquels ont donné des résultats encourageants.
 Cependant, nos expériences n'ont été réalisées qu'avec des compositions de deux ou trois chemins élémentaires, ce qui ne nous permet pas d'affirmer que notre approche est généralisable à des compositions plus grandes.
 
-[ouverture]
+\subparagraph{}
+Bien que de nombreux objectifs aient été atteints, notre modèle reste perfectible. Une ouverture vers les automates temporisés permettrait peut-être de simplifier la gestion des événements et de s'approcher encore plus de la réalité.
 
-\section{POV personnel}
+
+\paragraph{}
+Sur le plan personnel, ce stage m'a permis d'acquérir de nouvelles compétences, notamment en modélisation de systèmes, tout en renforçant ma capacité à travailler en autonomie. Bien que ne s'inscrivant pas parfaitement dans mon cursus, ce stage à été l'occasion d'élargir ma culture technique et scientifique, en découvrant un domaine, la vérification formelle, que je n'avais pas eu l'occasion d'explorer auparavant.
+De plus, cette expérience m'a permis de conforter mes choix d'orientation professionnelle et m'a offerte une perspective d'avenir au travers d'une opportunité de thèse, mélangeant cybersécurité et vérification formelle.
 
 \appendix
 
