@@ -399,7 +399,7 @@ L'intégration au sein de l'équipe s'est déroulée naturellement, les échange
 		\draw[mixed] (9,0.8) rectangle (10.9,1.2) ;
 		\draw[write] (11,0.8) rectangle (11.9,1.2) ;
 		\draw[code] (12,0.8) rectangle (12.9,1.2) ;
-		\draw[-] (9,-0.5) -- (12.9,-0.5) node[midway, below] {Mod. 2};
+		\draw[-] (9,-0.5) -- (12.9,-0.5) node[midway, below] {Mod. fail-safe};
 		\draw[-] (9,-0.25) -- (9,-0.5) ;
 		\draw[-] (12.9,-0.25) -- (12.9,-0.5) ;
 		%m3 + maquette
@@ -461,14 +461,14 @@ La figure \ref{fig:frise} illustre la répartition temporelle des différentes p
 		(q3) edge[bend left=5] node[midway, above=-1mm, sloped] {\backward,\swFmt{9v}/\swFmt{10v}}  (q2)
 		(q3) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{11v}}  (q8)
 		(q8) edge[bend left=5] node[midway, below=-1mm, sloped] {\backward,\swFmt{11v}}  (q3)
-		(q3) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{10d}}  (q4)
-		(q4) edge[bend left=5] node[midway, below=-1mm, sloped] {\backward,\swFmt{10d}}  (q3)
+		(q3) edge[bend left=5] node[midway, above=-1mm, sloped] {\backward,\swFmt{10d}}  (q4)
+		(q4) edge[bend left=5] node[midway, below=-1mm, sloped] {\forward,\swFmt{10d}}  (q3)
 		(q3) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{11d}}  (q7)
 		(q7) edge[bend left=5] node[midway, above=-1mm, sloped] {\backward,\swFmt{11d}}  (q3)
 		(q7) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{12d}}  (q5)
 		(q5) edge[bend left=5] node[midway, below=-1mm, sloped] {\backward,\swFmt{12vd}}  (q7)
-		(q4) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{13d}}  (q5)
-		(q5) edge[bend left=5] node[midway, below=-1mm, sloped] {\backward,\swFmt{13d}}  (q4)
+		(q4) edge[bend left=5] node[midway, above=-1mm, sloped] {\backward,\swFmt{13d}}  (q5)
+		(q5) edge[bend left=5] node[midway, below=-1mm, sloped] {\forward,\swFmt{13d}}  (q4)
 		(q7) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{12v}}  (q6)
 		(q6) edge[bend left=5] node[midway, below=-1mm, sloped] {\backward,\swFmt{12v}}  (q7)
 		(q6) edge[bend left=5] node[midway, above=-1mm, sloped] {\forward,\swFmt{13v}}  (q4)
@@ -490,7 +490,7 @@ Nous allons donc commencer par modéliser la maquette, représentant un réseau 
 Ce dernier simplifie l'information sur la manière dont est structuré le réseau et nous renseigne sur l'adjacence des différents éléments.
 
 Chaque sommet représente un canton, ils sont reliés entre eux par des arêtes symbolisant les aiguillages. Ces dernières portent une étiquette pour indiquer l'état des aiguillages concernés~: ainsi, "9d/10v" indique qu'il faut que les aiguillages 9 et 10 soient respectivement "direct" et "dévié" pour accéder à l'autre sommet. Nous verrons plus tard ce que ces termes désignent.
-Grâce à ce graphe, nous avons construit une fonction prenant en paramètre la position \bid{i} d'un train, sa direction \dirFmt{d} et la configuration des aiguillages \swFmt{$\sigma$}, et retournant la position du canton suivant \bid{j}~: $\suc{b_i}{d}{\sigma} = b_j$. S'il n'existe pas de successeur, la fonction renvoie une valeur spéciale~: $\nosuc$.
+Grâce à ce graphe, nous avons construit une fonction prenant en paramètre la position \bid{i} d'un train, sa direction \dirFmt{d} et la configuration des aiguillages \swFmt{$\sigma$}, et retournant la position du canton suivant \bid{j}~: $\suc{b_i}{d}{\sigma} = \bid{j}$. S'il n'existe pas de successeur, la fonction renvoie une valeur spéciale~: $\nosuc$.
 
 
 \begin{figure}[h]
@@ -524,11 +524,11 @@ Dans les prochaines sections, nous allons aborder différents modèles, du plus 
 Comme vu plus haut, la modélisation tend à exprimer des comportements au plus proche de la réalité sans en reproduire les détails jugée inutiles.
 C'est pourquoi nous faisons évoluer le modèle de manière itérative, ajoutant progressivement de plus en plus d'éléments.
 Une fois un modèle établi et son implémentation réalisée, nous pouvons tester son comportement et ses limites pour apporter des ajustements ou préparer le prochain modèle.
-Le modèle zéro est le plus basique, reflétant grossièrement le comportement de la maquette, tandis que le modèle 3 se rapproche davantage de l'implémentation réelle de cette dernière.
+Le modèle zéro est le plus basique, reflétant grossièrement le comportement de la maquette, tandis que le modèle final se rapproche davantage de l'implémentation réelle de cette dernière.
 
 \paragraph{Aiguillages.}
 La modélisation des aiguillages est constante sur les différents modèles, nous allons donc la présenter ici. Nous ne travaillons qu'avec des aiguillages "1-to-2", c'est-à-dire qu'il permet de choisir entre deux voies.
-Au départ du canton 3 il est possible de se diriger vers les cantons 1, 2 ou 4 grâce à un montage spécifique~: 
+Par exemple, au départ du canton 3 il est possible de se diriger vers les cantons 1, 2 ou 4 grâce à un montage spécifique~: 
 \begin{itemize}
 	\item L'aiguillage 10 nous donne la possibilité d'aller vers le canton 4 ou l'aiguillage 9.
 	\item L'aiguillage 9 nous permet d'accéder au canton 1 ou 2.
@@ -648,11 +648,11 @@ Avec ça, on peut représenter un état du système par $\mathcal{M} : \langle \
 
 \begin{example}[GoodEnding]
 	~\\
-	Modélisation de l'état initial d'un scénario en utilisant le modèle zéro~:
+	Modélisation de l'état initial d'un scénario (voir \ref{sec:goodEnding}) en utilisant le modèle zéro~:
 	\\$\trainFmt{\Gamma}~: \{t_1, t_2\}$ avec,
 	\begin{itemize}
-		\item[] $t_1 = \trainTuple{\square}{1}{*}{[\su{R}{3}]}$
-		\item[] $t_2 = \trainTuple{\vartriangle}{4}{*}{[\su{L}{1}]}$
+		\item[] $t_1 = \trainTuple{\square}{1}{*}{[\su{\forward}{3}]}$
+		\item[] $t_2 = \trainTuple{\vartriangle}{4}{*}{[\su{\backward}{1}]}$
 	\end{itemize}
 	\vspace{0.3cm}
 	$R~: \langle T,W,A,E,{\text Ne},S \rangle$ avec,	
@@ -887,7 +887,7 @@ Nous avons passé cette règle sous silence, car elle n'apportait rien à la com
 
 \begin{example}
 	~\\
-	Soit un train $\train{\tid{i}}{7}{\dirFmt{\star}}{P}$ dont le programme est le suivant~: $P = [\su{d}{[3,4]}, \su{f}{[3]}]$, un demi-tour est donc effectué sur le canton 4. 
+	Soit un train $\train{\tid{i}}{3}{\dirBackward}{P}$ dont le programme est le suivant~: $P = [\su{\dirBackward}{[4]}, \su{\dirForward}{[3]}]$, un demi-tour est donc effectué sur le canton 4. 
 	Voyons l'exécution de cette portion~:
 	\begin{itemize}
 		\item \ruleDef{UntilNext} : Le train passe du canton 3 au canton 4, le programme devient $P = [\su{f}{[3]}]$ et le message (\trainFmt{$\tid{i}$},\posFmt{4}) est envoyé au buffer.
@@ -951,19 +951,19 @@ Avec toutes ces modifications, la nouvelle représentation du régulateur est la
 
 
 \paragraph{Évènements.}
-Un nouvel évènement est introduit, noté \authOrder, il est la contraction des ordres \texttt{wait} et \texttt{incr}. C'est un ordre particulier car il n'est utile que dans un cas précis, quand l'évènement d'un train contient un ordre \texttt{turn} impliquant un aiguillage qu'il sera le prochain à utiliser, c'est souvent le cas lorsqu'un train effectue un demi-tour. Prenons par exemple le parcours 8,3,7 sur la maquette, voir \ref{fig:grapheMaquette}, l'aiguillage doit être dans l'état "v" puis "d".
+Un nouvel évènement est introduit, noté \authOrder, il est la contraction des ordres \texttt{wait} et \texttt{incr}. C'est un ordre particulier car il n'est utile que dans un cas précis, quand l'évènement d'un train contient un ordre \texttt{turn} impliquant un aiguillage qu'il sera le prochain à utiliser, c'est souvent le cas lorsqu'un train effectue un demi-tour. Prenons par exemple le parcours 8,3,7 sur la maquette (figure \ref{fig:grapheMaquette}) l'aiguillage doit être dans l'état "v" puis "d".
 
 Maintenant que le train peut avancer sans avoir terminé l'évènement, il peut avancer vers le mauvais canton. C'est la que $\authOrder$ intervient, il indique que le train doit s'arrêter. Ainsi, la fonction \nextWait{~} ne recherche plus uniquement \texttt{wait} mais également $\authOrder$ pour gérer les feux, voir la règles \ruleDef{WaitAfter} plus loin.
 
 \begin{example}[GoodEnding]
 	~\\
-	Modélisation de l'état initial d'un scénario en utilisant le modèle découplage~:
+	Modélisation de l'état initial d'un scénario (voir \ref{sec:goodEnding}) en utilisant le modèle découplage~:
 	\\$B~: []$ \commentaire{// vide}
 	\vspace{0.3cm}
 	\\$\trainFmt{\Gamma}~: \{t_1, t_2\}$ avec,
 	\begin{itemize}
-		\item[] $t_1 = \trainTuple{\square}{1}{*}{[\su{R}{[2,3]}]}$
-		\item[] $t_2 = \trainTuple{\vartriangle}{4}{*}{[\su{L}{[2,1]}]}$
+		\item[] $t_1 = \trainTuple{\square}{1}{*}{[\su{\dirForward}{[2,3]}]}$
+		\item[] $t_2 = \trainTuple{\vartriangle}{4}{*}{[\su{\dirBackward}{[2,1]}]}$
 	\end{itemize}
 	\vspace{0.3cm}
 	$R~: \langle T,W,E,\swFmt{\sigma},G,H,F \rangle$ avec,	
@@ -1194,7 +1194,7 @@ Résumons, nous avons à notre disposition trois champs considérés comme "mét
 
 \begin{example}[GoodEnding]
 		~\\
-	Modélisation de l'état initial d'un scénario en utilisant le modèle fail-safe~:
+	Modélisation de l'état initial d'un scénario (voir \ref{sec:goodEnding}) en utilisant le modèle fail-safe~:
 	\\$G~: T$
 	\vspace{0.3cm}
 	\\$B_t~: []$ \commentaire{// vide}
@@ -1203,8 +1203,8 @@ Résumons, nous avons à notre disposition trois champs considérés comme "mét
 	\vspace{0.3cm}
 	\\$\trainFmt{\Gamma}~: \{t_1, t_2\}$ avec,
 	\begin{itemize}
-		\item[] $t_1 = \trainTuple{\square}{1}{*}{[\su{R}{[2,3]}]}$
-		\item[] $t_2 = \trainTuple{\vartriangle}{4}{*}{[\su{L}{[2,1]}]}$
+		\item[] $t_1 = \trainTuple{\square}{1}{*}{[\su{\dirForward}{[2,3]}]}$
+		\item[] $t_2 = \trainTuple{\vartriangle}{4}{*}{[\su{\dirBackward}{[2,1]}]}$
 	\end{itemize}
 	\vspace{0.3cm}
 	$R~: \langle T,W,E \rangle$ avec,	
@@ -1290,6 +1290,8 @@ Nous allons introduire des capteurs aux extrémités des cantons afin de détect
 Une nouvelle fonction, \tsuc{b_i}{d}{\swFmt{\sigma}}, similaire à \suc{b_i}{d}{\sigma}, fait son apparition. Elle est utilisée en parallèle de \texttt{suc} pour déterminer le prochain élément sur lequel se déplacer, que ce soit un canton ou un aiguillage. Pour rappel, \suc{b_i}{d}{\sigma} ne renvoie que le prochain canton.
 Enfin, un nouvel ordre pour le programme des trains est introduit afin de régler le problème de cycle évoqué plus haut.
 
+De plus, nous allons introduire un nouvel ordre dans le programme des trains, permmetant de corriger le problème de cycle évoqué plus haut. 
+
 \paragraph{Problématiques.} Ces améliorations entraînent quelques problèmes, notamment un besoin de refonte des gestionnaires d'évènements, dont la structure n'est plus alignée avec le comportement souhaité.
 Actuellement, les gestionnaires d'évènements ne prennent pas en compte les capteurs, ce qui ne permet pas de réagir à leur activation.
 
@@ -1356,27 +1358,26 @@ Aussi, lorsque le régulateur commence à traiter des évènements, il le fait j
 
 \paragraph{Garde.} La garde est toujours présente et se voit dotée d'une nouvelle phase, notée $M$ pour \textit{management}, elle permet au régulateur d'appliquer la fonction \texttt{stalk} avant chaque évènement et de retirer les ordres "sync" dans les programmes des trains.
 
-\newpage
 \begin{example}[GoodEnding]
 		~\\
-	Modélisation de l'état initial d'un scénario en utilisant le modèle final~:
+	Modélisation de l'état initial d'un scénario (voir \ref{sec:goodEnding}) en utilisant le modèle final~:
 	\\$G~: T$
 	\vspace{0.3cm}
-	\\$B_t~: []$ \commentaire{// vide}
+	\\$B_t~: [(4,\dirBackward)]$
 	\vspace{0.3cm}
 	\\$B_s~: []$ \commentaire{// vide}
 	\vspace{0.3cm}
 	\\$\trainFmt{\Gamma}~: \{t_1, t_2\}$ avec,
 	\begin{itemize}
-		\item[] $t_1 = \trainTupleMF{\square}{1}{*}{[\su{R}{[2,3]}]}{1}$
-		\item[] $t_2 = \trainTupleMF{\vartriangle}{4}{*}{[\su{L}{[2,1]}]}{4}$
+		\item[] $t_1 = \trainTupleMF{\square}{1}{*}{[\su{\dirForward}{[2,3]}]}{1}$
+		\item[] $t_2 = \trainTupleMF{\vartriangle}{4}{*}{[\su{\dirBackward}{[2,1]}]}{4}$
 	\end{itemize}
 	\vspace{0.3cm}
 	$R~: \langle T,W,E,H,CP \rangle$ avec,	
 	\begin{itemize}
-		\item[] $E = [\dots,(3,\dirBackward)~:~[\turnOrder{5}{v}, \incr{2}], (4,\dirBackward)~:~[\wait{2}{1}],\dots]$
+		\item[] $E = [\dots,(3,\dirForward)~:~[\turnOrder{5}{v}, \incr{2}], (4,\dirBackward)~:~[\wait{2}{1}],\dots]$
 		\item[] $T = [0,0,0,0]$
-		\item[] $W = \{\langle \bid{1}, \bid{1}, 1, \trainFmt{\square} \rangle, \langle \bid{4}, \bid{4}, 1, \trainFmt{\triangle} \rangle\}$
+		\item[] $W = \{\}$
 		\item[] $H = [\langle \bid{1}, \dirForward \rangle, \langle \bid{4}, \dirBackward \rangle]$
 		\item[] $CP = [[-1],[4,-1]]$
 	\end{itemize}
@@ -1970,9 +1971,44 @@ Bien que notre modèle final soit le plus réaliste, il reste perfectible. Une o
 Sur le plan personnel, ce stage m'a permis d'acquérir de nouvelles compétences, notamment en modélisation de systèmes, tout en renforçant ma capacité à travailler en autonomie. Ce dernier à été l'occasion d'élargir ma culture technique et scientifique, en découvrant un domaine, la vérification formelle, que je n'avais pas eu l'occasion d'explorer auparavant.
 De plus, cette expérience m'a permis de conforter mes choix d'orientation professionnelle et m'a offerte une perspective d'avenir au travers d'une opportunité de thèse, mélangeant cybersécurité et vérification formelle.
 
-%\appendix
+\appendix
 
-%\chapter{Annexes}
+\chapter{Annexes}
+
+\section{GoodEnding}
+\label{sec:goodEnding}
+Le scénario \textit{GoodEnding} est issue de nos scénarios de test, il est le plus basique, mais comprend déjà un bon nombre d'interactions.
+
+\begin{figure}[H]
+	\centering
+	\resizebox{0.5\textwidth}{!}{
+		\begin{tikzpicture}[
+			vertex/.style={circle, draw=gray, fill=gray!15, very thick, minimum size=7mm, text width=1cm, align=center},
+			white/.style={circle, draw=white, fill=white, very thick, minimum size=7mm, text width=1cm, align=center},
+			edge/.style={thick}
+		]
+		\node[vertex] (q1)	  				  {1};
+		\node[vertex] (q2) [right=40mm of q1] {2};
+		\node[vertex] (q3) [right=40mm of q2] {3};
+		\node[vertex] (q4) [above=20mm of q3] {4};
+
+		\draw[->] 
+		(q1)  edge[bend left=5]  node[midway, above=-1mm, sloped] {\forward} (q2)
+		(q2) edge[bend left=5] node[midway, below=-1mm, sloped] {\backward}  (q1)
+		(q2)  edge[bend left=5]  node[midway, above=-1mm, sloped] {\forward,\swFmt{5d}} (q3)
+		(q3) edge[bend left=5] node[midway, below=-1mm, sloped] {\backward,\swFmt{5d}}  (q2)
+		(q2)  edge[bend left=5]  node[midway, above=-1mm, sloped] {\forward,\swFmt{5v}} (q4)
+		(q4) edge[bend left=5] node[midway, below=-1mm, sloped] {\backward,\swFmt{5v}}  (q2)
+
+		;
+		\end{tikzpicture}
+	}
+	\caption{Graphe modélisant le réseau du scénario \textit{GoodEnding}}
+	\label{fig:goodEnding}
+\end{figure}
+
+
+
 
 \nocite{*}
 \backmatter
